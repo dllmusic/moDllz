@@ -22,7 +22,7 @@ Only: retriggers when new the new note is lower than the previous one.<br/>
 </p>
 <p>
 It has outputs to PitchWheel, Modulation and AfterTouch like the original CORE: MIDI-TO-CV.<br/>
-Pedal (cc64) holds the gate. So only simultaneous pressed notes (one or two) are held.
+Pedal (cc64) holds the gate, so only simultaneous pressed notes (one or two) are held.
 </p>
 Example patch...https://github.com/dllmusic/VCV_moDllz/blob/master/MIDIdualCV.vcv
 <br/>
