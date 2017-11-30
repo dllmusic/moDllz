@@ -13,5 +13,5 @@ void init(rack::Plugin *p) {
 #endif
 	p->website = "http://www.vcvrack.com";
     // For each module, specify the ModuleWidget subclass, manufacturer slug (for saving in patches), manufacturer human-readable name, module slug, and module name
-	p->addModel(createModel<MIDIdualCVWidget>  ("moDllz", "MIDIdualCV",   "MIDIdualCV",   MIDI_TAG));
+	p->addModel(createModel<MIDIdualCVWidget>  ("moDllz", "MIDIdualCV",   "MIDI-to-dualCV interface",   MIDI_TAG));
 }
