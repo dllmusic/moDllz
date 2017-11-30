@@ -17,7 +17,7 @@ All: retriggers on every Lower changed note.
 Only: retriggers when new the new note is lower than the previous one.  
 -Legato: No retrigger (from common Gate output)
 
-It has outputs to PitchWheel, Modulation and AfterTouch like the original CORE: MIDI-TO-CV.  
+It has outputs from PitchWheel, Modulation and AfterTouch like the original CORE: MIDI-TO-CV.  
 Pedal (cc64) holds the gate, so only simultaneous pressed notes (one or two) are held.
 
 Example patch...https://github.com/dllmusic/VCV_moDllz/blob/master/MIDIdualCV.vcv  
