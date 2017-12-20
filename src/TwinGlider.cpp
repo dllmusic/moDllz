@@ -23,8 +23,8 @@ struct TwinGlider : Module {
         NUM_INPUTS=8
     };
     enum OutputIds {
-        TRIG_OUTPUT,
-        TRIGRISE_OUTPUT=2,
+        TRIGRISE_OUTPUT,
+        TRIG_OUTPUT=2,
         TRIGFALL_OUTPUT=4,
         OUT_OUTPUT=6,
         NUM_OUTPUTS=8
@@ -160,7 +160,7 @@ void ::TwinGlider::step() {
             }else{
                  out[ix] = in[ix];
                  triggerR[ix] = false;
-                gatePulse[ix].trigger(1e-3);
+                 gatePulse[ix].trigger(1e-3);
             }
         }else{
 /// stable
@@ -172,7 +172,7 @@ void ::TwinGlider::step() {
         }
 
     
-     if ((outputs[TRIGRISE_OUTPUT + ix].active)||(outputs[TRIGFALL_OUTPUT + ix].active)) {
+     if ((outputs[TRIGRISE_OUTPUT + ix].active)||(outputs[TRIG_OUTPUT + ix].active)||(outputs[TRIGFALL_OUTPUT + ix].active)) {
          pulse[ix] = gatePulse[ix].process(1.0 / engineGetSampleRate());
              outputs[TRIG_OUTPUT + ix].value = pulse[ix] ? 10.0 : 0.0;
          if (triggerR[ix]){
@@ -244,7 +244,7 @@ TwinGliderWidget::TwinGliderWidget() {
     /// TRIGGERS OUT
     Ypos += Ystep - 1;
     addOutput(createOutput<PJ301MPort>(Vec(15, Ypos-4), module, TwinGlider::TRIGRISE_OUTPUT + i));
-    addOutput(createOutput<PJ301MPort>(Vec(48, Ypos-4), module, TwinGlider::TRIGRISE_OUTPUT + i));
+    addOutput(createOutput<PJ301MPort>(Vec(48, Ypos-4), module, TwinGlider::TRIG_OUTPUT + i));
     addOutput(createOutput<PJ301MPort>(Vec(81, Ypos-4), module, TwinGlider::TRIGFALL_OUTPUT + i));
     
     // IN GATE OUT
