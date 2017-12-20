@@ -14,3 +14,8 @@ struct MIDIdualCVWidget : ModuleWidget {
     MIDIdualCVWidget();
     void step() override;
 };
+
+struct TwinGliderWidget : ModuleWidget {
+    TwinGliderWidget();
+    void step() override;
+};
