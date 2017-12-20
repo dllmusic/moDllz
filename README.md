@@ -32,3 +32,4 @@ You can have independent Rise and Fall times, or you can link both (to the Rise 
 The ramps can be set at constant speed (time relative to the voltage difference) or at constant time (independent from voltage difference).
 It has a Gate-in to produce "legato" portamento, so when receiving note gates only legato notes have portamento.
 There's independent trigger outputs for the finished Rise and Fall ramps and a common one that triggers on both.
+This could be used (without gliding time) as a Gate to Triggers : If you connect a Gate to the module In (not the Gate In) you get triggers at the beginning and ending points.
