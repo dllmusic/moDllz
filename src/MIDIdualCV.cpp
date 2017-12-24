@@ -356,8 +356,8 @@ MIDIdualCVWidget::MIDIdualCVWidget()
         yPos += 34;
     }
     //Retrig Switches
-    addParam(createParam<CKSS>(Vec(24, yPos+2), module, MIDIdualCVInterface::LWRRETRGGMODE_PARAM, 0.0, 1.0, 1.0));
-    addParam(createParam<CKSS>(Vec(98, yPos+2), module, MIDIdualCVInterface::UPRRETRGGMODE_PARAM, 0.0, 1.0, 1.0));
+    addParam(createParam<moDLLzSwitch>(Vec(24, yPos), module, MIDIdualCVInterface::LWRRETRGGMODE_PARAM, 0.0, 1.0, 1.0));
+    addParam(createParam<moDLLzSwitch>(Vec(98, yPos), module, MIDIdualCVInterface::UPRRETRGGMODE_PARAM, 0.0, 1.0, 1.0));
     yPos += 34;
     xPos = 88;
     //Common Outputs
