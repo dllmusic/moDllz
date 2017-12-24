@@ -27,9 +27,21 @@ Wiki...https://www.sequencer.de/synth/index.php/Duophonic
 
 Based on : Befaco Slew
 
-This is a dual linear glide/portamento. 
-You can have independent Rise and Fall times, or you can link both (to the Rise value).
-The ramps can be set at constant speed (time relative to the voltage difference) or at constant time (independent from voltage difference).
-It has a Gate-in to produce "legato" portamento, so when receiving note gates only legato notes have portamento.
-There's independent trigger outputs for the finished Rise and Fall ramps and a common one that triggers on both.
-This could be used (without gliding time) as a Gate to Triggers : If you connect a Gate to the module In (not the Gate In) you get triggers at the beginning and ending points.
+Twin Glider is a dual linear glide/portamento module.
+It limits the rate of change of the incoming signal with independent Rise and Fall times.
+
+RISE and FALL knobs control the rate/time of change.
+CV-in modulation is delimited by the knob values.
+
+MODE: Each ramp can be set at constant time (ramp time independent from voltage difference) or at constant rate (ramp time relative to  voltage difference).
+
+LINK: the Fall (time CV and time mode) to the Rise values.
+
+RGATE/ FGATE: Rise and Fall output Gate while happening. 
+
+RTRIG/FTRIG: Rise and Fall output Triggers when done. 
+
+TRIG: RTRIG and FTRIG
+You can use TRIG to output triggers at the starting and ending of a Gate connected to the In, with zero Fall/Rise times
+
+GATE IN: When connected, the Rise/Fall ramps are active only if a Gate is received. Connect note gates here to produce portamento on legato notes only.
