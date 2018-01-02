@@ -1,16 +1,15 @@
 # VCV_moDllz 
 VCV Rack plugins
 
-# Full Manual
-https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf
+[### Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)
 
-# MIDI to dual CV interface:
+## MIDI to dual CV interface:
 
 Based on : Core MIDI-To-CV
 
 Simulates a duophonic keyboard from MIDI input, getting the Lower and Upper notes 1V/Oct / Vel and Gate (reTriggered)
 
-# Twin Glider
+## Twin Glider
 
 Based on : Befaco Slew
 
