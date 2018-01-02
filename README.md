@@ -1,7 +1,7 @@
 # VCV_moDllz 
 VCV Rack plugins
 
-[### Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)
+### [Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)
 
 ## MIDI to dual CV interface:
 
