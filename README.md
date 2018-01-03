@@ -2,7 +2,7 @@
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/Header.png)
 
-## MIDI to dual CV interface:
+## MIDI to dual CV interface
 
 Based on : Core MIDI-To-CV
 
@@ -23,7 +23,7 @@ It limits the rate of change of the incoming signal with independent Rise and Fa
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/TwinGpic.png)
 
-###Example usages: 
+### Example usages: 
 * Note portamento (1v/oct Input > Out to VCO)
 * Get "slow" noise signals for random modulation (noise Input : S&G, Time mode)
 
@@ -39,8 +39,8 @@ It limits the rate of change of the incoming signal with independent Rise and Fa
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/EnvFollower.png)
 
-[Example patches](https://github.com/dllmusic/VCV_moDllz/blob/master/patches/moDllzVCVpatches.zip?raw=true)
+### [Example Patches](https://github.com/dllmusic/VCV_moDllz/blob/master/patches/moDllzVCVpatches.zip?raw=true)
 
-[PDF Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)
+### [PDF Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/Footer.png)
