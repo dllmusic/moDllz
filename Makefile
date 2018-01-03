@@ -1,5 +1,5 @@
 SLUG = moDllz
-VERSION = 0.5.2
+VERSION = 0.5.3
 
 # FLAGS will be passed to both the C and C++ compiler
 FLAGS += -I../../src/core
@@ -24,7 +24,7 @@ include ../../plugin.mk
 dist: all
 	rm -rf dist
 	mkdir -p dist/$(SLUG)
-	cp LICENSE* README* dist/$(SLUG)/
+	cp LICENSE* moDllz_manual* dist/$(SLUG)/
 	cp $(TARGET) dist/$(SLUG)/
 	cp -R res dist/$(SLUG)/
 	cd dist && zip -5 -r $(SLUG)-$(VERSION)-$(ARCH).zip $(SLUG)
