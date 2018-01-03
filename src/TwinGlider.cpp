@@ -91,7 +91,7 @@ void ::TwinGlider::glidenow(int ix){
             outputs[GATEFALL_OUTPUT + ix].value = 0;
             switch (risemodeSW) {
                 case 0: /// Hi Rate
-                    glideval[ix] = 1/(1 + rise[ix] * 0.01 * engineGetSampleRate());
+                    glideval[ix] = 1/(1 + rise[ix] * 0.005 * engineGetSampleRate());
                     break;
                 case 1: /// Rate
                     glideval[ix] = 1/(1 + rise[ix] * 2 * engineGetSampleRate());
@@ -143,7 +143,7 @@ void ::TwinGlider::glidenow(int ix){
             
             switch (fallmodeSW) {
                 case 0:
-                    glideval[ix] = 1/(1 + fall[ix] * 0.01 * engineGetSampleRate());
+                    glideval[ix] = 1/(1 + fall[ix] * 0.005 * engineGetSampleRate());
                     break;
                 case 1:
                     glideval[ix] = 1/(1 + fall[ix] * 2 * engineGetSampleRate());
