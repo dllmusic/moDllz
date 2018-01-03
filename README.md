@@ -11,7 +11,7 @@ Simulates a duophonic keyboard sending 2 CVs / Vel / Gate (reTriggered) for Lowe
 ... if only one note is played Lower and Upper CVs are the same (Useful for unison / separate OSC with optional RingMod / Oscillator sync) 
 There's also different options to retrigger Lower/Upper Gates independently.
 
-!(http://www.dllmusic.com/manual_pics/DualCVpic.png)
+!(http://www.dllmusic.com/manual_pics/DualCVpic.jpg)
 
 ## Twin Glider
 
