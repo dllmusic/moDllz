@@ -41,6 +41,12 @@ It limits the rate of change of the incoming signal with independent Rise and Fa
 
 ### [Example Patches](https://github.com/dllmusic/VCV_moDllz/blob/master/patches/moDllzVCVpatches.zip?raw=true)
 
-### [PDF Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)
+<!--### [PDF Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)-->
+
+## MIDI Poly 16
+### Interface + Sequencer + Arpeggiator
+(manual coming soon...)
+
+![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/MIDIPoly16-Placeholder.png)
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/Footer.png)
