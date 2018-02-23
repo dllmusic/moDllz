@@ -2,17 +2,11 @@
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/Header.png)
 
-## MIDI to dual CV interface
+## MIDI Poly 16
+### Interface + Sequencer + Arpeggiator
 
-Based on : Core MIDI-To-CV
-
-Simulates a duophonic keyboard sending 2 CVs / Vel / Gate (reTriggered) for Lower and Upper notes being played  
-... if only one note is played Lower and Upper CVs are the same (Useful for unison / separate OSC with optional RingMod / Oscillator sync) 
-There's also different options to retrigger Lower/Upper Gates independently.
-
-![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/DualCVpic.png)
-
-[Duophonic Wiki](https://www.sequencer.de/synth/index.php/Duophonic)
+<img src="https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/MIDIPoly16-Placeholder.png" height="380" width="600">
+...MIDI Poly 16 manual coming soon...
 
 ## Twin Glider
 
@@ -39,14 +33,22 @@ It limits the rate of change of the incoming signal with independent Rise and Fa
 
 ![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/EnvFollower.png)
 
+
+## MIDI to dual CV interface
+
+Based on : Core MIDI-To-CV
+
+Simulates a duophonic keyboard sending 2 CVs / Vel / Gate (reTriggered) for Lower and Upper notes being played  
+... if only one note is played Lower and Upper CVs are the same (Useful for unison / separate OSC with optional RingMod / Oscillator sync) 
+There's also different options to retrigger Lower/Upper Gates independently.
+
+![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/DualCVpic.png)
+
+[Duophonic Wiki](https://www.sequencer.de/synth/index.php/Duophonic)
+
 ### [Example Patches](https://github.com/dllmusic/VCV_moDllz/blob/master/patches/moDllzVCVpatches.zip?raw=true)
 
 <!--### [PDF Manual](https://github.com/dllmusic/VCV_moDllz/blob/master/moDllz_manual.pdf)-->
 
-## MIDI Poly 16
-### Interface + Sequencer + Arpeggiator
-(manual coming soon...)
 
-<img src="https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/MIDIPoly16-Placeholder.png" height="380" width="600">
-
-<!--![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/Footer.png)-->
+![](https://github.com/dllmusic/VCV_moDllz/blob/master/manual_pics/Footer.png)
