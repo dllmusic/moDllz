@@ -1,5 +1,5 @@
 SLUG = moDllz
-VERSION = 0.5.3
+VERSION = 0.5.4
 
 # FLAGS will be passed to both the C and C++ compiler
 FLAGS += -I../../src/core
@@ -13,19 +13,17 @@ LDFLAGS +=
 # Add .cpp and .c files to the build
 SOURCES = $(wildcard src/*.cpp)
 
+# Add files to the ZIP package when running `make dist`
+# The compiled plugin is automatically added.
+DISTRIBUTABLES += $(wildcard LICENSE*) res
 
-# Must include the VCV plugin Makefile framework
-include ../../plugin.mk
+
+# If RACK_DIR is not defined when calling the Makefile, default to two levels above
+RACK_DIR ?= ../..
+
+# Include the VCV Rack plugin Makefile framework
+include $(RACK_DIR)/plugin.mk
 
 
-# Convenience target for packaging files into a ZIP file
 
-.PHONY: dist
-dist: all
-	rm -rf dist
-	mkdir -p dist/$(SLUG)
-	cp LICENSE* moDllz_manual* dist/$(SLUG)/
-	cp $(TARGET) dist/$(SLUG)/
-	cp -R res dist/$(SLUG)/
-	cd dist && zip -5 -r $(SLUG)-$(VERSION)-$(ARCH).zip $(SLUG)
 
