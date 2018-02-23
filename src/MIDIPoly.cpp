@@ -1873,12 +1873,12 @@ MIDIPolyWidget::MIDIPolyWidget()
 	}
     //Screws
 	addChild(createScrew<ScrewBlack>(Vec(0, 0)));
-    addChild(createScrew<ScrewBlack>(Vec(170, 0)));
-    addChild(createScrew<ScrewBlack>(Vec(415, 0)));
+    addChild(createScrew<ScrewBlack>(Vec(135, 0)));
+    addChild(createScrew<ScrewBlack>(Vec(435, 0)));
 	addChild(createScrew<ScrewBlack>(Vec(585, 0)));
     addChild(createScrew<ScrewBlack>(Vec(0, 365)));
-    addChild(createScrew<ScrewBlack>(Vec(170, 365)));
-	addChild(createScrew<ScrewBlack>(Vec(415, 365)));
+    addChild(createScrew<ScrewBlack>(Vec(135, 365)));
+	addChild(createScrew<ScrewBlack>(Vec(435, 365)));
 	addChild(createScrew<ScrewBlack>(Vec(585, 365)));
     
     float yPos = 26;
