@@ -39,240 +39,270 @@ struct TwinGlider : Module {
         NUM_LIGHTS=4
     };
  
+    struct gliderObj{
+        float out = 0.0f;
+        float in = 0.0f;
+   //     float jump = 0.0f;
+        int risemode = 0.0f;
+        int fallmode = 0.0f;
+        float riseval = 0.0f;
+        float fallval = 0.0f;
+        float prevriseval = 0.0f;
+        float prevfallval = 0.0f;
+        float riseramp = 0.0f;
+        float fallramp = 0.0f;
+        bool rising = false;
+        bool falling = false;
+        bool newgate = false;
+        bool pulse = false;
+        bool newin = false;
+        bool trigR = false;
+        bool trigF = false;
+        int clocksafe = 0;
+        //   int frameTime = 0;
+        PulseGenerator risePulse;
+        PulseGenerator fallPulse;
+        
+    };
     
-    float out[2] = {0.0};
-    float in[2] = {0.0};
-    float memo[2] = {0.0};
-    float rise[2];
-    float fall[2];
-    float glideval[2];
-    bool docalc[2] = {true};
-    bool gliding[2] = {false};
-    bool newgate[2] = {false};
-    bool pulse[2] = {false};
-    bool triggerR[2] = {false};
-    bool thisIn[2] = {false};
-    int clocksafe[2] = {0};
-    void glidenow(int ix);
+    gliderObj glider[2];
     
-    PulseGenerator gatePulse[2];
+    const float threshold = 0.01f;
     
-   // SchmittTrigger clockTrigger[2];
+  //  int testVal = 0;
     
     TwinGlider() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     ~TwinGlider() {
     };
     
     void step() override;
-    
-};
-
-//////////////// GLIDE FUNCTION ////////////
-
-void ::TwinGlider::glidenow(int ix){
-    int risemodeSW = params[RISEMODE_PARAM + ix].value;
-    int fallmodeSW = params[RISEMODE_PARAM + ix].value;
-    ///// Calculate slope  if mode is constant time and new in while gliding
-    if (((risemodeSW == 2) || (fallmodeSW == 2)) && (in[ix] != memo[ix]) && (gliding[ix])) {
-        docalc[ix] = true;
-    }
-
-        ///////RISE
-    if ( in[ix] > out[ix]) {
-        ///Check CVin and get Rise value
-        if (inputs[RISE_INPUT + ix].active)
-            rise[ix] = inputs[RISE_INPUT + ix].value / 10 * params[RISE_PARAM + ix].value;
-        else rise[ix] = params[RISE_PARAM + ix].value;
-        ///
-        if (rise[ix] > 0){
-            lights[RISING_LIGHT + ix].value = 1;
-            lights[FALLING_LIGHT + ix].value = 0;
-            outputs[GATERISE_OUTPUT + ix].value = 10;
-            outputs[GATEFALL_OUTPUT + ix].value = 0;
-            switch (risemodeSW) {
-                case 0: /// Hi Rate
-                    glideval[ix] = 1/(1 + rise[ix] * 0.005 * engineGetSampleRate());
-                    break;
-                case 1: /// Rate
-                    glideval[ix] = 1/(1 + rise[ix] * 2 * engineGetSampleRate());
-                    break;
-                case 2: /// Time
-                    if (docalc[ix]){
-                        memo[ix] = in[ix];
-                        glideval[ix] = (in[ix] - out[ix]) / (engineGetSampleTime()+ rise[ix] * rise[ix] * 10 * engineGetSampleRate());
-                        docalc[ix] = false;
-                    }
-                    break;
-                default:
-                    break;
-            }
-            //////////////////RISING//////////
-            out[ix] += glideval[ix];
-            
-            if (out[ix] < in[ix]){
-                gliding[ix] = true;
-            }else{
-                gliding[ix] = false;
-                docalc[ix] = true;
-                triggerR[ix] = true;
-                gatePulse[ix].trigger(1e-3);
-                out[ix] = in[ix];
-                lights[RISING_LIGHT + ix].value = 0;
-            }
-        }else{
-            out[ix] = in[ix];
-            triggerR[ix] = true;
-            gatePulse[ix].trigger(1e-3);
-        }
-        /// FALL
-    }else if (in[ix] < out[ix]) {
-        /// Check link CVin and get Fall value
-        if (params[LINK_PARAM + ix].value) {
-            fall[ix] = rise[ix];
-        }else{
-            if (inputs[FALL_INPUT + ix].active)
-                fall[ix] = inputs[FALL_INPUT + ix].value / 10 * params[FALL_PARAM + ix].value;
-            else fall[ix] = params[FALL_PARAM + ix].value;
-        }
-        //////////////
-        if (fall[ix] > 0) {
-            lights[RISING_LIGHT + ix].value = 0;
-            lights[FALLING_LIGHT + ix].value = 1;
-            outputs[GATERISE_OUTPUT + ix].value = 0;
-            outputs[GATEFALL_OUTPUT + ix].value = 10;
-            
-            switch (fallmodeSW) {
-                case 0:
-                    glideval[ix] = 1/(1 + fall[ix] * 0.005 * engineGetSampleRate());
-                    break;
-                case 1:
-                    glideval[ix] = 1/(1 + fall[ix] * 2 * engineGetSampleRate());
-                    break;
-                case 2:
-                    if (docalc[ix]){
-                        memo[ix] = in[ix];
-                        glideval[ix] = (out[ix] - in[ix]) / (engineGetSampleTime()+ fall[ix] * fall[ix] * 10 * engineGetSampleRate());
-                        docalc[ix] = false;
-                    }
-                    break;
-                default:
-                    break;
-            }
-            //////////////////FALLING//////////
-            out[ix] -= glideval[ix];
-            
-            if (out[ix] > in[ix]){
-                gliding[ix] = true;
-            }else{
-                gliding[ix] = false;
-                docalc[ix] = true;
-                triggerR[ix] = false;
-                gatePulse[ix].trigger(1e-3);
-                out[ix] = in[ix];
-                lights[FALLING_LIGHT + ix].value = 0;
-            }
-        }else{
-            out[ix] = in[ix];
-            triggerR[ix] = false;
-            gatePulse[ix].trigger(1e-3);
-        }
-    }else{
-        /// stable
-        gliding[ix] = false;
-        docalc[ix] = true;
-        out[ix] = in[ix];
+    void reset() override {
+        for (int ix = 0; ix < 2 ; ix++){
+       // gliding[ix] = false;
+        outputs[OUT_OUTPUT + ix].value = inputs[IN_INPUT + ix].value;
         lights[RISING_LIGHT + ix].value = 0;
         lights[FALLING_LIGHT + ix].value = 0;
         outputs[GATERISE_OUTPUT + ix].value = 0;
         outputs[GATEFALL_OUTPUT + ix].value = 0;
-    }
-    
-    
-    if ((outputs[TRIGRISE_OUTPUT + ix].active)||(outputs[TRIG_OUTPUT + ix].active)||(outputs[TRIGFALL_OUTPUT + ix].active)) {
-        pulse[ix] = gatePulse[ix].process(1.0 / engineGetSampleRate());
-        outputs[TRIG_OUTPUT + ix].value = pulse[ix] ? 10.0 : 0.0;
-        if (triggerR[ix]){
-            outputs[TRIGRISE_OUTPUT + ix].value = pulse[ix] ? 10.0 : 0.0;
-        }else{
-            outputs[TRIGFALL_OUTPUT + ix].value = pulse[ix] ? 10.0 : 0.0;
         }
     }
-    
-}
+};
 
 ///////////////////////////////////////////
-/////////////// MAIN STEP //////////////////
+///////////////STEP //////////////////
 /////////////////////////////////////////////
 
 void ::TwinGlider::step() {
-    
-    int ix = 0;
-    do {
- if (inputs[IN_INPUT + ix].active) {
- 
-    
-      if (params[SMPNGLIDE_PARAM + ix].value)
-        {
-            thisIn[ix] = false;
+    for (int ix = 0; ix < 2; ix++){
+        if (inputs[IN_INPUT + ix].active) {
+            if (std::abs(glider[ix].in - inputs[IN_INPUT + ix].value) > threshold){
+                glider[ix].newin = true;
+            }
+        if (params[SMPNGLIDE_PARAM + ix].value > 0.5f){
+            bool allowin = false;
             if (inputs[CLOCK_INPUT + ix].active){
              // External clock
-          //   if (clockTrigger[ix].process(inputs[CLOCK_INPUT + ix].value)) thisIn[ix] = true;// allow in
-                if ((clocksafe[ix]>8) && (inputs[CLOCK_INPUT + ix].value > 2.5)){
-                    thisIn[ix] = true;
-                    clocksafe[ix]=0;
-                }else if ((clocksafe[ix]<10) && (inputs[CLOCK_INPUT + ix].value < 0.01)) clocksafe[ix]+=1;
-            
-            }
-           else if (!(gliding[ix])) thisIn[ix] = true;
-          
-        if (thisIn[ix])  in[ix] = inputs[IN_INPUT + ix].value;////<<< input if sample clock or ramp done
-        }else {
-           in[ix] = inputs[IN_INPUT + ix].value;////<<< input normal
+                if ((glider[ix].clocksafe > 8) && (inputs[CLOCK_INPUT + ix].value > 2.5f)){
+                    allowin = true;
+                    glider[ix].in = inputs[IN_INPUT + ix].value;
+                    glider[ix].clocksafe = 0;
+                }else if ((glider[ix].clocksafe <10) && (inputs[CLOCK_INPUT + ix].value < 0.01f)) glider[ix].clocksafe ++;
+            }  else allowin = ((!glider[ix].rising) && (!glider[ix].falling));
+            if (allowin) if (glider[ix].newin) glider[ix].in = inputs[IN_INPUT + ix].value;
         }
-     
-    
-     
+        else if (glider[ix].newin) glider[ix].in = inputs[IN_INPUT + ix].value;
      //Check for legato from Gate
+    bool glideMe = false;
     if (inputs[GATE_INPUT + ix].active){
-      
-        if (inputs[GATE_INPUT + ix ].value < 0.5) {
-            newgate[ix] = true;
-            out[ix] = in[ix];
-        }else if (newgate[ix]) {
-                out[ix] = in[ix] ;
-                newgate[ix] = false;
-        }else glidenow(ix);/// GLIDE !!!!!
-    }else glidenow(ix);//// GLIDE !!!!
+        if (inputs[GATE_INPUT + ix ].value < 0.5f) {
+            glider[ix].newgate = true;
+            glider[ix].out = glider[ix].in;
+        }else if (glider[ix].newgate) {
+                glider[ix].out = glider[ix].in ;
+                glider[ix].newgate = false;
+        }else glideMe= true;/// GLIDE !!!!!
+    }else glideMe = true;//// GLIDE !!!!
 
-    outputs[OUT_OUTPUT + ix].value = out[ix];
- /// else from if input ACTIVE....
+            if (glideMe) {
+                //////////////// GLIDE FUNCTION ////////////>>>>>>>>>>>>>>>>>>>>>
+
+                    glider[ix].risemode = static_cast<int> (params[RISEMODE_PARAM + ix].value);
+                    glider[ix].fallmode = static_cast<int> (params[FALLMODE_PARAM + ix].value);
+                    if (glider[ix].in  > glider[ix].out){
+                        if (inputs[RISE_INPUT + ix].active)
+                            glider[ix].riseval = inputs[RISE_INPUT + ix].value / 10.0f * params[RISE_PARAM + ix].value;
+                        else glider[ix].riseval = params[RISE_PARAM + ix].value;
+                        
+                        if (glider[ix].riseval > 0.0f) {
+                            switch (glider[ix].risemode) {
+                                case 0: /// Hi Rate
+                                    glider[ix].riseramp = 1.0f/(1.0f + glider[ix].riseval * 0.005f * engineGetSampleRate());
+                                    break;
+                                case 1: /// Rate
+                                    glider[ix].riseramp = 1.0f/(1.0f + glider[ix].riseval * 2.0f * engineGetSampleRate());
+                                    break;
+                                case 2: /// Time
+                                    if ((glider[ix].newin)||(glider[ix].riseval != glider[ix].prevriseval)){
+                                        glider[ix].prevriseval = glider[ix].riseval;
+                                        glider[ix].newin = false;
+                                        glider[ix].riseramp =  (glider[ix].in - glider[ix].out) * engineGetSampleTime() /(glider[ix].riseval * glider[ix].riseval * 10.0f);
+                                        if  (glider[ix].riseramp< 1e-6)  glider[ix].riseramp = 1e-6;
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
+                            glider[ix].out += glider[ix].riseramp;
+                            glider[ix].rising = true;
+                            glider[ix].falling = false;
+                            if (glider[ix].out >= glider[ix].in) {///////REACH RISE
+                                glider[ix].out = glider[ix].in;
+                                glider[ix].rising = false;
+                                glider[ix].trigR = true;
+                            }
+                        } else {
+                            glider[ix].rising = false;
+                            glider[ix].out = glider[ix].in;
+                        }
+                    
+                    } else  if (glider[ix].in  < glider[ix].out){
+                        if (params[LINK_PARAM + ix].value > 0.5f) {
+                            glider[ix].fallmode  = glider[ix].risemode;
+                            glider[ix].fallval  = glider[ix].riseval;
+                        }else{
+                            if (inputs[FALL_INPUT + ix].active)
+                                glider[ix].fallval = inputs[FALL_INPUT + ix].value / 10.0f * params[FALL_PARAM + ix].value;
+                            else glider[ix].fallval = params[FALL_PARAM + ix].value;
+                        }
+                        if (glider[ix].fallval > 0.0f) {
+                            switch (glider[ix].fallmode) {
+                                case 0:
+                                    glider[ix].fallramp = 1.0f/(1.0f + glider[ix].fallval * 0.005f * engineGetSampleRate());
+                                    break;
+                                case 1:
+                                    glider[ix].fallramp = 1.0f/(1.0f + glider[ix].fallval * 2.0f * engineGetSampleRate());
+                                    break;
+                                case 2:
+                                    if ((glider[ix].newin) || (glider[ix].fallval != glider[ix].prevfallval)){
+                                        glider[ix].prevfallval = glider[ix].fallval;
+                                        glider[ix].newin = false;
+                                        glider[ix].fallramp =  (glider[ix].out - glider[ix].in) * engineGetSampleTime() /(glider[ix].fallval * glider[ix].fallval * 10.0f);
+                                        if  (glider[ix].fallramp < 1e-6) glider[ix].fallramp= 1e-6;
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
+                            glider[ix].out -= glider[ix].fallramp;
+                            glider[ix].falling = true;
+                            glider[ix].rising = false;
+                            if (glider[ix].out <= glider[ix].in){////////REACH FALL
+                                glider[ix].out = glider[ix].in;
+                                glider[ix].falling = false;
+                                glider[ix].trigF = true;
+                            }
+                        }else{
+                            glider[ix].falling = false;
+                            glider[ix].out = glider[ix].in;
+                        }
+                    } else {
+                        glider[ix].rising = false;
+                        glider[ix].falling = false;
+                        glider[ix].out = glider[ix].in;
+                    }
+            }else{
+                glider[ix].rising = false;
+                glider[ix].falling = false;
+                glider[ix].out = glider[ix].in;
+            }
+            
+    ///testVal = static_cast<int> (gliding[0] * 10^7);
+    
+ 
+    lights[RISING_LIGHT + ix].value = glider[ix].rising? 1.0 : 0.0f;
+    lights[FALLING_LIGHT + ix].value = glider[ix].falling? 1.0 : 0.0f;
+    outputs[GATERISE_OUTPUT + ix].value = glider[ix].rising? 10.0 : 0.0f;
+    outputs[GATEFALL_OUTPUT + ix].value = glider[ix].falling? 10.0 : 0.0f;
+    
+    outputs[OUT_OUTPUT + ix].value = glider[ix].out;
+            
+//            //// do triggers and reset flags
+           if (outputs[TRIGRISE_OUTPUT + ix].active||outputs[TRIG_OUTPUT + ix].active||outputs[TRIGFALL_OUTPUT + ix].active) {
+               if (glider[ix].trigR)  {
+                   glider[ix].risePulse.trigger(1e-3f);
+                   glider[ix].trigR = false;
+                }
+               if (glider[ix].trigF)  {
+                   glider[ix].fallPulse.trigger(1e-3f);
+                   glider[ix].trigF = false;
+               }
+//
+            bool pulseR = glider[ix].risePulse.process(1.0f /  engineGetSampleRate());
+            outputs[TRIGRISE_OUTPUT + ix].value = pulseR ? 10.0 : 0.0;
+
+            bool pulseF = glider[ix].fallPulse.process(1.0f /  engineGetSampleRate());
+            outputs[TRIGFALL_OUTPUT + ix].value = pulseF ? 10.0 : 0.0;
+
+            outputs[TRIG_OUTPUT + ix].value = (pulseR || pulseF) ? 10.0 : 0.0;
+//
+            }
+           ///else {
+//               trigR[ix] = false;
+//               trigF[ix] = false;
+//           }
+            
+ 
+     /// else from if input ACTIVE....
  }else{
      //disconnected in...reset Output if connected...
-     outputs[OUT_OUTPUT + ix].value = 0;
-     outputs[GATERISE_OUTPUT + ix].value = 0;
-     outputs[GATEFALL_OUTPUT + ix].value = 0;
-     lights[RISING_LIGHT + ix].value = 0;
-     lights[FALLING_LIGHT + ix].value = 0;
-     out[ix] = 0;
-     in[ix] = 0;
-     memo[ix] = 0;
-     gliding[ix] = false;
-     newgate[ix] = false;
-     thisIn[ix] = false;
+    // outputs[OUT_OUTPUT + ix].value = 0;
+     outputs[GATERISE_OUTPUT + ix].value = 0.0f;
+     outputs[GATEFALL_OUTPUT + ix].value = 0.0f;
+     lights[RISING_LIGHT + ix].value = 0.0f;
+     lights[FALLING_LIGHT + ix].value = 0.0f;
+     glider[ix].out = 0.0f;
+     glider[ix].in = 0.0f;
+ //    gliding[ix] = false;
+     glider[ix].newgate = false;
+ //    allowin[ix] = true;
  }/// Closing if input  ACTIVE
-   ix++;
-} while (ix < 2);
+
+} //for loop ix
   
 }//closing STEP
 
 /////////////////////////////////////////////
+///// TEST DISPLAY //////
+
+//struct testDisplay : TransparentWidget {
+//    testDisplay() {
+//        font = Font::load(FONT_FILE);
+//    }
+//    float mdfontSize = 16.f;
+//    std::shared_ptr<Font> font;
+//    std::string displayedVal;
+//    int *valP;
+//    int val = 0;
+//    void draw(NVGcontext* vg)
+//    {
+//        val = *valP;
+//        displayedVal = std::to_string(val);
+//        nvgFillColor(vg, nvgRGB(0xFF,0xFF,0x00));
+//        nvgFontSize(vg, mdfontSize);
+//        //nvgTextLetterSpacing(vg, 2.0f);
+//        //nvgTextAlign(vg, NVG_ALIGN_CENTER);
+//        nvgTextBox(vg, 0.0f, 20.0f, 165.0f, displayedVal.c_str(), NULL);
+//
+//    }
+//
+//};
 ////////////////////////////////////////////
 ///////////////////////////////////////////
 
 TwinGliderWidget::TwinGliderWidget() {
-    ::TwinGlider *module = new ::TwinGlider();
+    TwinGlider *module = new ::TwinGlider();
     setModule(module);
-    box.size = Vec(15*11, 380);
+    box.size = Vec(15* 11, 380);
     
     {
         SVGPanel *panel = new SVGPanel();
@@ -297,8 +327,6 @@ TwinGliderWidget::TwinGliderWidget() {
     /// Gliding Leds
     addChild(createLight<TinyLight<RedLight>>(Vec(6.75, Ypos+1), module, TwinGlider::RISING_LIGHT + i));
     addChild(createLight<TinyLight<RedLight>>(Vec(154.75, Ypos+1), module, TwinGlider::FALLING_LIGHT + i));
-    //// HiRate switch
-    //addParam(createParam<moDllzSwitchH>(Vec(60, Ypos), module, TwinGlider::FINETIMING_PARAM + i, 0.0, 1.0, 0.0));
     /// Glide Knobs
     addParam(createParam<moDllzKnobM>(Vec(19, Ypos-4), module, TwinGlider::RISE_PARAM + i, 0.0, 1.0, 0.0));
     addParam(createParam<moDllzKnobM>(Vec(102, Ypos-4), module, TwinGlider::FALL_PARAM + i, 0.0, 1.0, 0.0));
@@ -306,7 +334,7 @@ TwinGliderWidget::TwinGliderWidget() {
     Ypos += Ystep; //55
 
     // LINK SWITCH//CKSS
-    addParam(createParam<moDllzSwitchH>(Vec(72.5, Ypos-12), module, TwinGlider::LINK_PARAM + i, 0.0, 1.0, 1.0));
+    addParam(createParam<moDllzSwitchLedH>(Vec(73, Ypos-12), module, TwinGlider::LINK_PARAM + i, 0.0, 1.0, 1.0));
     /// Glides CVs
     addInput(createInput<moDllzPort>(Vec(23, Ypos+5.5), module, TwinGlider::RISE_INPUT + i));
     addInput(createInput<moDllzPort>(Vec(117.5, Ypos+5.5), module, TwinGlider::FALL_INPUT + i));
@@ -335,15 +363,22 @@ TwinGliderWidget::TwinGliderWidget() {
     // CLOCK IN
     addInput(createInput<moDllzPort>(Vec(75, Ypos+7), module, TwinGlider::CLOCK_INPUT + i));
     // Sample&Glide SWITCH
-    addParam(createParam<moDllzSwitch>(Vec(108, Ypos+18.5), module, TwinGlider::SMPNGLIDE_PARAM + i, 0.0, 1.0, 0.0));
+    addParam(createParam<moDllzSwitchLed>(Vec(108, Ypos+19), module, TwinGlider::SMPNGLIDE_PARAM + i, 0.0, 1.0, 0.0));
     // IN OUT
     addInput(createInput<moDllzPort>(Vec(13.5, Ypos+6.5), module, TwinGlider::IN_INPUT + i));
     addOutput(createOutput<moDllzPort>(Vec(128.5, Ypos+6.5), module, TwinGlider::OUT_OUTPUT + i));
 
     
     }
-    
+//    {
+//        testDisplay *mDisplay = new testDisplay();
+//        mDisplay->box.pos = Vec(0.0f, 360.0f);
+//        mDisplay->box.size = {165.0f, 20.0f};
+//        mDisplay->valP = &(module->testVal);
+//        addChild(mDisplay);
+//    }
 }
 void TwinGliderWidget::step() {
     ModuleWidget::step();
 }
+

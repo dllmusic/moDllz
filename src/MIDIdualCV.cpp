@@ -430,7 +430,7 @@ MIDIdualCVWidget::MIDIdualCVWidget()
     ///PitchWheel +- or +
     addParam(createParam<moDllzSwitch>(Vec(105, 225), module, MIDIdualCVInterface::PBDUALPOLARITY_PARAM, 0.0, 1.0, 0.0));
     ///Sustain hold notes
-    addParam(createParam<moDllzSwitch>(Vec(105, 318), module, MIDIdualCVInterface::SUSTAINHOLD_PARAM, 0.0, 1.0, 1.0));
+    addParam(createParam<moDllzSwitchLed>(Vec(105, 318), module, MIDIdualCVInterface::SUSTAINHOLD_PARAM, 0.0, 1.0, 1.0));
 }
 
 
