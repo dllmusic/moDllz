@@ -335,14 +335,14 @@ struct MIDIPolyInterface : MidiIO, Module {
 
 
 	void reset() override {
-		resetMidi();
+		// resetMidi();
         for (int i = 0; i < numPads; i++)
         {
             noteButtons[i].key= 48 + i;
             if (i < 8 ) noteButtons[i].mode = POLY_MODE;
             else if(i < 12) noteButtons[i].mode = SEQ_MODE;
-            else if(i < 14) noteButtons[i].mode = LOCKED_MODE;
-            else noteButtons[i].mode = XLOCK_MODE;
+            else noteButtons[i].mode = LOCKED_MODE;
+           //// else noteButtons[i].mode = XLOCK_MODE;
         }
         polyIndex = 0;
         polyTopIndex = 7;;
@@ -351,6 +351,7 @@ struct MIDIPolyInterface : MidiIO, Module {
         for (int i = 0; i < NUM_OUTPUTS; i++){
         outputs[i].value= 0.0f;
         }
+        params[SEQRESET_PARAM].value = 0.0f;
 	}
     /* initialize random seed: */
   //  srand (time(NULL));
@@ -477,8 +478,9 @@ void MIDIPolyInterface::pressNote(int note, int vel) {
 }
 
 void MIDIPolyInterface::releaseNote(int note) {
-    auto it = std::find(noteBuffer.begin(), noteBuffer.end(), note);
-    if (it != noteBuffer.end()) noteBuffer.erase(it);
+   // auto it = std::find(noteBuffer.begin(), noteBuffer.end(), note);
+    //if (it != noteBuffer.end()) noteBuffer.erase(it);
+    noteBuffer.remove(note);
     
     for (int i = 0; i < numPads; i++)
     {
@@ -652,7 +654,9 @@ void MIDIPolyInterface::processMidi(std::vector<unsigned char> msg) {
 void MIDIPolyInterface::onDeviceChange() {
     setIgnores(true, false);
 }
-
+/////////////////////////////
+////////////////////////////////// DISPLAY
+//////////////////////////////////////////
 void MIDIPolyInterface::getBPM(){
     if (firstBPM){
         firstBPM = false;
@@ -1926,7 +1930,7 @@ MIDIPolyWidget::MIDIPolyWidget()
     xPos = 365.5f;
     addInput(createInput<moDllzPort>(Vec(xPos, yPos+7.5f), module, MIDIPolyInterface::POLYUNISON_INPUT));
     xPos = 393;
-    addParam(createParam<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIPolyInterface::POLYUNISON_PARAM, 0.0f, 2.0f, 1.0f) );
+    addParam(createParam<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIPolyInterface::POLYUNISON_PARAM, 0.0f, 2.0f, 0.0f) );
     xPos = 442;
     addParam(createParam<Knob24>(Vec(xPos,yPos-1), module, MIDIPolyInterface::DRIFT_PARAM, 0.0f, 0.1f, 0.0f));
     
