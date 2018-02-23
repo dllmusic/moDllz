@@ -24,6 +24,14 @@ RACK_DIR ?= ../..
 # Include the VCV Rack plugin Makefile framework
 include $(RACK_DIR)/plugin.mk
 
+.PHONY: dist
+dist: all
+	rm -rf dist
+	mkdir -p dist/$(SLUG)
+	cp LICENSE* dist/$(SLUG)/
+	cp $(TARGET) dist/$(SLUG)/
+	cp -R res dist/$(SLUG)/
+	cd dist && zip -5 -r $(SLUG)-$(VERSION)-$(ARCH).zip $(SLUG)
 
 
 
