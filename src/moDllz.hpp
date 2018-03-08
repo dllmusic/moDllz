@@ -6,28 +6,10 @@ using namespace rack;
 
 extern Plugin *plugin;
 
-////////////////////
-// module widgets
-////////////////////
-
-struct MIDIdualCVWidget : ModuleWidget {
-    MIDIdualCVWidget();
-    void step() override;
-};
-
-//struct MIDIMPE8Widget : ModuleWidget {
-//    MIDIMPE8Widget();
-//    void step() override;
-//};
-struct MIDIPolyWidget : ModuleWidget {
-    MIDIPolyWidget();
-    void step() override;
-};
-
-struct TwinGliderWidget : ModuleWidget {
-    TwinGliderWidget();
-    void step() override;
-};
+// Forward-declare each Model, defined in each module source file
+extern Model *modelMIDIdualCV;
+extern Model *modelTwinGlider;
+extern Model *modelMIDIPoly;
 
 
 ///////////////////////
@@ -83,9 +65,7 @@ struct moDllzSmSelector : SVGKnob{
         snap = true;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzSmSelector.svg")));
     }
-
 };
-
 
 ///switch
 struct moDllzSwitch : SVGSwitch, ToggleSwitch {
@@ -172,22 +152,7 @@ struct moDllzRoundButton : SVGSwitch, MomentarySwitch {
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzRoundButton.svg")));
     }
 };
-///Led Switch
-struct moDllzLedSwitch : SVGSwitch, ToggleSwitch {
-    moDllzLedSwitch() {
-        box.size = Vec(5, 5);
-        addFrame(SVG::load(assetPlugin(plugin, "res/moDllzLedSwitch_0.svg")));
-        addFrame(SVG::load(assetPlugin(plugin, "res/moDllzLedSwitch_1.svg")));
-    }
-};
-///Led Switch
-struct moDllzLedButton : SVGSwitch, ToggleSwitch {
-    moDllzLedButton() {
-        box.size = Vec(24, 14);
-        addFrame(SVG::load(assetPlugin(plugin, "res/moDllzLedButton_0.svg")));
-        addFrame(SVG::load(assetPlugin(plugin, "res/moDllzLedButton_1.svg")));
-    }
-};
+
 
 ///Momentary PulseUp
 struct moDllzPulseUp : SVGSwitch, MomentarySwitch {
@@ -218,7 +183,13 @@ struct moDllzMuteGP : SVGSwitch, MomentarySwitch {
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMuteGP.svg")));
     }
 };
-
+///MIDIPanic
+struct moDllzMidiPanic : SVGSwitch, MomentarySwitch {
+    moDllzMidiPanic() {
+        box.size = Vec(48, 14);
+        addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMidiPanic.svg")));
+    }
+};
 
 
 ///Jacks
@@ -236,71 +207,5 @@ struct moDllzPortDark : SVGPort {
         box.size = background->box.size;
     }
 };
-//struct moDllzPortClear : SVGPort {
-//    moDllzPortClear() {
-//        background->svg = SVG::load(assetPlugin(plugin, "res/moDllzPortClear.svg"));
-//        background->wrap();
-//        box.size = background->box.size;
-//    }
-//};
 
-//
-//struct CenteredLabel : Widget {
-//    std::shared_ptr<Font> font;
-//    std::string text;
-//    int fontSize;
-//
-//    CenteredLabel(int _fontSize = 12) {
-//        //font = Font::load(FONT_FILE);
-//        fontSize = _fontSize;
-//        //box.size.y = BND_WIDGET_HEIGHT;
-//        //
-//    }
-//    void draw(NVGcontext *vg) override {
-//        //nvgFillColor(vg, nvgRGBA(0x33, 0x33, 0x33, 0x88));
-//        //nvgBeginPath(vg);
-//        //nvgRoundedRect(vg, 0.f, 0.f, box.size.x, box.size.y, 2.5f);
-//        //nvgFill(vg);
-//        nvgTextAlign(vg, NVG_ALIGN_CENTER);
-//        nvgFillColor(vg, nvgRGB(0xdd, 0xdd, 0xdd));
-//        nvgFontFaceId(vg, font->handle);
-//        nvgTextLetterSpacing(vg, 0.0);
-//        nvgFontSize(vg, fontSize);
-//        //nvgText(vg, box.pos.x, box.pos.y, text.c_str(), NULL);
-//        nvgText(vg, box.size.x * .5, 18.0, text.c_str(), NULL);
-//        //Vec textPos = Vec(47 - 12 * text.length(), 18.0);
-//        //nvgText(vg, textPos.x, textPos.y, text.c_str(), NULL);
-//    }
-//};
-
-//struct LabeledKnob : moDllzKnobM {
-//    LabeledKnob() {
-//        //  setSVG(SVG::load(assetPlugin(plugin, "res/SmallWhiteKnob.svg")));
-//    }
-//    CenteredLabel* linkedLabel = nullptr;
-//
-//    void connectLabel(CenteredLabel* label) {
-//        linkedLabel = label;
-//        if (linkedLabel) {
-//            linkedLabel->text = formatCurrentValue();
-//        }
-//    }
-//
-//    void onChange(EventChange &e) override {
-//        moDllzKnobM::onChange(e);
-//        if (linkedLabel) {
-//            linkedLabel->text = formatCurrentValue();
-//        }
-//    }
-//
-//    virtual std::string formatCurrentValue() {
-//        return std::to_string(static_cast<unsigned int>(value));
-//    }
-//};
-//struct BPMKnob : LabeledKnob {
-//    BPMKnob(){}
-//    std::string formatCurrentValue() {
-//        return std::to_string(static_cast<unsigned int>(powf(2.0, value)*60.0)) + " BPM";
-//    }
-//};
 
