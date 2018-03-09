@@ -2328,5 +2328,5 @@ struct MIDIPolyWidget : ModuleWidget
 //    ModuleWidget::step();
 //}
 
-Model *modelMIDIPoly = Model::create<MIDIPolyInterface, MIDIPolyWidget>("moDllz", "MIDIPoly16", "MIDI Poly 16", MIDI_TAG, ARPEGGIATOR_TAG, SEQUENCER_TAG);
+Model *modelMIDIPoly = Model::create<MIDIPolyInterface, MIDIPolyWidget>("moDllz", "MIDIPoly16", "MIDI Poly 16", MIDI_TAG, ARPEGGIATOR_TAG, SEQUENCER_TAG, EXTERNAL_TAG);
 
