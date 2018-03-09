@@ -1195,7 +1195,7 @@ void MIDIPolyInterface::step() {
 //    }
 //    outputs[PBEND_OUTPUT].value = pitchBend.tSmooth.next();
     pitchFilter.lambda = 100.f * engineGetSampleTime();
-    outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16384, -5.f, 5.f));
+    outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16383, -5.f, 5.f));
 //    ///MODULATION
 //    if (mod.changed) {
 //        mod.tSmooth.set(outputs[MOD_OUTPUT].value, (mod.val / 127.0f * 10.0f), steps);
