@@ -157,9 +157,9 @@ struct MIDIdualCV :  Module {
         
         pitchFilter.lambda = 100.f * engineGetSampleTime();
         if (params[PBDUALPOLARITY_PARAM].value < 0.5f)
-        outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16383, -5.f, 5.f));
+        outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16384, -5.f, 5.f));
         else
-        outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16383, 0.f, 10.f));
+        outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16384, 0.f, 10.f));
         
         modFilter.lambda = 100.f * engineGetSampleTime();
         outputs[MOD_OUTPUT].value = modFilter.process(rescale(mod, 0, 127, 0.f, 10.f));

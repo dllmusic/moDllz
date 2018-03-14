@@ -1,6 +1,9 @@
 #include "rack.hpp"
-
-
+#define FONT_FILE  assetPlugin(plugin, "res/bold_led_board-7.ttf")
+//#define mFONT_FILE  assetPlugin(plugin, "res/DIN Condensed Bold.ttf")
+#define mFONT_FILE  assetPlugin(plugin, "res/Munro.ttf")
+#include <iomanip> // setprecision
+#include <sstream> // stringstream
 using namespace rack;
 
 
@@ -10,30 +13,52 @@ extern Plugin *plugin;
 extern Model *modelMIDIdualCV;
 extern Model *modelTwinGlider;
 extern Model *modelMIDIPoly;
-
+//extern Model *modelXBender;
 
 ///////////////////////
 // custom components
 ///////////////////////
 
+struct moDllzBigKnob : SVGKnob {
+    moDllzBigKnob() {
+        box.size = Vec(60, 60);
+        minAngle = -0.83*M_PI;
+        maxAngle = 0.83*M_PI;
+        setSVG(SVG::load(assetPlugin(plugin, "res/moDllzBigKnob.svg")));
+        shadow->opacity = 0.f;
+    }
+};
+
 ///knob44
 struct moDllzKnobM : SVGKnob {
     moDllzKnobM() {
-        box.size = Vec(44, 44);
+      //  box.size = Vec(44, 44);
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnobM.svg")));
+        shadow->opacity = 0.f;
     }
 };
 ///knob32
 struct moDllzKnob32 : SVGKnob {
     moDllzKnob32() {
-        box.size = Vec(32, 32);
-        minAngle = -0.83*M_PI;
-        maxAngle = 0.83*M_PI;
+       // box.size = Vec(32, 32);
+      //  minAngle = -0.83*M_PI;
+      //  maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnob32.svg")));
+        shadow->opacity = 0.f;
     }
 };
+struct moDllzKnob26 : SVGKnob {
+    moDllzKnob26() {
+      //  box.size = Vec(32, 32);
+     //   minAngle = -0.83*M_PI;
+     //   maxAngle = 0.83*M_PI;
+        setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnob26.svg")));
+        shadow->opacity = 0.f;
+    }
+};
+
 ///TinyTrim
 struct moDllzTTrim : SVGKnob {
   
@@ -42,9 +67,14 @@ struct moDllzTTrim : SVGKnob {
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzTTrim.svg")));
+        shadow->opacity = 0.f;
     }
 };
-
+struct TTrimSnap : moDllzTTrim{
+    TTrimSnap(){
+        snap = true;
+    }
+};
 
 ///SnapSelector32
 struct moDllzSelector32 : SVGKnob {
@@ -54,6 +84,7 @@ struct moDllzSelector32 : SVGKnob {
         maxAngle = 0.85*M_PI;
         snap = true;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzSnap32.svg")));
+        shadow->opacity = 0.f;
     }
 };
 
@@ -64,8 +95,23 @@ struct moDllzSmSelector : SVGKnob{
         maxAngle = 0.5*M_PI;
         snap = true;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzSmSelector.svg")));
+        shadow->opacity = 0.f;
     }
 };
+
+//struct moDllzHFader : SVGFader {
+//    moDllzHFader() {
+//       // Vec margin = Vec(3.5, 3.5);
+//        maxHandlePos = Vec(90, 0);//.plus(margin);
+//        minHandlePos = Vec(0, 0);//.plus(margin);
+//        background->svg = SVG::load(assetPlugin(plugin, "res/moDllzHFaderBck.svg"));
+//        background->wrap();
+//        //background->box.pos = margin;
+//        box.size = background->box.size;
+//        handle->svg = SVG::load(assetPlugin(plugin, "res/moDllzHFader.svg"));
+//        handle->wrap();
+//    }
+//};
 
 ///switch
 struct moDllzSwitch : SVGSwitch, ToggleSwitch {
@@ -192,6 +238,7 @@ struct moDllzMidiPanic : SVGSwitch, MomentarySwitch {
 };
 
 
+
 ///Jacks
 struct moDllzPort : SVGPort {
         moDllzPort() {
@@ -207,5 +254,7 @@ struct moDllzPortDark : SVGPort {
         box.size = background->box.size;
     }
 };
+
+
 
 

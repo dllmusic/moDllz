@@ -1,22 +1,11 @@
 
 #include <queue>
 #include <list>
-//#include <algorithm>
-//#include <random>
-//#include <stdlib.h>     /* srand, rand */
-//#include <time.h>
-#include <iomanip> // setprecision
-#include <sstream> // stringstream
-//#include "rtmidi/RtMidi.h"
-//#include "core.hpp"
-//#include "MidiIO.hpp"
 #include "midi.hpp"
 #include "dsp/filter.hpp"
 #include "dsp/digital.hpp"
 #include "moDllz.hpp"
-#define FONT_FILE  assetPlugin(plugin, "res/bold_led_board-7.ttf")
-//#define mFONT_FILE  assetPlugin(plugin, "res/DIN Condensed Bold.ttf")
-#define mFONT_FILE  assetPlugin(plugin, "res/Munro.ttf")
+
 /*
  * MIDIPolyInterface converts midi note on/off events, velocity , pitch wheel and mod wheel to CV
  * with 16 Midi Note Buttons with individual vel & gate
@@ -431,7 +420,7 @@ struct MIDIPolyInterface : Module {
         
         padSetMode = POLY_MODE;
         padSetLearn = false;
-        midiInput.rtMidiIn->ignoreTypes(true,false,false);
+        ///midiInput.rtMidiIn->ignoreTypes(true,false,false);
         MidiPanic();
         initPolyIndex();
         params[SEQRESET_PARAM].value = 0.f;
@@ -728,7 +717,7 @@ void MIDIPolyInterface::setMainDisplay(int ix)
     std::string d[4] = {""};
     std::string bpmstring = "";
 
-    std::stringstream stream;
+    
     std::string s;
     
     if (calcBPM > 0) {
@@ -738,38 +727,39 @@ void MIDIPolyInterface::setMainDisplay(int ix)
         bpmstring = "...no clock.. ";
     }
     switch (ix) {
-        case 0:
+        case 0:{
             d[0] = "EXT" + bpmstring + stringClockRatios[seqclockRatio];
-            break;
-        case 1:
+            } break;
+        case 1:{
+            std::stringstream stream;
             stream << std::fixed << std::setprecision(bpmDecimals) << BPMrate;
             s = stream.str();
             d[0] = "INT " + s + "bpm "+ stringClockRatios[seqclockRatio];
-            break;
-        case 2:
+            }   break;
+        case 2:{
             d[0] = "MIDI" + bpmstring + stringClockRatios[seqclockRatio];
-            break;
+            }   break;
         default:
             break;
     }
     d[1] = "Steps: " + std::to_string(seqSteps) + " First: " + std::to_string(seqOffset + 1);
     
     switch (arpegMode){
-        case 1:
+        case 1:{
             if (outputs[MONOPITCH_OUTPUT].active) d[2] = "Arpeggiator: " + stringClockRatios[arpclockRatio];
             else d[2] = "...connect mono out";
-            break;
-        case 2:
+            }break;
+        case 2:{
             if (outputs[MONOPITCH_OUTPUT].active) d[2] = "Arpeggiator: Arcade";
             else d[2] = "...connect mono out";
-            break;
-        default:
+            }break;
+        default:{
             d[2] = "";
 //             for (std::list<int>::const_iterator i = noteBuffer.begin(); i != (noteBuffer.end()); ++i)
 //            {  int x = *i;
 //            d[2] = d[2] +" "+ std::to_string(x);
 //            }//
-            break;
+            }break;
     }
   
     d[3]= std::to_string(playingVoices)+"/"+std::to_string (polyMaxVoices);
@@ -906,55 +896,55 @@ void MIDIPolyInterface::step() {
         if (noteButtons[i].mode == POLY_MODE){
             playingVoices ++;
             switch (liveMonoMode){
-                case 0:
+                case 0:{
                     //// get lowest pressed note
                     if (noteButtons[i].key < liveIx) {
                         liveIx = noteButtons[i].key;
                         liveM = i;
                         monogate = true;
                     }
-                    break;
-                case 1:
+                    }break;
+                case 1:{
                     if (noteButtons[i].stamp > liveMonoIx ) {
                         liveMonoIx = noteButtons[i].stamp;
                         liveM = i;
                         monogate = true;
                     }
-                    break;
-                default:
+                    }break;
+                default:{
                     //// get highest pressed note
                     if (noteButtons[i].key > liveIx) {
                         liveIx = noteButtons[i].key;
                         liveM = i;
                         monogate = true;
                     }
-                    break;
+                    }break;
             }
         }else if ((noteButtons[i].mode == LOCKED_MODE) || ((noteButtons[i].mode == XLOCK_MODE)&&(params[PLAYXLOCKED_PARAM].value>0.5))){
             switch (lockedMonoMode){
-                case 0:
+                case 0:{
                     //// get lowest pressed note
                     if (noteButtons[i].key < lockedIx) {
                         lockedIx = noteButtons[i].key;
                         lockedM = i;
                         lockedgate = true;
                     }
-                    break;
-                case 1:
+                    }break;
+                case 1:{
                     if (noteButtons[i].stamp > lockedMonoIx ) {
                         lockedMonoIx = noteButtons[i].stamp;
                         lockedM= i;
                         lockedgate = true;
                     }
-                    break;
-                default:
+                    }break;
+                default:{
                     //// get highest pressed note
                     if (noteButtons[i].key > lockedIx) {
                         lockedIx = noteButtons[i].key;
                         lockedM = i;
                         lockedgate = true;
                     }
-                    break;
+                    }break;
             }
         }
 
@@ -1195,7 +1185,7 @@ void MIDIPolyInterface::step() {
 //    }
 //    outputs[PBEND_OUTPUT].value = pitchBend.tSmooth.next();
     pitchFilter.lambda = 100.f * engineGetSampleTime();
-    outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16383, -5.f, 5.f));
+    outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16384, -5.f, 5.f));
 //    ///MODULATION
 //    if (mod.changed) {
 //        mod.tSmooth.set(outputs[MOD_OUTPUT].value, (mod.val / 127.0f * 10.0f), steps);
@@ -1720,22 +1710,22 @@ void MIDIPolyInterface::doSequencer(){
             rrr=0xff; ggg=0xff; bbb=0x00;
             aaa=128;
         } else { switch (mode)  {
-            case 0:/// Poly
+            case 0:{/// Poly
                 rrr=0xff; ggg=0xff; bbb=0xff;
                 aaa= vel;
-                break;
-            case 1:/// Seq
+            }break;
+            case 1:{/// Seq
                 rrr=0x00; ggg=0x99; bbb=0xff;
                 aaa= 64 + vel * 1.5f;
-                break;
-            case 2:/// Lock
+            }break;
+            case 2:{/// Lock
                 rrr=0xff; ggg=0x00; bbb=0x00;
                 aaa= 64 + vel * 1.5f;
-                break;
-            default:/// xLock
+            }break;
+            default:{/// xLock
                 rrr=0xff; ggg=0x80; bbb=0x00;
                 aaa= 64 + vel * 1.5f;
-                break;
+            }break;
             }
         }
         NVGcolor backgroundColor = nvgRGBA(rrr*0.6f, ggg*0.6f, bbb*0.6f, aaa);
@@ -1884,9 +1874,9 @@ struct SelectorKnob : moDllzSelector32 {
 //    void onAction(EventAction &e) override {
 //    }
 };
-struct RatioKnob : moDllzSelector32 {
+struct RatioKnob : moDllzSmSelector {
     RatioKnob() {
-        box.size ={36,36};
+      //  box.size ={36,36};
         minAngle = -0.871*M_PI;
         maxAngle = 1.0*M_PI;
     }
@@ -1900,17 +1890,16 @@ struct SelectorOct : moDllzSelector32 {//Oct
         maxAngle = 0.44f*M_PI;
     }
 };
-struct Knob24 : moDllzKnobM {///Unison
-    Knob24() {
-        box.size ={24,24};
+struct Knob26 : moDllzKnob26 {///Unison
+    Knob26() {
         //snap = true;
         minAngle = -0.75*M_PI;
         maxAngle = 0.75*M_PI;
     }
 };
-struct Knob26Snap : moDllzKnobM {///swing
+struct Knob26Snap : moDllzKnob26 {///swing
     Knob26Snap() {
-        box.size ={26,26};
+        //box.size ={26,26};
         snap = true;
         minAngle = -0.75*M_PI;
         maxAngle = 0.75*M_PI;
@@ -1935,11 +1924,7 @@ struct WhiteYLight : GrayModuleLightWidget {
     }
 };
 
-struct TTrimSnap : moDllzTTrim{
-    TTrimSnap(){
-    snap = true;
-    }
-};
+
 
 struct overMidiDisplayPoly : TransparentWidget {
     
@@ -2040,7 +2025,7 @@ struct MIDIPolyWidget : ModuleWidget
     xPos = 395;
     addParam(ParamWidget::create<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIPolyInterface::POLYUNISON_PARAM, 0.0f, 2.0f, 1.0f) );
     xPos = 444;
-    addParam(ParamWidget::create<Knob24>(Vec(xPos,yPos-1), module, MIDIPolyInterface::DRIFT_PARAM, 0.0f, 0.1f, 0.0f));
+    addParam(ParamWidget::create<Knob26>(Vec(xPos-1,yPos-2), module, MIDIPolyInterface::DRIFT_PARAM, 0.0f, 0.1f, 0.0f));
     
     //Midi Numbers / notes
     xPos = 476;
@@ -2328,5 +2313,5 @@ struct MIDIPolyWidget : ModuleWidget
 //    ModuleWidget::step();
 //}
 
-Model *modelMIDIPoly = Model::create<MIDIPolyInterface, MIDIPolyWidget>("moDllz", "MIDIPoly16", "MIDI Poly 16", MIDI_TAG, ARPEGGIATOR_TAG, SEQUENCER_TAG, EXTERNAL_TAG);
+Model *modelMIDIPoly = Model::create<MIDIPolyInterface, MIDIPolyWidget>("moDllz", "MIDIPoly16", "MIDI Poly 16", MIDI_TAG, ARPEGGIATOR_TAG, SEQUENCER_TAG, CONTROLLER_TAG, MULTIPLE_TAG, EXTERNAL_TAG);
 
