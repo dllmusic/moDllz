@@ -72,8 +72,8 @@ struct TwinGlider : Module {
   //  int testVal = 0;
     
     TwinGlider() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-    ~TwinGlider() {
-    };
+//    ~TwinGlider() {
+//    };
     
     void step() override;
     void reset() override {
@@ -92,7 +92,7 @@ struct TwinGlider : Module {
 ///////////////STEP //////////////////
 /////////////////////////////////////////////
 
-void ::TwinGlider::step() {
+void TwinGlider::step() {
     for (int ix = 0; ix < 2; ix++){
         if (inputs[IN_INPUT + ix].active) {
             if (std::abs(glider[ix].in - inputs[IN_INPUT + ix].value) > threshold){
@@ -132,7 +132,7 @@ void ::TwinGlider::step() {
                         if (inputs[RISE_INPUT + ix].active)
                             glider[ix].riseval = inputs[RISE_INPUT + ix].value / 10.0f * params[RISE_PARAM + ix].value;
                         else glider[ix].riseval = params[RISE_PARAM + ix].value;
-                        
+
                         if (glider[ix].riseval > 0.0f) {
                             switch (glider[ix].risemode) {
                                 case 0: /// Hi Rate
@@ -164,7 +164,7 @@ void ::TwinGlider::step() {
                             glider[ix].rising = false;
                             glider[ix].out = glider[ix].in;
                         }
-                    
+
                     } else  if (glider[ix].in  < glider[ix].out){
                         if (params[LINK_PARAM + ix].value > 0.5f) {
                             glider[ix].fallmode  = glider[ix].risemode;
@@ -215,17 +215,17 @@ void ::TwinGlider::step() {
                 glider[ix].falling = false;
                 glider[ix].out = glider[ix].in;
             }
-            
+
     ///testVal = static_cast<int> (gliding[0] * 10^7);
-    
- 
+
+
     lights[RISING_LIGHT + ix].value = glider[ix].rising? 1.0 : 0.0f;
     lights[FALLING_LIGHT + ix].value = glider[ix].falling? 1.0 : 0.0f;
     outputs[GATERISE_OUTPUT + ix].value = glider[ix].rising? 10.0 : 0.0f;
     outputs[GATEFALL_OUTPUT + ix].value = glider[ix].falling? 10.0 : 0.0f;
-    
+
     outputs[OUT_OUTPUT + ix].value = glider[ix].out;
-            
+
 //            //// do triggers and reset flags
            if (outputs[TRIGRISE_OUTPUT + ix].active||outputs[TRIG_OUTPUT + ix].active||outputs[TRIGFALL_OUTPUT + ix].active) {
                if (glider[ix].trigR)  {
@@ -250,8 +250,8 @@ void ::TwinGlider::step() {
 //               trigR[ix] = false;
 //               trigF[ix] = false;
 //           }
-            
- 
+
+
      /// else from if input ACTIVE....
  }else{
      //disconnected in...reset Output if connected...
@@ -299,76 +299,69 @@ void ::TwinGlider::step() {
 ////////////////////////////////////////////
 ///////////////////////////////////////////
 
-TwinGliderWidget::TwinGliderWidget() {
-    TwinGlider *module = new ::TwinGlider();
-    setModule(module);
-    box.size = Vec(15* 11, 380);
+struct TwinGliderWidget : ModuleWidget {
     
-    {
-        SVGPanel *panel = new SVGPanel();
-        //Panel *panel = new DarkPanel();
-        panel->box.size = box.size;
-        panel->setBackground(SVG::load(assetPlugin(plugin, "res/TwinGlider.svg")));
-        addChild(panel);
-    }
+    TwinGliderWidget(TwinGlider *module): ModuleWidget(module){
+        setPanel(SVG::load(assetPlugin(plugin, "res/TwinGlider.svg")));
+
     //Screws
-    addChild(createScrew<ScrewBlack>(Vec(0, 0)));
-    addChild(createScrew<ScrewBlack>(Vec(box.size.x - 15, 0)));
-    addChild(createScrew<ScrewBlack>(Vec(0, 365)));
-    addChild(createScrew<ScrewBlack>(Vec(box.size.x - 15, 365)));
+    addChild(Widget::create<ScrewBlack>(Vec(0, 0)));
+    addChild(Widget::create<ScrewBlack>(Vec(box.size.x - 15, 0)));
+    addChild(Widget::create<ScrewBlack>(Vec(0, 365)));
+    addChild(Widget::create<ScrewBlack>(Vec(box.size.x - 15, 365)));
     
-    int Ystep = 30 ;
-    int Ypos;
+    float Ystep = 30.0f ;
+    float Ypos = 0.0f;
     
     for (int i=0; i<2; i++){
         
-        Ypos = 25 + i* 173;  //2nd panel offset
-  
-    /// Gliding Leds
-    addChild(createLight<TinyLight<RedLight>>(Vec(6.75, Ypos+1), module, TwinGlider::RISING_LIGHT + i));
-    addChild(createLight<TinyLight<RedLight>>(Vec(154.75, Ypos+1), module, TwinGlider::FALLING_LIGHT + i));
+        Ypos = 25.0f + static_cast<float>(i* 173);  //2nd panel offset
+
+   // Gliding Leds
+    addChild(ModuleLightWidget::create<TinyLight<RedLight>>(Vec(6.75, Ypos+1), module, TwinGlider::RISING_LIGHT + i));
+    addChild(ModuleLightWidget::create<TinyLight<RedLight>>(Vec(154.75, Ypos+1), module, TwinGlider::FALLING_LIGHT + i));
     /// Glide Knobs
-    addParam(createParam<moDllzKnobM>(Vec(19, Ypos-4), module, TwinGlider::RISE_PARAM + i, 0.0, 1.0, 0.0));
-    addParam(createParam<moDllzKnobM>(Vec(102, Ypos-4), module, TwinGlider::FALL_PARAM + i, 0.0, 1.0, 0.0));
-        
+    addParam(ParamWidget::create<moDllzKnobM>(Vec(19, Ypos-4), module, TwinGlider::RISE_PARAM + i, 0.0, 1.0, 0.0));
+    addParam(ParamWidget::create<moDllzKnobM>(Vec(102, Ypos-4), module, TwinGlider::FALL_PARAM + i, 0.0, 1.0, 0.0));
+
     Ypos += Ystep; //55
 
     // LINK SWITCH//CKSS
-    addParam(createParam<moDllzSwitchLedH>(Vec(73, Ypos-12), module, TwinGlider::LINK_PARAM + i, 0.0, 1.0, 1.0));
+    addParam(ParamWidget::create<moDllzSwitchLedH>(Vec(73, Ypos-12), module, TwinGlider::LINK_PARAM + i, 0.0, 1.0, 1.0));
     /// Glides CVs
-    addInput(createInput<moDllzPort>(Vec(23, Ypos+5.5), module, TwinGlider::RISE_INPUT + i));
-    addInput(createInput<moDllzPort>(Vec(117.5, Ypos+5.5), module, TwinGlider::FALL_INPUT + i));
-    
+    addInput(Port::create<moDllzPort>(Vec(23, Ypos+5.5), Port::INPUT, module, TwinGlider::RISE_INPUT + i));
+    addInput(Port::create<moDllzPort>(Vec(117.5, Ypos+5.5), Port::INPUT, module, TwinGlider::FALL_INPUT + i));
+
     Ypos += Ystep; //85
 
     /// Mode switches
-    addParam(createParam<moDllzSwitchT>(Vec(55, Ypos-7), module, TwinGlider::RISEMODE_PARAM + i, 0.0, 2.0, 2.0));
-    addParam(createParam<moDllzSwitchT>(Vec(100, Ypos-7), module, TwinGlider::FALLMODE_PARAM + i, 0.0, 2.0, 2.0));
-    
+    addParam(ParamWidget::create<moDllzSwitchT>(Vec(55, Ypos-7), module, TwinGlider::RISEMODE_PARAM + i, 0.0, 2.0, 2.0));
+    addParam(ParamWidget::create<moDllzSwitchT>(Vec(100, Ypos-7), module, TwinGlider::FALLMODE_PARAM + i, 0.0, 2.0, 2.0));
+
     /// GATES OUT
-    addOutput(createOutput<moDllzPort>(Vec(10.5, Ypos+14), module, TwinGlider::GATERISE_OUTPUT + i));
-    addOutput(createOutput<moDllzPort>(Vec(130.5, Ypos+14), module, TwinGlider::GATEFALL_OUTPUT + i));
-    
+    addOutput(Port::create<moDllzPort>(Vec(10.5, Ypos+14), Port::OUTPUT, module, TwinGlider::GATERISE_OUTPUT + i));
+    addOutput(Port::create<moDllzPort>(Vec(130.5, Ypos+14), Port::OUTPUT, module, TwinGlider::GATEFALL_OUTPUT + i));
+
     Ypos += Ystep; //115
-    
+
     /// TRIGGERS OUT
-    addOutput(createOutput<moDllzPort>(Vec(43, Ypos-4.5), module, TwinGlider::TRIGRISE_OUTPUT + i));
-    addOutput(createOutput<moDllzPort>(Vec(71, Ypos-4.5), module, TwinGlider::TRIG_OUTPUT + i));
-    addOutput(createOutput<moDllzPort>(Vec(98, Ypos-4.5), module, TwinGlider::TRIGFALL_OUTPUT + i));
-        
+    addOutput(Port::create<moDllzPort>(Vec(43, Ypos-4.5), Port::OUTPUT, module, TwinGlider::TRIGRISE_OUTPUT + i));
+    addOutput(Port::create<moDllzPort>(Vec(71, Ypos-4.5), Port::OUTPUT, module, TwinGlider::TRIG_OUTPUT + i));
+    addOutput(Port::create<moDllzPort>(Vec(98, Ypos-4.5), Port::OUTPUT, module, TwinGlider::TRIGFALL_OUTPUT + i));
+
     Ypos += Ystep; //145
 
     // GATE IN
-    addInput(createInput<moDllzPort>(Vec(44, Ypos+7), module, TwinGlider::GATE_INPUT + i));
+    addInput(Port::create<moDllzPort>(Vec(44, Ypos+7), Port::INPUT, module, TwinGlider::GATE_INPUT + i));
     // CLOCK IN
-    addInput(createInput<moDllzPort>(Vec(75, Ypos+7), module, TwinGlider::CLOCK_INPUT + i));
+    addInput(Port::create<moDllzPort>(Vec(75, Ypos+7), Port::INPUT, module, TwinGlider::CLOCK_INPUT + i));
     // Sample&Glide SWITCH
-    addParam(createParam<moDllzSwitchLed>(Vec(108, Ypos+19), module, TwinGlider::SMPNGLIDE_PARAM + i, 0.0, 1.0, 0.0));
+    addParam(ParamWidget::create<moDllzSwitchLed>(Vec(108, Ypos+19), module, TwinGlider::SMPNGLIDE_PARAM + i, 0.0, 1.0, 0.0));
     // IN OUT
-    addInput(createInput<moDllzPort>(Vec(13.5, Ypos+6.5), module, TwinGlider::IN_INPUT + i));
-    addOutput(createOutput<moDllzPort>(Vec(128.5, Ypos+6.5), module, TwinGlider::OUT_OUTPUT + i));
+    addInput(Port::create<moDllzPort>(Vec(13.5, Ypos+6.5), Port::INPUT, module, TwinGlider::IN_INPUT + i));
+    addOutput(Port::create<moDllzPort>(Vec(128.5, Ypos+6.5), Port::OUTPUT, module, TwinGlider::OUT_OUTPUT + i));
 
-    
+
     }
 //    {
 //        testDisplay *mDisplay = new testDisplay();
@@ -377,8 +370,15 @@ TwinGliderWidget::TwinGliderWidget() {
 //        mDisplay->valP = &(module->testVal);
 //        addChild(mDisplay);
 //    }
-}
-void TwinGliderWidget::step() {
-    ModuleWidget::step();
-}
+    }
+};
+//void TwinGliderWidget::step() {
+//    ModuleWidget::step();
+//}
 
+// Specify the Module and ModuleWidget subclass, human-readable
+// manufacturer name for categorization, module slug (should never
+// change), human-readable module name, and any number of tags
+// (found in `include/tags.hpp`) separated by commas.
+
+Model *modelTwinGlider = Model::create<TwinGlider, TwinGliderWidget>("moDllz", "TwinGlider", "TwinGlider Dual Portamento", SLEW_LIMITER_TAG,  DUAL_TAG, ENVELOPE_FOLLOWER_TAG);
