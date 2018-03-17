@@ -125,9 +125,9 @@ struct MIDIPolyInterface : Module {
         PSEQ_LIGHT,
         SEQRUNNING_LIGHT,
         SEQRESET_LIGHT,
-        SEQOCT_LIGHT = 22,
-        ARPOCT_LIGHT = 27,
-		ARCADEON_LIGHT = 32,
+        SEQOCT_LIGHT = 23,
+        ARPOCT_LIGHT = 28,
+		ARCADEON_LIGHT = 33,
         ARPEGON_LIGHT,
         MUTESEQ_LIGHT,
         MUTEMONO_LIGHT,
@@ -423,8 +423,6 @@ struct MIDIPolyInterface : Module {
         ///midiInput.rtMidiIn->ignoreTypes(true,false,false);
         MidiPanic();
         initPolyIndex();
-        params[SEQRESET_PARAM].value = 0.f;
-        params[RESETMIDI_PARAM].value = 0.f;
     }
 };
 
@@ -1443,7 +1441,7 @@ void MIDIPolyInterface::doSequencer(){
         }
     }
     // Reset manual
-    if (seqResetTrigger.process(params[SEQRESET_PARAM].value + inputs[SEQRESET_INPUT].value)) {
+    if ((seqResetTrigger.process(params[SEQRESET_PARAM].value)) || ((inputs[SEQRESET_INPUT].active) && (seqResetTrigger.process(inputs[SEQRESET_INPUT].value)))) {
         seqResetLight = 1.0f;
         seqOctIx = 0;
         if (seqrunning) {
@@ -1452,6 +1450,9 @@ void MIDIPolyInterface::doSequencer(){
             seqResetNow = true;
         }
     }
+    
+    
+    
     ///
     if (seqResetNow){
         seqPhase = 0.0f;
@@ -2008,7 +2009,7 @@ struct MIDIPolyWidget : ModuleWidget
     //Shift
     xPos = 278.5f;
     addInput(Port::create<moDllzPort>(Vec(xPos,yPos-0.5f), Port::INPUT, module, MIDIPolyInterface::POLYSHIFT_INPUT));
-    xPos = 302;
+    xPos = 303;
     addParam(ParamWidget::create<TTrimSnap>(Vec(xPos,yPos+4), module, MIDIPolyInterface::TRIMPOLYSHIFT_PARAM, 0.0f, 48.0f, 9.6f));
     
     
