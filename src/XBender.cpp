@@ -538,7 +538,7 @@ struct XBenderWidget : ModuleWidget {
         addInput(Port::create<moDllzPort>(Vec(xPos,yPos), Port::INPUT, module, XBender::XBENDCV_INPUT));
         addParam(ParamWidget::create<TTrimSnap>(Vec(xPos + 26.5f,yPos + 7.f), module, XBender::XBENDCVTRIM_PARAM, 0.f, 24.f, 24.f));
         //XBEND RANGE
-        xPos = 183.f;
+        xPos = 181.f;
         yPos = 288.f;
         addParam(ParamWidget::create<RangeSelector>(Vec(xPos, yPos), module, XBender::XBENDRANGE_PARAM, 1.f, 5.f, 1.f));
         xPos = 187.5f;
