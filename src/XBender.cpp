@@ -531,7 +531,7 @@ struct XBenderWidget : ModuleWidget {
         /// Knobs
         //XBEND
         xPos = 124.f;
-        yPos = 275.f;
+        yPos = 272.f;
         addParam(ParamWidget::create<xbendKnob>(Vec(xPos, yPos), module, XBender::XBEND_PARAM, -1.f, 1.f, 0.f));
         xPos = 127.5f;
         yPos = 328.f;
