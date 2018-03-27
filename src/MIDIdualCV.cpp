@@ -6,8 +6,6 @@
 #include "midi.hpp"
 #include "dsp/filter.hpp"
 
-#define mFONT_FILE  assetPlugin(plugin, "res/Munro.ttf")
-
 /*
  * MIDIdualCV converts upper/lower midi note on/off events, velocity , channel aftertouch, pitch wheel,  mod wheel breath cc and expression to CV
  */

@@ -15,5 +15,5 @@ void init(rack::Plugin *p) {
     p->addModel(modelMIDIPoly);
     p->addModel(modelTwinGlider);
     p->addModel(modelMIDIdualCV);
-  //  p->addModel(modelXBender);
+    p->addModel(modelXBender);
 }

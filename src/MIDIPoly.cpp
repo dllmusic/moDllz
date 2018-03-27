@@ -246,7 +246,7 @@ struct MIDIPolyInterface : Module {
     int arpSampleCount = 0;
     int ClockSeqSamples = 1;
     int ClockArpSamples = 1;
-    float seqResetLight;
+    float seqResetLight = 0;
  
     const float ClockRatios[13] ={0.50f, 2.f/3.f,0.75f, 1.0f ,4.f/3.f,1.5f, 2.0f, 8.f/3.f, 3.0f, 4.0f, 6.0f, 8.0f,12.0f};
     const std::string stringClockRatios[13] ={"1/2", "1/4d","1/2t", "1/4", "1/8d", "1/4t","1/8","1/16d","1/8t","1/16","1/16t","1/32","1/32t"};
@@ -314,7 +314,7 @@ struct MIDIPolyInterface : Module {
 
     ///////////////
 	MIDIPolyInterface() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
-     reset();
+     onReset();
 	}
 
 	~MIDIPolyInterface() {
@@ -349,7 +349,7 @@ struct MIDIPolyInterface : Module {
     void MidiPanic();
 
 
-	void reset() override {
+	void onReset() override {
 		// resetMidi();
         for (int i = 0; i < numPads; i++)
         {
@@ -2024,7 +2024,7 @@ struct MIDIPolyWidget : ModuleWidget
     xPos = 367.5f;
     addInput(Port::create<moDllzPort>(Vec(xPos, yPos+7.5f), Port::INPUT, module, MIDIPolyInterface::POLYUNISON_INPUT));
     xPos = 395;
-    addParam(ParamWidget::create<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIPolyInterface::POLYUNISON_PARAM, 0.0f, 2.0f, 1.0f) );
+    addParam(ParamWidget::create<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIPolyInterface::POLYUNISON_PARAM, 0.0f, 2.0f, 0.0f) );
     xPos = 444;
     addParam(ParamWidget::create<Knob26>(Vec(xPos-1,yPos-2), module, MIDIPolyInterface::DRIFT_PARAM, 0.0f, 0.1f, 0.0f));
     

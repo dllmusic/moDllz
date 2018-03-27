@@ -4,8 +4,8 @@
 #define mFONT_FILE  assetPlugin(plugin, "res/Munro.ttf")
 #include <iomanip> // setprecision
 #include <sstream> // stringstream
-using namespace rack;
 
+using namespace rack;
 
 extern Plugin *plugin;
 
@@ -13,21 +13,11 @@ extern Plugin *plugin;
 extern Model *modelMIDIdualCV;
 extern Model *modelTwinGlider;
 extern Model *modelMIDIPoly;
-//extern Model *modelXBender;
+extern Model *modelXBender;
 
 ///////////////////////
 // custom components
 ///////////////////////
-
-struct moDllzBigKnob : SVGKnob {
-    moDllzBigKnob() {
-        box.size = Vec(60, 60);
-        minAngle = -0.83*M_PI;
-        maxAngle = 0.83*M_PI;
-        setSVG(SVG::load(assetPlugin(plugin, "res/moDllzBigKnob.svg")));
-        shadow->opacity = 0.f;
-    }
-};
 
 ///knob44
 struct moDllzKnobM : SVGKnob {
@@ -43,8 +33,8 @@ struct moDllzKnobM : SVGKnob {
 struct moDllzKnob32 : SVGKnob {
     moDllzKnob32() {
        // box.size = Vec(32, 32);
-      //  minAngle = -0.83*M_PI;
-      //  maxAngle = 0.83*M_PI;
+        minAngle = -0.83*M_PI;
+        maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnob32.svg")));
         shadow->opacity = 0.f;
     }
@@ -52,8 +42,8 @@ struct moDllzKnob32 : SVGKnob {
 struct moDllzKnob26 : SVGKnob {
     moDllzKnob26() {
       //  box.size = Vec(32, 32);
-     //   minAngle = -0.83*M_PI;
-     //   maxAngle = 0.83*M_PI;
+        minAngle = -0.83*M_PI;
+        maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnob26.svg")));
         shadow->opacity = 0.f;
     }
@@ -63,7 +53,6 @@ struct moDllzKnob26 : SVGKnob {
 struct moDllzTTrim : SVGKnob {
   
     moDllzTTrim() {
-        box.size = Vec(16, 16);
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzTTrim.svg")));
@@ -79,7 +68,7 @@ struct TTrimSnap : moDllzTTrim{
 ///SnapSelector32
 struct moDllzSelector32 : SVGKnob {
     moDllzSelector32() {
-        box.size = Vec(32, 32);
+   //     box.size = Vec(32, 32);
         minAngle = -0.85*M_PI;
         maxAngle = 0.85*M_PI;
         snap = true;
@@ -90,7 +79,7 @@ struct moDllzSelector32 : SVGKnob {
 
 struct moDllzSmSelector : SVGKnob{
     moDllzSmSelector() {
-        box.size = Vec(36, 36);
+    //    box.size = Vec(36, 36);
         minAngle = -0.5*M_PI;
         maxAngle = 0.5*M_PI;
         snap = true;
@@ -116,7 +105,7 @@ struct moDllzSmSelector : SVGKnob{
 ///switch
 struct moDllzSwitch : SVGSwitch, ToggleSwitch {
     moDllzSwitch() {
-        box.size = Vec(10, 20);
+   //     box.size = Vec(10, 20);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitch_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitch_1.svg")));
     }
@@ -124,7 +113,7 @@ struct moDllzSwitch : SVGSwitch, ToggleSwitch {
 ///Horizontal switch
 struct moDllzSwitchH : SVGSwitch, ToggleSwitch {
     moDllzSwitchH() {
-        box.size = Vec(20, 10);
+   //     box.size = Vec(20, 10);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchH_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchH_1.svg")));
     }
@@ -132,7 +121,7 @@ struct moDllzSwitchH : SVGSwitch, ToggleSwitch {
 ///Switch with Led
 struct moDllzSwitchLed : SVGSwitch, ToggleSwitch {
     moDllzSwitchLed() {
-        box.size = Vec(10, 18);
+   //     box.size = Vec(10, 18);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLed_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLed_1.svg")));
     }
@@ -140,7 +129,7 @@ struct moDllzSwitchLed : SVGSwitch, ToggleSwitch {
 ///Horizontal switch with Led
 struct moDllzSwitchLedH : SVGSwitch, ToggleSwitch {
     moDllzSwitchLedH() {
-        box.size = Vec(18, 10);
+   //     box.size = Vec(18, 10);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLedH_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLedH_1.svg")));
     }
@@ -148,7 +137,7 @@ struct moDllzSwitchLedH : SVGSwitch, ToggleSwitch {
 ///Horizontal switch Triple with Led
 struct moDllzSwitchLedHT : SVGSwitch, ToggleSwitch {
     moDllzSwitchLedHT() {
-        box.size = Vec(24, 10);
+  //      box.size = Vec(24, 10);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLedHT_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLedHT_1.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLedHT_2.svg")));
@@ -157,7 +146,7 @@ struct moDllzSwitchLedHT : SVGSwitch, ToggleSwitch {
 ///switch TriState
 struct moDllzSwitchT : SVGSwitch, ToggleSwitch {
     moDllzSwitchT() {
-        box.size = Vec(10, 30);
+     //   box.size = Vec(10, 30);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchT_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchT_1.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchT_2.svg")));
@@ -167,7 +156,7 @@ struct moDllzSwitchT : SVGSwitch, ToggleSwitch {
 ///switch TriState Horizontal
 struct moDllzSwitchTH : SVGSwitch, ToggleSwitch {
     moDllzSwitchTH() {
-        box.size = Vec(30, 10);
+       // box.size = Vec(30, 10);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchTH_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchTH_1.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchTH_2.svg")));
@@ -177,7 +166,7 @@ struct moDllzSwitchTH : SVGSwitch, ToggleSwitch {
 ///Momentary Button
 struct moDllzMoButton : SVGSwitch, MomentarySwitch {
     moDllzMoButton() {
-        box.size = Vec(48, 27);
+    //    box.size = Vec(48, 27);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMoButton_0.svg")));
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMoButton_1.svg")));
     }
@@ -186,7 +175,7 @@ struct moDllzMoButton : SVGSwitch, MomentarySwitch {
 ///Momentary Label Clear Button
 struct moDllzClearButton : SVGSwitch, MomentarySwitch {
     moDllzClearButton() {
-        box.size = Vec(38, 13);
+   //     box.size = Vec(38, 13);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzClearButton.svg")));
     }
 };
@@ -194,7 +183,7 @@ struct moDllzClearButton : SVGSwitch, MomentarySwitch {
 ///Momentary Round Button
 struct moDllzRoundButton : SVGSwitch, MomentarySwitch {
     moDllzRoundButton() {
-        box.size = Vec(14, 14);
+    //    box.size = Vec(14, 14);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzRoundButton.svg")));
     }
 };
@@ -203,14 +192,14 @@ struct moDllzRoundButton : SVGSwitch, MomentarySwitch {
 ///Momentary PulseUp
 struct moDllzPulseUp : SVGSwitch, MomentarySwitch {
     moDllzPulseUp() {
-        box.size = Vec(12, 12);
+    //    box.size = Vec(12, 12);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzPulse2Up.svg")));
     }
 };
 ///Momentary PulseDown
 struct moDllzPulseDwn : SVGSwitch, MomentarySwitch {
     moDllzPulseDwn() {
-        box.size = Vec(12, 12);
+    //    box.size = Vec(12, 12);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzPulse2Dwn.svg")));
     }
 };
@@ -218,21 +207,21 @@ struct moDllzPulseDwn : SVGSwitch, MomentarySwitch {
 ///MuteGate
 struct moDllzMuteG : SVGSwitch, MomentarySwitch {
     moDllzMuteG() {
-        box.size = Vec(67, 12);
+    //    box.size = Vec(67, 12);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMuteG.svg")));
     }
 };
 ///MuteGateP
 struct moDllzMuteGP : SVGSwitch, MomentarySwitch {
     moDllzMuteGP() {
-        box.size = Vec(26, 11);
+   //     box.size = Vec(26, 11);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMuteGP.svg")));
     }
 };
 ///MIDIPanic
 struct moDllzMidiPanic : SVGSwitch, MomentarySwitch {
     moDllzMidiPanic() {
-        box.size = Vec(48, 14);
+   //     box.size = Vec(48, 14);
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzMidiPanic.svg")));
     }
 };
