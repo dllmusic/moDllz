@@ -26,7 +26,7 @@ struct moDllzKnobM : SVGKnob {
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnobM.svg")));
-        shadow->opacity = 0.f;
+        shadow->opacity = -1.f;
     }
 };
 ///knob32
@@ -36,7 +36,7 @@ struct moDllzKnob32 : SVGKnob {
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnob32.svg")));
-        shadow->opacity = 0.f;
+        shadow->opacity = -1.f;
     }
 };
 struct moDllzKnob26 : SVGKnob {
@@ -45,7 +45,7 @@ struct moDllzKnob26 : SVGKnob {
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzKnob26.svg")));
-        shadow->opacity = 0.f;
+        shadow->opacity = -1.f;
     }
 };
 
@@ -56,7 +56,7 @@ struct moDllzTTrim : SVGKnob {
         minAngle = -0.83*M_PI;
         maxAngle = 0.83*M_PI;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzTTrim.svg")));
-        shadow->opacity = 0.f;
+        shadow->opacity = -1.f;
     }
 };
 struct TTrimSnap : moDllzTTrim{
@@ -73,7 +73,7 @@ struct moDllzSelector32 : SVGKnob {
         maxAngle = 0.85*M_PI;
         snap = true;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzSnap32.svg")));
-        shadow->opacity = 0.f;
+        shadow->opacity = -1.f;
     }
 };
 
@@ -84,7 +84,7 @@ struct moDllzSmSelector : SVGKnob{
         maxAngle = 0.5*M_PI;
         snap = true;
         setSVG(SVG::load(assetPlugin(plugin, "res/moDllzSmSelector.svg")));
-        shadow->opacity = 0.f;
+        shadow->opacity = -1.f;
     }
 };
 
