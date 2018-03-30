@@ -19,10 +19,10 @@ struct XBender : Module {
         AXISSHIFTTRIM_PARAM,
         AXISSELECT_PARAM = 10,
         AXISSELECTCV_PARAM = 18,
+        SNAPAXIS_PARAM,
         YCENTER_PARAM,
         YZOOM_PARAM,
         AUTOZOOM_PARAM,
-     //   SELECT_PARAM,
         NUM_PARAMS
     };
     enum InputIds {
@@ -45,6 +45,7 @@ struct XBender : Module {
     enum LightIds {
         AXIS_LIGHT,
         AUTOZOOM_LIGHT = 8,
+        SNAPAXIS_LIGHT,
         NUM_LIGHTS
     };
     
@@ -53,9 +54,10 @@ struct XBender : Module {
     float slewaxis = 0.f;
     int axisTransParam = 0;
     float finalAxis = 0.f;
-    int selectedAxis = 0;
     float AxisShift =  0.f;
     float axisxfade;
+    float selectedAxisF = 0.f;
+    int selectedAxisI = 0;
     
     float dZoom = 1.f;
     float dCenter = 0.5f;
@@ -65,9 +67,8 @@ struct XBender : Module {
     
     SchmittTrigger axisTransUpTrigger;
     SchmittTrigger axisTransDwnTrigger;
-    SchmittTrigger axisSelectTrigger;
-    
-    
+    SchmittTrigger axisSelectTrigger[8];
+   
     struct ioXBended {
         float inx = 0.0f;
         float xout = 0.0f;
@@ -89,14 +90,14 @@ struct XBender : Module {
     }
     json_t *toJson() override {
         json_t *rootJ = json_object();
-        json_object_set_new(rootJ, "selectedAxis", json_integer(selectedAxis));
+        json_object_set_new(rootJ, "selectedAxisI", json_integer(selectedAxisI));
         json_object_set_new(rootJ, "axisTransParam", json_integer(axisTransParam));
         return rootJ;
     }
     
     void fromJson(json_t *rootJ) override {
-        json_t *selectedAxisJ = json_object_get(rootJ,("selectedAxis"));
-        selectedAxis = json_integer_value(selectedAxisJ);
+        json_t *selectedAxisIJ = json_object_get(rootJ,("selectedAxisI"));
+        selectedAxisI = json_integer_value(selectedAxisIJ);
         json_t *axisTransParamJ = json_object_get(rootJ,("axisTransParam"));
         axisTransParam = json_integer_value(axisTransParamJ);
     }
@@ -108,11 +109,25 @@ struct XBender : Module {
 /////////////////////////////////////////////
 
 void XBender::step() {
+   
     if(inputs[AXISSELECT_INPUT].active) {
-        selectedAxis = clamp(static_cast<int>(inputs[AXISSELECT_INPUT].value * 0.8), 0, 7);
+        if (params[SNAPAXIS_PARAM].value > 0.5f){
+            lights[SNAPAXIS_LIGHT].value = 10;
+            selectedAxisI = (clamp(static_cast<int>(inputs[AXISSELECT_INPUT].value * 0.7), 0, 7));
+            selectedAxisF = static_cast<float>(selectedAxisI);
+            inaxis = inputs[selectedAxisI].value;
+        } else {
+            lights[SNAPAXIS_LIGHT].value = 0;
+            selectedAxisF = clamp(inputs[AXISSELECT_INPUT].value * 0.7, 0.f, 7.f);
+            selectedAxisI = static_cast<int>(selectedAxisF);
+            float ax_float = selectedAxisF - static_cast<float>(selectedAxisI);
+            inaxis = (inputs[selectedAxisI].value * (1.f - ax_float) + (inputs[selectedAxisI + 1].value * ax_float));
+        }
+    }else{
+         inaxis = inputs[selectedAxisI].value;
     }
+      
     
-    inaxis = inputs[selectedAxis].value;
     
     axisxfade = clamp((params[AXISXFADE_PARAM].value + inputs[AXISXFADE_INPUT].value/ 10.f), 0.f, 1.f);
     
@@ -137,9 +152,12 @@ void XBender::step() {
     for (int i = 0; i < 8; i++){
         if (inputs[IN_INPUT + i].active) {
         
-            if (axisSelectTrigger.process(params[AXISSELECT_PARAM + i].value)) selectedAxis = i;
+            if (axisSelectTrigger[i].process(params[AXISSELECT_PARAM + i].value)) {
+                selectedAxisI = i;
+                selectedAxisF = static_cast<float>(i); // float for display
+            }
             ioxbended[i].iactive= true;
-            lights[AXIS_LIGHT + i].value = (selectedAxis == i)? 1.f : 0.01f;
+            lights[AXIS_LIGHT + i].value = (selectedAxisI == i)? 1.f : 0.01f;
             ioxbended[i].inx = inputs[IN_INPUT + i].value;
             float diff = (finalAxis - ioxbended[i].inx) * xbend * range;
             ioxbended[i].xout = clamp((ioxbended[i].inx + diff + bend * 6.f),-12.f,12.f);
@@ -149,7 +167,6 @@ void XBender::step() {
             lights[AXIS_LIGHT + i].value = 0;
             ioxbended[i].iactive=false;
         }
-      
     } //for loop ix
   
     outputs[AXIS_OUTPUT].value = finalAxis;
@@ -183,7 +200,7 @@ void XBender::step() {
                 autoZoomMin = finalAxis;
             if (finalAxis > autoZoomMax)
                 autoZoomMax = finalAxis;
-            float autoZ = 21.f / (1. + autoZoomMax - autoZoomMin);
+            float autoZ = 22.f / clamp((autoZoomMax - autoZoomMin),1.f,24.f);
             float autoCenter = 10.f * (autoZoomMin + (autoZoomMax - autoZoomMin) / 2.f);
             dZoom = clamp(autoZ, 1.f, 15.f);
             dCenter = clamp(autoCenter, -120.f, 120.f);
@@ -210,7 +227,7 @@ struct BenderDisplay : TransparentWidget {
     float *pAxis =  NULL;
     float *pyCenter ;
     float *pyZoom ;
-    int *pAxisIx;
+    float *pAxisIx;
     float *pAxisXfade;
 
     void draw(NVGcontext* vg)
@@ -219,7 +236,7 @@ struct BenderDisplay : TransparentWidget {
         const float dispCenter = dispHeight / 2.f;
         float yZoom = *pyZoom;
         float yCenter =  *pyCenter * yZoom + dispCenter;
-        int AxisIx = *pAxisIx;
+        float AxisIx = *pAxisIx;
         float keyw = 10.f * yZoom /12.f;
         // crop drawing to display
         nvgScissor(vg, 0.f, 0.f, 152.f, dispHeight);
@@ -441,6 +458,14 @@ struct autoZoom : SVGSwitch, ToggleSwitch {
         addFrame(SVG::load(assetPlugin(plugin, "res/autoButton.svg")));
     }
 };
+                                  
+struct snapAxisButton : SVGSwitch, ToggleSwitch {
+  snapAxisButton() {
+      addFrame(SVG::load(assetPlugin(plugin, "res/snapButton.svg")));
+      addFrame(SVG::load(assetPlugin(plugin, "res/snapButton.svg")));
+  }
+};
+                                  
 
 struct XBenderWidget : ModuleWidget {
     
@@ -464,7 +489,7 @@ struct XBenderWidget : ModuleWidget {
             benderDisplay->box.size = {152.f, 228.f};
             benderDisplay->ioxB = &(module->ioxbended[0]);
             benderDisplay->pAxis = &(module->finalAxis);
-            benderDisplay->pAxisIx = &(module->selectedAxis);
+            benderDisplay->pAxisIx = &(module->selectedAxisF);
             benderDisplay->pyCenter = &(module->dCenter);
             benderDisplay->pyZoom = &(module->dZoom);
             benderDisplay->pAxisXfade = &(module->axisxfade);
@@ -497,8 +522,11 @@ struct XBenderWidget : ModuleWidget {
         //// AXIS out >>>> on the Right
         addOutput(Port::create<moDllzPort>(Vec(234.8f, yPos), Port::OUTPUT, module, XBender::AXIS_OUTPUT));
         
+        yPos = 250.f;
         /// AXIS select in
         addInput(Port::create<moDllzPort>(Vec(xPos, yPos), Port::INPUT, module, XBender::AXISSELECT_INPUT));
+        addParam(ParamWidget::create<snapAxisButton>(Vec(xPos + 22.5f, yPos + 1.f ), module, XBender::SNAPAXIS_PARAM, 0.0f, 1.0f, 0.0f));
+        addChild(ModuleLightWidget::create<TinyLight<RedLight>>(Vec(xPos + 40.f, yPos + 4.f), module, XBender::SNAPAXIS_LIGHT));
 
         /// AXIS EXT - XFADE
         yPos += 25.f;

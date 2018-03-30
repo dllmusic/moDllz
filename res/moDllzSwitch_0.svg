@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="10px" height="20px" viewBox="0 0 10 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="moDllzSwitchH_0">
-            <rect id="hole" fill="#222222" x="0" y="0" width="10" height="20" rx="5"></rect>
-            <rect id="tip" fill="#CCCCCC" x="1" y="9" width="8" height="10" rx="4"></rect>
-        </g>
-    </g>
+<svg width="15" height="24" viewBox="0 0 15 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+   	<rect id="path-1" fill="#222222" x="0" y="0" width="15" height="24" rx="7.5"></rect>
+   	<rect stroke="#454E4E" stroke-width="1.5" x="0.75" y="0.75" width="13.5" height="22.5" rx="6.75"></rect>
+   	<rect id="side" fill="#8E8E8E" x="2" y="8" width="11" height="11" rx="5.5"></rect>
+   	<circle id="Oval" stroke="#6C7575" fill="#DDDDDD" cx="7.5" cy="16.5" r="5"></circle>
 </svg>
