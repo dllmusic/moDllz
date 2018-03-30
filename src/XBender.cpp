@@ -112,12 +112,10 @@ void XBender::step() {
    
     if(inputs[AXISSELECT_INPUT].active) {
         if (params[SNAPAXIS_PARAM].value > 0.5f){
-            lights[SNAPAXIS_LIGHT].value = 10;
             selectedAxisI = (clamp(static_cast<int>(inputs[AXISSELECT_INPUT].value * 0.7), 0, 7));
             selectedAxisF = static_cast<float>(selectedAxisI);
             inaxis = inputs[selectedAxisI].value;
         } else {
-            lights[SNAPAXIS_LIGHT].value = 0;
             selectedAxisF = clamp(inputs[AXISSELECT_INPUT].value * 0.7, 0.f, 7.f);
             selectedAxisI = static_cast<int>(selectedAxisF);
             float ax_float = selectedAxisF - static_cast<float>(selectedAxisI);
@@ -127,7 +125,7 @@ void XBender::step() {
          inaxis = inputs[selectedAxisI].value;
     }
       
-    
+    lights[SNAPAXIS_LIGHT].value = (params[SNAPAXIS_PARAM].value > 0.5f)? 1.f : 0.f;
     
     axisxfade = clamp((params[AXISXFADE_PARAM].value + inputs[AXISXFADE_INPUT].value/ 10.f), 0.f, 1.f);
     
@@ -522,27 +520,27 @@ struct XBenderWidget : ModuleWidget {
         //// AXIS out >>>> on the Right
         addOutput(Port::create<moDllzPort>(Vec(234.8f, yPos), Port::OUTPUT, module, XBender::AXIS_OUTPUT));
         
-        yPos = 250.f;
+        yPos = 249.f;
         /// AXIS select in
         addInput(Port::create<moDllzPort>(Vec(xPos, yPos), Port::INPUT, module, XBender::AXISSELECT_INPUT));
-        addParam(ParamWidget::create<snapAxisButton>(Vec(xPos + 22.5f, yPos + 1.f ), module, XBender::SNAPAXIS_PARAM, 0.0f, 1.0f, 0.0f));
+        addParam(ParamWidget::create<snapAxisButton>(Vec(xPos + 22.5f, yPos + 2.f ), module, XBender::SNAPAXIS_PARAM, 0.0f, 1.0f, 0.0f));
         addChild(ModuleLightWidget::create<TinyLight<RedLight>>(Vec(xPos + 40.f, yPos + 4.f), module, XBender::SNAPAXIS_LIGHT));
 
         /// AXIS EXT - XFADE
         yPos += 25.f;
         addInput(Port::create<moDllzPort>(Vec(xPos, yPos), Port::INPUT, module, XBender::AXISXFADE_INPUT));
-        addParam(ParamWidget::create<moDllzKnob26>(Vec(36.f,276.f), module, XBender::AXISXFADE_PARAM, 0.f, 1.f, 1.f));
+        addParam(ParamWidget::create<moDllzKnob26>(Vec(36.f,280.f), module, XBender::AXISXFADE_PARAM, 0.f, 1.f, 1.f));
         yPos += 25.f;
         addInput(Port::create<moDllzPort>(Vec(xPos, yPos), Port::INPUT, module, XBender::AXISEXT_INPUT));
             
         /// AXIS Slew
         yPos += 25.f;
         addInput(Port::create<moDllzPort>(Vec(xPos, yPos), Port::INPUT, module, XBender::AXISSLEW_INPUT));
-        addParam(ParamWidget::create<moDllzKnob26>(Vec(34.f, 320.f), module, XBender::AXISSLEW_PARAM, 0.f, 1.f, 0.f));
+        addParam(ParamWidget::create<moDllzKnob26>(Vec(34.f, 324.f), module, XBender::AXISSLEW_PARAM, 0.f, 1.f, 0.f));
  
         //AXIS Mod Shift
         addInput(Port::create<moDllzPort>(Vec(xPos + 53.f,yPos), Port::INPUT, module, XBender::AXISSHIFT_INPUT));
-        addParam(ParamWidget::create<moDllzKnob26>(Vec(87.f, 320.f), module, XBender::AXISSHIFTTRIM_PARAM, 0.0f, 1.0f, 0.f));
+        addParam(ParamWidget::create<moDllzKnob26>(Vec(87.f, 324.f), module, XBender::AXISSHIFTTRIM_PARAM, 0.0f, 1.0f, 0.f));
 
         //AXIS Transp
         xPos = 73.5f;
