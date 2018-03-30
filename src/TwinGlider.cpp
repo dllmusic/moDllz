@@ -163,6 +163,7 @@ void TwinGlider::step() {
                         } else {
                             glider[ix].rising = false;
                             glider[ix].out = glider[ix].in;
+                            glider[ix].trigR = true;
                         }
 
                     } else  if (glider[ix].in  < glider[ix].out){
@@ -204,6 +205,7 @@ void TwinGlider::step() {
                         }else{
                             glider[ix].falling = false;
                             glider[ix].out = glider[ix].in;
+                            glider[ix].trigF = true;
                         }
                     } else {
                         glider[ix].rising = false;
