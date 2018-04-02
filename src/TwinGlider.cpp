@@ -76,7 +76,7 @@ struct TwinGlider : Module {
 //    };
     
     void step() override;
-    void reset() override {
+    void onReset() override {
         for (int ix = 0; ix < 2 ; ix++){
        // gliding[ix] = false;
         outputs[OUT_OUTPUT + ix].value = inputs[IN_INPUT + ix].value;
