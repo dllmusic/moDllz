@@ -2,6 +2,6 @@
 <svg width="15" height="24" viewBox="0 0 15 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
    	<rect id="path-1" fill="#222222" x="0" y="0" width="15" height="24" rx="7.5"></rect>
    	<rect stroke="#454E4E" stroke-width="1.5" x="0.75" y="0.75" width="13.5" height="22.5" rx="6.75"></rect>
-   	<rect id="side" fill="#8E8E8E" x="2" y="8" width="11" height="14" rx="5.5"></rect>
+   	<rect id="side" fill="#8E8E8E" x="2" y="8" width="11" height="13" rx="5.5"></rect>
    	<circle id="Oval" stroke="#6C7575" fill="#DDDDDD" cx="7.5" cy="16.5" r="5"></circle>
 </svg>
