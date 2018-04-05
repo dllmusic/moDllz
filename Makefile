@@ -24,6 +24,3 @@ RACK_DIR ?= ../..
 # Include the VCV Rack plugin Makefile framework
 include $(RACK_DIR)/plugin.mk
 
-
-
-
