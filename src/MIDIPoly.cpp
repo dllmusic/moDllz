@@ -599,7 +599,7 @@ void MIDIPolyInterface::processMessage(MidiMessage msg) {
     }
     
     
-    if ((midiInput.channel < 0) || (midiInput.channel == msg.channel())){
+    //if ((midiInput.channel < 0) || (midiInput.channel == msg.channel())){
         switch (msg.status()) {
              case 0x8: {
                         releaseNote(msg.data1 & 0x7f);
@@ -631,7 +631,7 @@ void MIDIPolyInterface::processMessage(MidiMessage msg) {
 
              default: break;
          }
-    }
+    //}
 }
 
 void MIDIPolyInterface::processCC(MidiMessage msg) {
@@ -819,9 +819,6 @@ void MIDIPolyInterface::step() {
         processMessage(msg);
     }
     
-    
-    
-    
     bool analogdrift = (params[DRIFT_PARAM].value > 0.0001f);
     bool newdrift = false;
     if (analogdrift){
@@ -975,7 +972,6 @@ void MIDIPolyInterface::step() {
             
             outputs[PITCH_OUTPUT + i].value = noteButtons[i].drift + (inputs[POLYSHIFT_INPUT].value/48.0f * params[TRIMPOLYSHIFT_PARAM].value) + (polyTransParam + noteButtons[i].key + noteUnison - 60) / 12.0f;      //
             //////////////////////////////////////////////////
-
         }
         
         lights[SEQ_LIGHT + i].value = (seqStep == i) ? 1.0f : 0.0f;
@@ -1183,7 +1179,11 @@ void MIDIPolyInterface::step() {
 //    }
 //    outputs[PBEND_OUTPUT].value = pitchBend.tSmooth.next();
     pitchFilter.lambda = 100.f * engineGetSampleTime();
-    outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 16384, -5.f, 5.f));
+	if (pitch < 8192){
+		outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 8192, -5.f, 0.f));
+	} else {
+		outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 8192, 16383, 0.f, 5.f));
+	}
 //    ///MODULATION
 //    if (mod.changed) {
 //        mod.tSmooth.set(outputs[MOD_OUTPUT].value, (mod.val / 127.0f * 10.0f), steps);
@@ -1604,8 +1604,7 @@ void MIDIPolyInterface::doSequencer(){
                 arpSampleCount = 0; /// SYNC THE ARPEGG
   
             }else{
-            
-            
+
             seqiWoct ++;
                     if (notesFirst) {
                     ////// ADVANCE STEP ///////
@@ -1857,9 +1856,9 @@ struct digiDisplay : TransparentWidget {
         nvgTextBox(vg, 0.0f, 4.f+mdfontSize * 2.f + thirdlineoff * 1.5f, box.size.x, displayedT[1].c_str(), NULL);
         
         nvgTextLetterSpacing(vg, 0.0f);
-        nvgTextBox(vg, 122.0f, -21.0f, 48, displayedT[3].c_str(), NULL);
-        nvgTextBox(vg, 262.0f, -21.0f,30.0f, polyDisplayedTr.c_str(), NULL);
-        nvgTextBox(vg, -7.0f, 284.0f,30.0f, seqDisplayedTr.c_str(), NULL);
+        nvgTextBox(vg, 87.0f, -21.0f, 48.f, displayedT[3].c_str(), NULL);//PolyVoices Display
+        nvgTextBox(vg, 240.0f, -21.0f,30.0f, polyDisplayedTr.c_str(), NULL);//VoicesTransp Display
+        nvgTextBox(vg, -7.0f, 284.0f,30.0f, seqDisplayedTr.c_str(), NULL);//SeqTransp Display
     }
 
    void setFontSize(float const size)
@@ -1926,24 +1925,6 @@ struct WhiteYLight : GrayModuleLightWidget {
 };
 
 
-
-struct overMidiDisplayPoly : TransparentWidget {
-    
-    void draw(NVGcontext* vg)
-    {
-        NVGcolor backgroundColor = nvgRGBA(0x80, 0x80, 0x80, 0x24);
-        nvgBeginPath(vg);
-        nvgRoundedRect(vg, 0, 0, 165, 33, 5.0f);
-        nvgFillColor(vg, backgroundColor);
-        nvgFill(vg);
-        nvgBeginPath(vg);
-        NVGcolor linecolor = nvgRGB(0x50, 0x50, 0x50);
-        nvgRect(vg, 52, 0, 1, 33);
-        nvgFillColor(vg, linecolor);
-        nvgFill(vg);
-    }
-    
-};
 /////////////////////////////////////////////// WIDGET ///////////////////////////////////////////////
 
 struct MIDIPolyWidget : ModuleWidget
@@ -1962,74 +1943,71 @@ struct MIDIPolyWidget : ModuleWidget
 	addChild(Widget::create<ScrewBlack>(Vec(585, 365)));
     
   
-    float xPos = 9;//61;
-    float yPos = 19;
-    
-        MidiWidget *midiWidget = Widget::create<MidiWidget>(Vec(xPos,yPos));
-        midiWidget->box.size = Vec(165,33);//115, 36);
-        midiWidget->midiIO = &module->midiInput;
+    float xPos = 8.f;//61;
+    float yPos = 18.f;
+		
+		MidiWidget *midiWidget = Widget::create<MidiWidget>(Vec(xPos,yPos));
+		midiWidget->box.size = Vec(128.f,36.f);
+		midiWidget->midiIO = &module->midiInput;
+		
+		midiWidget->driverChoice->box.size.y = 12.f;
+		midiWidget->deviceChoice->box.size.y = 12.f;
+		midiWidget->channelChoice->box.size.y = 12.f;
+		
+		midiWidget->driverChoice->box.pos = Vec(0.f, 0.f);
+		midiWidget->deviceChoice->box.pos = Vec(0.f, 12.f);
+		midiWidget->channelChoice->box.pos = Vec(0.f, 24.f);
+		
+		midiWidget->driverSeparator->box.pos = Vec(0.f, 12.f);
+		midiWidget->deviceSeparator->box.pos = Vec(0.f, 24.f);
+		
+		midiWidget->driverChoice->font = Font::load(mFONT_FILE);
+		midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
+		midiWidget->channelChoice->font = Font::load(mFONT_FILE);
+		
+		midiWidget->driverChoice->textOffset = Vec(2.f,10.f);
+		midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
+		midiWidget->channelChoice->textOffset = Vec(2.f,10.f);
+		
+		midiWidget->driverChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
+		midiWidget->deviceChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
+		midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
+		addChild(midiWidget);
         
-        midiWidget->driverChoice->box.size = Vec(54,16);
-        midiWidget->deviceChoice->box.size = Vec(111,16);
-        midiWidget->channelChoice->box.size = Vec(111,16);
-        
-        midiWidget->driverChoice->box.pos = Vec(0, 0);
-        midiWidget->deviceChoice->box.pos = Vec(54, 0);
-        midiWidget->channelChoice->box.pos = Vec(54, 17);
-        
-        midiWidget->driverSeparator->box.pos = Vec(0, 16);
-        midiWidget->deviceSeparator->box.pos = Vec(0, 16);
-        
-        midiWidget->driverChoice->font = Font::load(mFONT_FILE);
-        midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
-        midiWidget->channelChoice->font = Font::load(mFONT_FILE);
-        
-        midiWidget->driverChoice->textOffset = Vec(2,12);
-        midiWidget->deviceChoice->textOffset = Vec(2,12);
-        midiWidget->channelChoice->textOffset = Vec(2,12);
-        
-        midiWidget->driverChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-        midiWidget->deviceChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-        midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-        addChild(midiWidget);
-        
-        overMidiDisplayPoly *overmididisplaypoly = Widget::create<overMidiDisplayPoly>(Vec(9,19));
-        addChild(overmididisplaypoly);
-        
-        xPos = 10;
-        yPos = 37;
+        xPos = 98.f;
+        yPos = 42.f;
     addParam(ParamWidget::create<moDllzMidiPanic>(Vec(xPos, yPos), module, MIDIPolyInterface::RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f));
-    addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(xPos+35.f, yPos+4.f), module, MIDIPolyInterface::RESETMIDI_LIGHT));
+    addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(xPos + 3.f, yPos + 4.f), module, MIDIPolyInterface::RESETMIDI_LIGHT));
 
-    yPos = 20;
+    yPos = 20.f;
     // PolyMode
    
-    xPos = 234;
+    xPos = 205.f;
     addParam(ParamWidget::create<moDllzSwitchT>(Vec(xPos,yPos), module, MIDIPolyInterface::POLYMODE_PARAM, 0.0f, 2.0f, 1.0f));
     //Shift
-    xPos = 278.5f;
-    addInput(Port::create<moDllzPort>(Vec(xPos,yPos-0.5f), Port::INPUT, module, MIDIPolyInterface::POLYSHIFT_INPUT));
-    xPos = 303;
-    addParam(ParamWidget::create<TTrimSnap>(Vec(xPos,yPos+4), module, MIDIPolyInterface::TRIMPOLYSHIFT_PARAM, 0.0f, 48.0f, 9.6f));
+    xPos = 252.f;
+    addInput(Port::create<moDllzPort>(Vec(xPos,yPos - 0.5f), Port::INPUT, module, MIDIPolyInterface::POLYSHIFT_INPUT));
+    xPos = 277.f;
+    addParam(ParamWidget::create<TTrimSnap>(Vec(xPos,yPos + 4.f), module, MIDIPolyInterface::TRIMPOLYSHIFT_PARAM, 0.0f, 48.0f, 9.6f));
     
     
     // Poly Transp ...
-    xPos = 355;
+    xPos = 333.f;
     addParam(ParamWidget::create<moDllzPulseUp>(Vec(xPos,yPos), module, MIDIPolyInterface::POLYTRANUP_PARAM, 0.0f, 1.0f, 0.0f));
-    addParam(ParamWidget::create<moDllzPulseDwn>(Vec(xPos,yPos+11), module, MIDIPolyInterface::POLYTRANDWN_PARAM, 0.0f, 1.0f, 0.0f));
-    addChild(ModuleLightWidget::create<TinyLight<YellowLight>>(Vec(xPos+8, yPos+25), module, MIDIPolyInterface::PLEARN_LIGHT));
+    addParam(ParamWidget::create<moDllzPulseDwn>(Vec(xPos,yPos + 11.f), module, MIDIPolyInterface::POLYTRANDWN_PARAM, 0.0f, 1.0f, 0.0f));
+    addChild(ModuleLightWidget::create<TinyLight<YellowLight>>(Vec(xPos + 8.f, yPos + 25.f), module, MIDIPolyInterface::PLEARN_LIGHT));
 
     
     //Unison Drift
-    xPos = 367.5f;
+    xPos = 351.f;
     addInput(Port::create<moDllzPort>(Vec(xPos, yPos+7.5f), Port::INPUT, module, MIDIPolyInterface::POLYUNISON_INPUT));
-    xPos = 395;
+    xPos = 379.f;
     addParam(ParamWidget::create<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIPolyInterface::POLYUNISON_PARAM, 0.0f, 2.0f, 0.0f) );
-    xPos = 444;
+    xPos = 433.f;
     addParam(ParamWidget::create<Knob26>(Vec(xPos-1,yPos-2), module, MIDIPolyInterface::DRIFT_PARAM, 0.0f, 0.1f, 0.0f));
     
     //Midi Numbers / notes
-    xPos = 476;
+    xPos = 472.f;
     addParam(ParamWidget::create<moDllzSwitch>(Vec(xPos,yPos+10), module, MIDIPolyInterface::DISPLAYNOTENUM_PARAM, 0.0f, 1.0f, 0.0f));
     
     xPos = 509;
@@ -2091,16 +2069,6 @@ struct MIDIPolyWidget : ModuleWidget
         mainDisplay->polytransP = &(module->polyTransParam);
         addChild(mainDisplay);
     }
-   
-    //    BPMKnob *clockKnob = dynamic_cast<BPMKnob*>(createParam<BPMKnob>(Vec(xPos,yPos), module, MIDIPolyInterface::SEQSPEED_PARAM, -2.0f, 4.0f, 1.0f));
-    //    CenteredLabel* const bpmLabel = new CenteredLabel(10);
-    //    bpmLabel->font = Font::load(FONT_FILE);
-    //    bpmLabel->box.pos = Vec(10, 56);
-    //    bpmLabel->box.size = {60, 20};
-    //    bpmLabel->text = "0";
-    //    clockKnob->connectLabel(bpmLabel);
-    //    addChild(bpmLabel);
-    //    addParam(clockKnob);
 
     yPos = 125;
     //Seq SPEED and Ratio knobs
