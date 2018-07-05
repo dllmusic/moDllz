@@ -213,7 +213,6 @@ struct 		MIDI8MPE : Module {
 				displayZcc = mpeZcc;
 			}
 		}
-
 	}
 ///////////////////////////ON RESET
 	void onReset() override {
