@@ -475,24 +475,22 @@ struct 		MIDI8MPE : Module {
 			pbVo = MpitFilter.process(rescale(Mpit, 8192, 16383, 0.f, 5.f));
 		}
 		outputs[BEND_OUTPUT].value = pbVo;
-
-
 		bool sustainHold = (params[SUSTAINHOLD_PARAM].value > .5 );
 
 		if (polyMode > PolyMode::MPE_MODE){
 			for (int i = 0; i < 8; i++) {
-				bool lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))));
-				outputs[GATE_OUTPUT + i].value = lastGate ? 10.f : 0.f;
+				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))))? 10.f : 0.f;
+				outputs[GATE_OUTPUT + i].value = lastGate;
 				outputs[X_OUTPUT + i].value = ((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f);
 				outputs[VEL_OUTPUT + i].value = rescale(vels[i], 0, 127, 0.f, 10.f);
 				outputs[Y_OUTPUT + i].value = rescale(mpey[i], 0, 127, 0.f, 10.f);
 				outputs[Z_OUTPUT + i].value = rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f);
+				lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
 			}
 		} else {
 			for (int i = 0; i < numVo; i++) {
-				bool lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))));
-				outputs[GATE_OUTPUT + i].value = lastGate ? 10.f : 0.f;
-
+				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime())))) ? 10.f : 0.f;
+				outputs[GATE_OUTPUT + i].value = lastGate ;
 				if ( mpex[i] < 0){
 					xpitch[i] = (MPExFilter[i].process(rescale(mpex[i], -8192 , 0, -5.f, 0.f))) * pbMPE / 60.f;
 				} else {
@@ -502,11 +500,9 @@ struct 		MIDI8MPE : Module {
 				outputs[VEL_OUTPUT + i].value = rescale(vels[i], 0, 127, 0.f, 10.f);
 				outputs[Y_OUTPUT + i].value = MPEyFilter[i].process(rescale(mpey[i], 0, 127, 0.f, 10.f));
 				outputs[Z_OUTPUT + i].value = MPEzFilter[i].process(rescale(mpez[i], 0, 127, 0.f, 10.f));
+				lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
 			}
 		}
-
-
-
 		MmodFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[MOD_OUTPUT].value = MmodFilter.process(rescale(Mmod, 0, 127, 0.f, 10.f));
 
@@ -521,7 +517,8 @@ struct 		MIDI8MPE : Module {
 
 		MsusFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[SUS_OUTPUT].value = MsusFilter.process(rescale(Msus, 0, 127, 0.f, 10.f));
-		
+
+		//// PANEL KNOB AND BUTTONS
 		float f_dataKnob = *dataKnob;
 		if ( f_dataKnob > 0.07f){
 			int knobInterval = static_cast<int>(0.05 * static_cast<float>(engineGetSampleRate()) / f_dataKnob);
@@ -536,7 +533,6 @@ struct 		MIDI8MPE : Module {
 				dataMinus();
 			}
 		}
-
 		
 		if (PlusOneTrigger.process(params[PLUSONE_PARAM].value)) {
 			dataPlus();
