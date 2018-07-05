@@ -98,20 +98,6 @@ struct moDllzSmSelector : SVGKnob{
     }
 };
 
-//struct moDllzHFader : SVGFader {
-//    moDllzHFader() {
-//       // Vec margin = Vec(3.5, 3.5);
-//        maxHandlePos = Vec(90, 0);//.plus(margin);
-//        minHandlePos = Vec(0, 0);//.plus(margin);
-//        background->svg = SVG::load(assetPlugin(plugin, "res/moDllzHFaderBck.svg"));
-//        background->wrap();
-//        //background->box.pos = margin;
-//        box.size = background->box.size;
-//        handle->svg = SVG::load(assetPlugin(plugin, "res/moDllzHFader.svg"));
-//        handle->wrap();
-//    }
-//};
-
 ///switch
 struct moDllzSwitch : SVGSwitch, ToggleSwitch {
     moDllzSwitch() {
@@ -251,7 +237,7 @@ struct moDllzcursorR : SVGSwitch, MomentarySwitch {
 		addFrame(SVG::load(assetPlugin(plugin, "res/cursorR_1.svg")));
 	}
 };
-/// UpDown  Triangle Buttons
+/// UpDown + - Buttons
 
 struct minusButton : SVGSwitch, MomentarySwitch {
 	minusButton() {
@@ -286,29 +272,29 @@ struct moDllzPortDark : SVGPort {
 
 /////////////////////////////////////////////
 ///// TEST DISPLAY //////
-
-struct testDisplay : TransparentWidget {
-    testDisplay() {
-        font = Font::load(FONT_FILE);
-    }
-    float mdfontSize = 16.f;
-    std::shared_ptr<Font> font;
-    std::string displayedVal;
-    float *valP;
-    float val = 0.f;
-    void draw(NVGcontext* vg)
-    {
-        val = *valP;
-        displayedVal = std::to_string(val);
-        nvgFillColor(vg, nvgRGB(0xFF,0xFF,0x00));
-        nvgFontSize(vg, mdfontSize);
-        //nvgTextLetterSpacing(vg, 2.0f);
-        //nvgTextAlign(vg, NVG_ALIGN_CENTER);
-        nvgTextBox(vg, 0.0f, 20.0f, box.size.x, displayedVal.c_str(), NULL);
-
-    }
-
-};
+//
+//struct testDisplay : TransparentWidget {
+//    testDisplay() {
+//        font = Font::load(FONT_FILE);
+//    }
+//    float mdfontSize = 16.f;
+//    std::shared_ptr<Font> font;
+//    std::string displayedVal;
+//    float *valP;
+//    float val = 0.f;
+//    void draw(NVGcontext* vg)
+//    {
+//        val = *valP;
+//        displayedVal = std::to_string(val);
+//        nvgFillColor(vg, nvgRGB(0xFF,0xFF,0x00));
+//        nvgFontSize(vg, mdfontSize);
+//        //nvgTextLetterSpacing(vg, 2.0f);
+//        //nvgTextAlign(vg, NVG_ALIGN_CENTER);
+//        nvgTextBox(vg, 0.0f, 20.0f, box.size.x, displayedVal.c_str(), NULL);
+//
+//    }
+//
+//};
 ////////////////////////////////////////////
 ///////////////////////////////////////////
 

@@ -57,9 +57,7 @@ struct 		MIDI8MPE : Module {
 	};
 	PolyMode polyMode = ROTATE_MODE;
 
-	
 	bool holdGates = true;
-	
 	struct NoteData {
 		uint8_t velocity = 0;
 		uint8_t aftertouch = 0;
@@ -118,7 +116,8 @@ struct 		MIDI8MPE : Module {
 	int selectedmidich = 0;
 	int cursorPoly[5] = {0,1,3,7,8};
 	int cursorMPE[8] = {0,2,3,4,5,6,7,8};
-	float *dataKnob;
+	float dummy = 0.f;
+	float *dataKnob = &dummy;
 	int frameData = 100000;
 
 	ExponentialFilter MpitFilter;
@@ -145,7 +144,7 @@ struct 		MIDI8MPE : Module {
 	SchmittTrigger learnCCZTrigger;
 	
 	
-	MIDI8MPE() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS), cachedNotes(128) {
+	MIDI8MPE() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
 		onReset();
 	}
 
@@ -460,13 +459,16 @@ struct 		MIDI8MPE : Module {
 ///////////////////////
 //////   STEP START
 ///////////////////////
+	
+	
 	void step() override {
+
 		MidiMessage msg;
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
 		}
-		
-		float pbVo;
+
+		float pbVo = 0.f;
 		MpitFilter.lambda = 100.f * engineGetSampleTime();
 		if (Mpit < 8192){
 			pbVo = MpitFilter.process(rescale(Mpit, 0, 8192, -5.f, 0.f));
@@ -474,25 +476,24 @@ struct 		MIDI8MPE : Module {
 			pbVo = MpitFilter.process(rescale(Mpit, 8192, 16383, 0.f, 5.f));
 		}
 		outputs[BEND_OUTPUT].value = pbVo;
-		
-		
+
+
 		bool sustainHold = (params[SUSTAINHOLD_PARAM].value > .5 );
-		
+
 		if (polyMode > PolyMode::MPE_MODE){
 			for (int i = 0; i < 8; i++) {
-				uint8_t lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))));
+				bool lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))));
 				outputs[GATE_OUTPUT + i].value = lastGate ? 10.f : 0.f;
 				outputs[X_OUTPUT + i].value = ((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f);
 				outputs[VEL_OUTPUT + i].value = rescale(vels[i], 0, 127, 0.f, 10.f);
 				outputs[Y_OUTPUT + i].value = rescale(mpey[i], 0, 127, 0.f, 10.f);
 				outputs[Z_OUTPUT + i].value = rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f);
-				
 			}
 		} else {
 			for (int i = 0; i < numVo; i++) {
-				uint8_t lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))));
+				bool lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))));
 				outputs[GATE_OUTPUT + i].value = lastGate ? 10.f : 0.f;
-				
+
 				if ( mpex[i] < 0){
 					xpitch[i] = (MPExFilter[i].process(rescale(mpex[i], -8192 , 0, -5.f, 0.f))) * pbMPE / 60.f;
 				} else {
@@ -504,21 +505,21 @@ struct 		MIDI8MPE : Module {
 				outputs[Z_OUTPUT + i].value = MPEzFilter[i].process(rescale(mpez[i], 0, 127, 0.f, 10.f));
 			}
 		}
-		
 
-		
+
+
 		MmodFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[MOD_OUTPUT].value = MmodFilter.process(rescale(Mmod, 0, 127, 0.f, 10.f));
-		
+
 		MaftFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[AFT_OUTPUT].value = MaftFilter.process(rescale(Maft, 0, 127, 0.f, 10.f));
-		
+
 		MccaFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[CCA_OUTPUT].value = MccaFilter.process(rescale(Mcca, 0, 127, 0.f, 10.f));
-		
+
 		MccbFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[CCB_OUTPUT].value = MccbFilter.process(rescale(Mccb, 0, 127, 0.f, 10.f));
-		
+
 		MsusFilter.lambda = 100.f * engineGetSampleTime();
 		outputs[SUS_OUTPUT].value = MsusFilter.process(rescale(Msus, 0, 127, 0.f, 10.f));
 		
@@ -620,8 +621,6 @@ struct 		MIDI8MPE : Module {
 //////   STEP END
 ///////////////////////
 
-	
-	
 	
 	void dataPlus(){
 		switch (cursorIx){
@@ -997,10 +996,10 @@ struct PolyModeDisplay : TransparentWidget {
 				nvgRoundedRect(vg, 2.f, 14.f, 128.f, 12.f, 1.f);
 			}break;
 			case 3:{//mainPB
-				nvgRoundedRect(vg, 2.f, 27.f, 50.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 2.f, 27.f, 52.f, 12.f, 1.f);
 			}break;
 			case 4:{//mpePB
-				nvgRoundedRect(vg, 50.f, 27.f, 78.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 52.f, 27.f, 76.f, 12.f, 1.f);
 			}break;
 		}
 
@@ -1096,10 +1095,10 @@ struct BlockChannel : OpaqueWidget {
 		if ( *p_polyMode > 0) {
 				box.size = Vec(0.f,0.f);
 			}else{
-				box.size = Vec(96.f,12.f);
+				box.size = Vec(94.f,13.f);
 				NVGcolor ledColor = nvgRGBA(0x00, 0x00, 0x00,0xaa);
 				nvgBeginPath(vg);
-				nvgRect(vg, 0.f, 0.f, 96.f, 12.f);
+				nvgRoundedRect(vg, 0.f, 0.f, 94.f, 13.f,3.f);
 				nvgFillColor(vg, ledColor);
 				nvgFill(vg);
 			}
@@ -1133,8 +1132,6 @@ struct springDataKnob : SVGKnob {
 
 
 
-
-
 struct MIDI8MPEWidget : ModuleWidget {
 	MIDI8MPEWidget(MIDI8MPE *module) : ModuleWidget(module) {
 		setPanel(SVG::load(assetPlugin(plugin,"res/MIDI8MPE.svg")));
@@ -1155,12 +1152,12 @@ struct MIDI8MPEWidget : ModuleWidget {
 			midiWidget->deviceChoice->box.size.y = 12.f;
 			midiWidget->channelChoice->box.size.y = 12.f;
 
-			midiWidget->driverChoice->box.pos = Vec(0.f, 0.f);
-			midiWidget->deviceChoice->box.pos = Vec(0.f, 13.f);
-			midiWidget->channelChoice->box.pos = Vec(0.f, 26.f);
+			midiWidget->driverChoice->box.pos = Vec(0.f, 2.f);
+			midiWidget->deviceChoice->box.pos = Vec(0.f, 15.f);
+			midiWidget->channelChoice->box.pos = Vec(0.f, 28.f);
 
-			midiWidget->driverSeparator->box.pos = Vec(0.f, 13.f);
-			midiWidget->deviceSeparator->box.pos = Vec(0.f, 26.f);
+			midiWidget->driverSeparator->box.pos = Vec(0.f, 15.f);
+			midiWidget->deviceSeparator->box.pos = Vec(0.f, 28.f);
 
 			midiWidget->driverChoice->font = Font::load(mFONT_FILE);
 			midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
@@ -1175,7 +1172,7 @@ struct MIDI8MPEWidget : ModuleWidget {
 			midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
 			addChild(midiWidget);
 		}
-		BlockChannel *blockChannel = Widget::create<BlockChannel>(Vec(8.f,45.f));
+		BlockChannel *blockChannel = Widget::create<BlockChannel>(Vec(8.f,46.f));
 		blockChannel->p_polyMode = &(module->polyModeIx);
 		addChild(blockChannel);
 		
@@ -1206,8 +1203,7 @@ struct MIDI8MPEWidget : ModuleWidget {
 		addParam(ParamWidget::create<minusButton>(Vec(xPos, yPos), module, MIDI8MPE::MINUSONE_PARAM, 0.0f, 1.0f, 0.0f));
 		xPos = 169.f;
 		addParam(ParamWidget::create<plusButton>(Vec(xPos, yPos), module, MIDI8MPE::PLUSONE_PARAM, 0.0f, 1.0f, 0.0f));
-		
-		
+
 		
 		xPos = 147.f;
 		yPos = 40.f;
@@ -1331,6 +1327,7 @@ struct MIDI8MPEWidget : ModuleWidget {
 //		    }
 	}
 };
+
 
 Model *modelMIDI8MPE = Model::create<MIDI8MPE, MIDI8MPEWidget>("moDllz", "MIDI8MPE", "MIDI 8cv MPE", MIDI_TAG, EXTERNAL_TAG, MULTIPLE_TAG);
 
