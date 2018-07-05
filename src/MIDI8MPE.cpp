@@ -4,6 +4,8 @@
 #include "dsp/filter.hpp"
 #include "dsp/digital.hpp"
 #include "moDllz.hpp"
+#include <algorithm>    // std::find
+#include <vector>       // std::vector
 
 struct 		MIDI8MPE : Module {
 	enum ParamIds {
