@@ -633,7 +633,7 @@ struct 		MIDI8MPE : Module {
 			}break;
 			case 1: {
 				if (numVo < 8) numVo ++;
-				else numVo = 2;
+				//else numVo = 2;
 				onReset();
 			}break;
 			case 2: {
@@ -687,7 +687,7 @@ struct 		MIDI8MPE : Module {
 			}break;
 			case 1: {
 				if (numVo > 2) numVo --;
-				else numVo = 8;
+				//else numVo = 8;
 				onReset();
 			}break;
 			case 2:{
@@ -1029,7 +1029,7 @@ struct MidiccDisplay : TransparentWidget {
 	int screenFrames = 0;
 	std::shared_ptr<Font> font;
 	void draw(NVGcontext* vg) {
-		
+
 		if  ((ccNumber != *p_ccNumber)||(learnOn != *p_learnOn)){
 			ccNumber = *p_ccNumber;
 			learnOn = *p_learnOn;
