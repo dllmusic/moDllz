@@ -25,9 +25,9 @@ struct MIDIPolyInterface : Module {
  static const int numPads = 16;
 	
 	enum ParamIds {
-		KEYBUTTON_PARAM,
-		SEQSEND_PARAM = numPads,
-		LEARNPAD_PARAM = numPads * 2,
+		ENUMS(KEYBUTTON_PARAM, 16),
+		ENUMS(SEQSEND_PARAM, 16),
+		LEARNPAD_PARAM,
 		LOCKPAD_PARAM,
 		SEQPAD_PARAM,
 		PADXLOCK_PARAM,
@@ -94,10 +94,10 @@ struct MIDIPolyInterface : Module {
 		NUM_INPUTS
 	};
 	enum OutputIds {
-		PITCH_OUTPUT,
-		VEL_OUTPUT = numPads,
-		GATE_OUTPUT = numPads * 2,
-		SEQPITCH_OUTPUT = numPads * 3,
+		ENUMS(PITCH_OUTPUT,16),
+		ENUMS(VEL_OUTPUT,16),
+		ENUMS(GATE_OUTPUT,16),
+		SEQPITCH_OUTPUT,
 		SEQVEL_OUTPUT,
 		SEQGATE_OUTPUT,
 		LOCKEDPITCH_OUTPUT,
@@ -117,17 +117,17 @@ struct MIDIPolyInterface : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		SEQ_LIGHT,
-		RESETMIDI_LIGHT = numPads,
+		ENUMS(SEQ_LIGHT,16),
+		RESETMIDI_LIGHT,
 		PLOCK_LIGHT,
 		PLEARN_LIGHT,
 		PXLOCK_LIGHT,
 		PSEQ_LIGHT,
 		SEQRUNNING_LIGHT,
 		SEQRESET_LIGHT,
-		SEQOCT_LIGHT = 23,
-		ARPOCT_LIGHT = 28,
-		ARCADEON_LIGHT = 33,
+		ENUMS(SEQOCT_LIGHT,5),
+		ENUMS(ARPOCT_LIGHT,5),
+		ARCADEON_LIGHT,
 		ARPEGON_LIGHT,
 		MUTESEQ_LIGHT,
 		MUTEMONO_LIGHT,
@@ -243,7 +243,7 @@ struct MIDIPolyInterface : Module {
 	int arpSampleCount = 0;
 	int ClockSeqSamples = 1;
 	int ClockArpSamples = 1;
-	float seqResetLight = 0;
+
  
 	const float ClockRatios[13] ={0.50f, 2.f/3.f,0.75f, 1.0f ,4.f/3.f,1.5f, 2.0f, 8.f/3.f, 3.0f, 4.0f, 6.0f, 8.0f,12.0f};
 	//const std::string stringClockRatios[13] ={"1/2", "1/4d","1/2t", "1/4", "1/8d", "1/4t","1/8","1/16d","1/8t","1/16","1/16t","1/32","1/32t"};
@@ -343,7 +343,10 @@ struct MIDIPolyInterface : Module {
  
 	void MidiPanic();
 
-
+	void onSampleRateChange() override{
+		onReset();
+	}
+	
 	void onReset() override {
 		// resetMidi();
 		for (int i = 0; i < numPads; i++)
@@ -359,9 +362,13 @@ struct MIDIPolyInterface : Module {
 		lastpolyIndex = 0;
 		seqTransParam = 0;
 		for (int i = 0; i < NUM_OUTPUTS; i++){
-		outputs[i].value= 0.0f;
+			outputs[i].value= 0.0f;
 		}
 		params[SEQRESET_PARAM].value = 0.0f;
+		sustainFilter.lambda = 100.f * engineGetSampleTime();
+		modFilter.lambda = 100.f * engineGetSampleTime();
+		pressureFilter.lambda = 100.f * engineGetSampleTime();
+		pitchFilter.lambda = 100.f * engineGetSampleTime();
 	}
 	/* initialize random seed: */
   //  srand (time(NULL));
@@ -385,33 +392,29 @@ struct MIDIPolyInterface : Module {
 	void fromJson(json_t *rootJ) override {
 		
 		json_t *midiJ = json_object_get(rootJ, "midi");
-		midiInput.fromJson(midiJ);
-	   // baseFromJson(rootJ);
+		if (midiJ)
+			midiInput.fromJson(midiJ);
 		for (int i = 0; i < numPads; i++) {
 			json_t *keyJ = json_object_get(rootJ,("key" + std::to_string(i)).c_str());
-			// if (keyJ)
+			 if (keyJ)
 				noteButtons[i].key = json_integer_value(keyJ);
 			json_t *modeJ = json_object_get(rootJ,("mode" + std::to_string(i)).c_str());
-			// if (modeJ)
+			 if (modeJ)
 				noteButtons[i].mode = json_integer_value(modeJ);
-				noteButtons[i].learn = false;
+			noteButtons[i].learn = false;
 		}
 		json_t *seqtranspJ = json_object_get(rootJ,("seqtransp"));
-	   //  if (seqtranspJ) {
-		seqTransParam = json_integer_value(seqtranspJ);
-	   // }
+		if (seqtranspJ)
+			 seqTransParam = json_integer_value(seqtranspJ);
 		json_t *polytranspJ = json_object_get(rootJ,("polytransp"));
-	   // if (polytranspJ) {
+		if (polytranspJ)
 			polyTransParam = json_integer_value(polytranspJ);
-	   // }
 		json_t *arpegmodeJ = json_object_get(rootJ,("arpegmode"));
-	   // if (arpegmodeJ) {
+		if (arpegmodeJ)
 			arpegMode = json_integer_value(arpegmodeJ);
-	   // }
 		json_t *seqrunningJ = json_object_get(rootJ,("seqrunning"));
-	   // if (seqrunningJ) {
+		if (seqrunningJ)
 			seqrunning = json_is_true(seqrunningJ);
-	   // }
 		
 		padSetMode = POLY_MODE;
 		padSetLearn = false;
@@ -420,7 +423,6 @@ struct MIDIPolyInterface : Module {
 		initPolyIndex();
 	}
 };
-
 
 
 void MIDIPolyInterface::initPolyIndex(){
@@ -909,8 +911,7 @@ void MIDIPolyInterface::step() {
 			outputs[PITCH_OUTPUT + i].value = noteButtons[i].drift + (inputs[POLYSHIFT_INPUT].value/48.0f * params[TRIMPOLYSHIFT_PARAM].value) + (polyTransParam + noteButtons[i].key + noteUnison - 60) / 12.0f;	  //
 			//////////////////////////////////////////////////
 		}
-		
-		lights[SEQ_LIGHT + i].value = (seqStep == i) ? 1.0f : 0.0f;
+		if (seqrunning) lights[SEQ_LIGHT + i].value = (seqStep == i) ? 1.0f : 0.0f;
 
 		
 	   }  //// end for i to numPads
@@ -1104,41 +1105,13 @@ void MIDIPolyInterface::step() {
 	}
 	outputs[LOCKEDGATE_OUTPUT].value = !muteLocked && lockedRtgGate ? 10.0f : 0.0f;
 	
-  //  int steps = int(engineGetSampleRate() / 200);///SMOOTHING TO 50 mS
-	///PITCH WHEEL
-//	if (pitchBend.changed) {
-//		//	min = 0	 >>-5v
-//		// center = 8192  >> 0v  ---- (default)
-//		//	max = 16383 >> 5v
-//		pitchBend.tSmooth.set(outputs[PBEND_OUTPUT].value , (pitchBend.val / 16384.0f * 10.0f) - 5.0f , steps);
-//		pitchBend.changed = false;
-//	}
-//	outputs[PBEND_OUTPUT].value = pitchBend.tSmooth.next();
-	pitchFilter.lambda = 100.f * engineGetSampleTime();
 	if (pitch < 8192){
 		outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 0, 8192, -5.f, 0.f));
 	} else {
 		outputs[PBEND_OUTPUT].value = pitchFilter.process(rescale(pitch, 8192, 16383, 0.f, 5.f));
 	}
-//	///MODULATION
-//	if (mod.changed) {
-//		mod.tSmooth.set(outputs[MOD_OUTPUT].value, (mod.val / 127.0f * 10.0f), steps);
-//		mod.changed = false;
-//	}
-//	outputs[MOD_OUTPUT].value = mod.tSmooth.next();
-	modFilter.lambda = 100.f * engineGetSampleTime();
 	outputs[MOD_OUTPUT].value = modFilter.process(rescale(mod, 0, 127, 0.f, 10.f));
-//	///SUSTAIN (no smoothing)
-//	outputs[SUSTAIN_OUTPUT].value = sustain.val / 127.0f * 10.0f;
-	sustainFilter.lambda = 100.f * engineGetSampleTime();
 	outputs[SUSTAIN_OUTPUT].value = sustainFilter.process(rescale(sustain, 0, 127, 0.f, 10.f));
-//	///PRESSURE
-//	if (afterTouch.changed) {
-//		afterTouch.tSmooth.set(outputs[PRESSURE_OUTPUT].value, (afterTouch.val / 127.0f * 10.0f), steps);
-//		afterTouch.changed = false;
-//	}
-//	outputs[PRESSURE_OUTPUT].value = afterTouch.tSmooth.next();
-	pressureFilter.lambda = 100.f * engineGetSampleTime();
 	outputs[PRESSURE_OUTPUT].value = pressureFilter.process(rescale(pressure, 0, 127, 0.f, 10.f));
 	
 	
@@ -1153,9 +1126,8 @@ void MIDIPolyInterface::step() {
 		MidiPanic();
 		return;
 	}
-	if (lights[RESETMIDI_LIGHT].value > 0.0001f){
+	if (lights[RESETMIDI_LIGHT].value > 0.0001f)
 		lights[RESETMIDI_LIGHT].value -= 0.0001f ; // fade out light
-	}
 
 	bool pulseClk = clockPulse.process(1.0f /  engineGetSampleRate());
 	outputs[SEQCLOCK_OUTPUT].value = pulseClk ? 10.0f : 0.0f;
@@ -1171,32 +1143,42 @@ void MIDIPolyInterface::step() {
 	////// TRIGGER BUTTONS....
 	if (setSeqTrigger.process(params[SEQPAD_PARAM].value)){
 		padSetMode = (padSetMode != SEQ_MODE)? SEQ_MODE:POLY_MODE;
+		lights[PSEQ_LIGHT].value = (padSetMode==SEQ_MODE) ? 1.0f : 0.0f;
+		lights[PLOCK_LIGHT].value = 0.f;
+		lights[PXLOCK_LIGHT].value = 0.f;
 		padSetLearn = false;
+		lights[PLEARN_LIGHT].value = 0.f;
 		for (int i = 0; i < numPads; i++) noteButtons[i].learn = false;
 	}
 	if (setLockTrigger.process(params[LOCKPAD_PARAM].value)){
 		padSetMode = (padSetMode != LOCKED_MODE) ? LOCKED_MODE:POLY_MODE;
+		lights[PLOCK_LIGHT].value = (padSetMode==LOCKED_MODE) ? 1.0f : 0.0f;
+		lights[PSEQ_LIGHT].value = 0.f;
+		lights[PXLOCK_LIGHT].value = 0.f;
 		padSetLearn = false;
+		lights[PLEARN_LIGHT].value = 0.f;
 		for (int i = 0; i < numPads; i++) noteButtons[i].learn = false;
 	}
 	if (setPadTrigger.process(params[PADXLOCK_PARAM].value)){
 		padSetMode = (padSetMode != XLOCK_MODE)? XLOCK_MODE:POLY_MODE;
+		lights[PXLOCK_LIGHT].value = (padSetMode==XLOCK_MODE) ? 1.0f : 0.0f;
+		lights[PLOCK_LIGHT].value = 0.f;
+		lights[PSEQ_LIGHT].value = 0.f;
 		padSetLearn = false;
+		lights[PLEARN_LIGHT].value = 0.f;
 		for (int i = 0; i < numPads; i++) noteButtons[i].learn = false;
 	}
 	if (setLearnTrigger.process(params[LEARNPAD_PARAM].value)){
 		padSetLearn = !padSetLearn;
+		lights[PLEARN_LIGHT].value = padSetLearn ? 1.0f : 0.0f;
 		padSetMode = POLY_MODE;
-		
+		lights[PLOCK_LIGHT].value = 0.f;
+		lights[PSEQ_LIGHT].value = 0.f;
+		lights[PXLOCK_LIGHT].value = 0.f;
 		if (!padSetLearn){///turn off learn on buttons
 			for (int i = 0; i < numPads; i++) noteButtons[i].learn = false;
 		}
 	}
-
-	lights[PSEQ_LIGHT].value = (padSetMode==SEQ_MODE) ? 1.0f : 0.0f;
-	lights[PLOCK_LIGHT].value = (padSetMode==LOCKED_MODE) ? 1.0f : 0.0f;
-	lights[PXLOCK_LIGHT].value = (padSetMode==XLOCK_MODE) ? 1.0f : 0.0f;
-	lights[PLEARN_LIGHT].value = padSetLearn ? 1.0f : 0.0f;
 
 	
 	if (inputs[ARPMODE_INPUT].active) {
@@ -1219,10 +1201,6 @@ void MIDIPolyInterface::step() {
 		}
 	}
 	
-	
-	
-	
-	
 	if (muteSeqTrigger.process(params[MUTESEQ_PARAM].value)){
 		muteSeq = !muteSeq;
 		lights[MUTESEQ_LIGHT].value = (muteSeq) ? 1.0f : 0.0f;
@@ -1243,7 +1221,6 @@ void MIDIPolyInterface::step() {
 		mutePoly = !mutePoly;
 		lights[MUTEPOLY_LIGHT].value = (mutePoly) ? 1.0f : 0.0f;
 	}
-
 	
 	if (polyTransUpTrigger.process(params[POLYTRANUP_PARAM].value)){
 		if (padSetLearn){
@@ -1264,8 +1241,9 @@ void MIDIPolyInterface::step() {
 		if ((seqTransUpTrigger.process(params[SEQTRANUP_PARAM].value)) && (seqTransParam < 48)) seqTransParam ++;
 		if ((seqTransDwnTrigger.process(params[SEQTRANDWN_PARAM].value)) && (seqTransParam > -48)) seqTransParam --;
 	
-	dispNotenumber = (params[DISPLAYNOTENUM_PARAM].value > 0.5f);
-  
+
+	//if	(dispNotenumber != (params[DISPLAYNOTENUM_PARAM].value > 0.5f))
+		dispNotenumber = (params[DISPLAYNOTENUM_PARAM].value > 0.5f);
 
 }
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
@@ -1300,19 +1278,19 @@ void MIDIPolyInterface::doSequencer(){
 		seqStep = seqOffset;
 	}
 	if (inputs[SEQSTEPS_INPUT].active) {
-	seqSteps = static_cast <int>  (minmaxFit((inputs[SEQSTEPS_INPUT].value * 1.55f + params[SEQSTEPS_PARAM].value), 1.0f,16.0f));
+		seqSteps = static_cast <int>  (minmaxFit((inputs[SEQSTEPS_INPUT].value * 1.55f + params[SEQSTEPS_PARAM].value), 1.0f,16.0f));
 	}else{
-	seqSteps = static_cast <int> (params[SEQSTEPS_PARAM].value);
+		seqSteps = static_cast <int> (params[SEQSTEPS_PARAM].value);
 	}
    ///////////////////////////////////////////////
 	
 	bool seqResetNow = false;
 	
 	if ((params[SEQGATERUN_PARAM].value > 0.5f) && (inputs[SEQRUN_INPUT].active)) {
-		if ((!seqrunning) && (inputs[SEQRUN_INPUT].value > 3.0f)){
+		if ((!seqrunning) && (inputs[SEQRUN_INPUT].value > 3.f)){
 			seqrunning = true;
 			if (params[SEQRUNRESET_PARAM].value > 0.5f) seqResetNow = true;
-		} else  if ((seqrunning) && (inputs[SEQRUN_INPUT].value < 2.0f)){
+		} else  if ((seqrunning) && (inputs[SEQRUN_INPUT].value < 2.f)){
 			seqrunning = false;
 		}
 	} else { /// trigger selected for run or disconnected gate input...
@@ -1321,7 +1299,9 @@ void MIDIPolyInterface::doSequencer(){
 				if (!seqrunning){
 					seqrunning = true;
 					seqResetNow = true;
-				} else seqrunning = false;
+				} else {
+					seqrunning = false;
+				}
 			}else{ // reset not linked...regular toggle
 				seqrunning = !seqrunning;
 			}
@@ -1390,7 +1370,7 @@ void MIDIPolyInterface::doSequencer(){
 	}
 	// Reset manual
 	if ((seqResetTrigger.process(params[SEQRESET_PARAM].value)) || ((inputs[SEQRESET_INPUT].active) && (seqResetTrigger.process(inputs[SEQRESET_INPUT].value)))) {
-		seqResetLight = 1.0f;
+		lights[SEQRESET_LIGHT].value = 1.0f;
 		seqOctIx = 0;
 		if (seqrunning) {
 			seqResetNext = true;
@@ -1399,15 +1379,12 @@ void MIDIPolyInterface::doSequencer(){
 		}
 	}
 	
-	
-	
 	///
 	if (seqResetNow){
 		seqPhase = 0.0f;
 		seqi = 0;
 		seqiWoct = 0;
 		seqStep = seqOffset;
-		seqResetLight = 1.0f;
 		seqOctIx = 0;
 		seqSwingDwn = true;
 		arpSwingDwn = true;
@@ -1542,6 +1519,7 @@ void MIDIPolyInterface::doSequencer(){
 				seqPhase = 0.0f;
 				seqi = 0;
 				seqiWoct = 0;
+				seqOctIx = 0;
 				seqStep = seqOffset;
 				seqSwingDwn = true;
 				arpPhase = 0.0f;
@@ -1583,27 +1561,28 @@ void MIDIPolyInterface::doSequencer(){
 				  }
 				 seqStep = ((seqi % seqSteps) + seqOffset) % numPads;
 			}
-		 lights[SEQOCT_LIGHT + 2 + octaveShift[seqOctValue][seqOctIx]].value = 1.0f;
+		lights[SEQOCT_LIGHT + 2 + octaveShift[seqOctValue][seqOctIx]].value = 1.0f;
+		lights[SEQRUNNING_LIGHT].value = 1.f;
 		}
+		
 	} else { ///stopped shut down gate....
 		if (!stopped){
+			lights[SEQRUNNING_LIGHT].value = 0.f;
 			noteButtons[seqStep].gateseq = false;
 			stopped = true;
 			stopPulse.trigger(1e-3);
-			seqOctIx = 0;
-			seqi = 0;
-			seqiWoct = 0;
+			//seqOctIx = 0;
+			//seqi = 0;
+			//seqiWoct = 0;
 			for (int i = 0 ; i < 5; i++){
 				lights[SEQOCT_LIGHT + i].value = 0.0f;
 			}
 			outputs[SEQGATE_OUTPUT].value = 0.0f;
 		}
 	}
-   
-	lights[SEQRUNNING_LIGHT].value = seqrunning ? 1.0f : 0.0f;
 	
-	if (seqResetLight > 0.0001f) seqResetLight -= 0.0001f;
-	lights[SEQRESET_LIGHT].value = seqResetLight;
+	if (lights[SEQRESET_LIGHT].value > 0.0001f)
+		lights[SEQRESET_LIGHT].value -= 0.0001f;
 	
 	/////// SEQ ////// ------- E N D  ---------  ------- E N D  ---------  ------- E N D  --------- /////// SEQ //////
 	return;
@@ -1612,32 +1591,32 @@ void MIDIPolyInterface::doSequencer(){
 ///////////BUTTONS' DISPLAY
 
  struct NoteDisplay : TransparentWidget {
-	 MIDIPolyInterface::noteButton *nButton = new MIDIPolyInterface::noteButton();
-	 NoteDisplay() {
+	MIDIPolyInterface::noteButton *nButton = new MIDIPolyInterface::noteButton();
+	NoteDisplay() {
 			font = Font::load(FONT_FILE);
-	   }
-	 float dfontsize = 12.0f;
-	 int key = 0;
-	 int vel = 0;
-	 bool gate = false;
-	 bool gateseq = false;
-	 bool newkey = false;
-	 int frame = 0;
-	 int framevel = 0;
-	 bool showvel = true;
-	 int polyi = 0;
-	 int *polyIndex = &polyi;
-	 int id = 0;
-	 int mode = 0;
-	 bool learn = false;
-	 bool notenumber = false;
-	 bool *dispNotenumber = &notenumber;
-	 int arpI = 0;
-	 int *arpIx = &arpI;
-	 bool arp = false;
-		 std::shared_ptr<Font> font;
-		 std::string to_display;
-	 std::string displayNoteName(int key, bool notenumber);
+	}
+	float dfontsize = 12.0f;
+	int key = 0;
+	int vel = 0;
+	bool gate = false;
+	bool gateseq = false;
+	bool newkey = false;
+	int frame = 0;
+	int framevel = 0;
+	bool showvel = true;
+	int polyi = 0;
+	int *polyIndex = &polyi;
+	int id = 0;
+	int mode = 0;
+	bool learn = false;
+	bool notenumber = false;
+	bool *dispNotenumber = &notenumber;
+	int arpI = 0;
+	int *arpIx = &arpI;
+	bool arp = false;
+	std::shared_ptr<Font> font;
+	std::string to_display;
+	std::string displayNoteName(int key, bool notenumber);
 	void draw(NVGcontext *vg) {
 		frame ++;
 		if (frame > 5){
