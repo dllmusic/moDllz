@@ -228,7 +228,7 @@ struct 		MIDI8MPE : Module {
 	}
 ///////////////////////////ON RESET
 	void onReset() override {
-		for (int i = 0; i < numVo; i++) {
+		for (int i = 0; i < 8; i++) {
 			notes[i] = 60;
 			gates[i] = false;
 			pedalgates[i] = false;
@@ -447,8 +447,14 @@ struct 		MIDI8MPE : Module {
 	void pressPedal() {
 		pedal = true;
 		lights[SUSTHOLD_LIGHT].value = params[SUSTHOLD_PARAM].value;
-		for (int i = 0; i < numVo; i++) {
-			pedalgates[i] = gates[i];
+		if (polyMode == MPE_MODE) {
+			for (int i = 0; i < 8; i++) {
+				pedalgates[i] = gates[i];
+			}
+		}else {
+			for (int i = 0; i < numVo; i++) {
+				pedalgates[i] = gates[i];
+			}
 		}
 	}
 
@@ -516,7 +522,7 @@ struct 		MIDI8MPE : Module {
 		bool sustainHold = (params[SUSTHOLD_PARAM].value > .5 );
 
 		if (polyMode > PolyMode::MPE_MODE){
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < numVo; i++) {
 				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))))? 10.f : 0.f;
 				outputs[GATE_OUTPUT + i].value = lastGate;
 				outputs[X_OUTPUT + i].value = ((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f);
@@ -525,8 +531,8 @@ struct 		MIDI8MPE : Module {
 				outputs[Z_OUTPUT + i].value = rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f);
 				lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
 			}
-		} else {
-			for (int i = 0; i < numVo; i++) {
+		} else {/// MPE MODE!!!
+			for (int i = 0; i < 8; i++) {
 				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime())))) ? 10.f : 0.f;
 				outputs[GATE_OUTPUT + i].value = lastGate ;
 				if ( mpex[i] < 0){
@@ -841,7 +847,12 @@ struct 		MIDI8MPE : Module {
 			} break;
 			// cc
 			case 0xb: {
-				if (polyMode == MPE_MODE){
+				///////// LEARN CC   ???
+				if (learnIx > 0) {
+					midiCCs[learnIx - 1] = msg.note();
+					learnIx = 0;
+					return;
+				}else if (polyMode == MPE_MODE){
 					if (msg.channel() == MPEmasterCh){
 						processCC(msg);
 					}else if (MPEmode == 1){ //Continuum
@@ -859,13 +870,7 @@ struct 		MIDI8MPE : Module {
 						mpez[msg.channel() - MPEfirstCh] = msg.data2 * 128;
 					}
 				}else{
-					///////// LEARN CC   ???
-					if (learnIx > 0) {
-						midiCCs[learnIx - 1] = msg.note();
-						learnIx = 0;
-						return;
-					} else/////////////////////////
-				  		processCC(msg);
+					processCC(msg);
 				}
 			} break;
 			default: break;
