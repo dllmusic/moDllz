@@ -101,7 +101,7 @@ struct 		MIDI8MPE : Module {
 	int pbMPE = 96;
 	int mpeYcc = 74; //cc74 (default MPE Y)
 	int mpeZcc = 128; //128 = ChannelAfterTouch (default MPE Z)
-	int MPEsubmode = 0; // hiRes MPE mode(S)...1 Continuum
+	int MPEmode = 0; // Index of different MPE modes...(User and HakenPlus for now)
 	int savedMidiCh = -1;//to reset channel from MPE all channels
 	int MPEmasterCh = 0;// 0 ~ 15
 	int MPEfirstCh = 1;// 0 ~ 15
@@ -160,7 +160,7 @@ struct 		MIDI8MPE : Module {
 		json_object_set_new(rootJ, "midiFcc", json_integer(midiCCs[5]));
 		json_object_set_new(rootJ, "mpeYcc", json_integer(mpeYcc));
 		json_object_set_new(rootJ, "mpeZcc", json_integer(mpeZcc));
-		json_object_set_new(rootJ, "MPEsubmode", json_integer(MPEsubmode));
+		json_object_set_new(rootJ, "MPEmode", json_integer(MPEmode));
 		return rootJ;
 	}
 
@@ -211,14 +211,14 @@ struct 		MIDI8MPE : Module {
 		json_t *mpeZccJ = json_object_get(rootJ, "mpeZcc");
 		if (mpeZccJ)
 			mpeZcc = json_integer_value(mpeZccJ);
-		json_t *MPEsubmodeJ = json_object_get(rootJ, "MPEsubmode");
-		if (MPEsubmodeJ)
-			MPEsubmode = json_integer_value(MPEsubmodeJ);
+		json_t *MPEmodeJ = json_object_get(rootJ, "MPEmode");
+		if (MPEmodeJ)
+			MPEmode = json_integer_value(MPEmodeJ);
 		
 		if (polyModeIx > 0){
 			displayYcc = 129;
 			displayZcc = 130;
-		}else if (MPEsubmode > 0){
+		}else if (MPEmode > 0){
 			displayYcc = 131;
 			displayZcc = 132;
 		}else {
@@ -248,17 +248,12 @@ struct 		MIDI8MPE : Module {
 				MPEyFilter[i].lambda = lambdaf;
 				MPEzFilter[i].lambda = lambdaf;
 			}
-			if (MPEsubmode > 0){// Haken Plus
+			if (MPEmode > 0){// Haken Plus
 				displayYcc = 131;
 				displayZcc = 132;
-//				MPEmasterCh = 15;// 0 ~ 15
-//				MPEfirstCh = 0;// 0 ~ 15
-//				pbMPE = 96;
 			}else{
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
-//				MPEmasterCh = 0;// 0 ~ 15
-//				MPEfirstCh = 1;// 0 ~ 15
 			}
 		} else {
 			displayYcc = 129;
@@ -581,7 +576,7 @@ struct 		MIDI8MPE : Module {
 		}
 		if (LcursorTrigger.process(params[LCURSOR_PARAM].value)) {
 			if (polyMode == MPE_MODE){
-				if (MPEsubmode > 0){
+				if (MPEmode > 0){
 					if (cursorI > 0) cursorI --;
 					else cursorI = 9;
 					cursorIx = cursorMPEsub[cursorI];
@@ -600,7 +595,7 @@ struct 		MIDI8MPE : Module {
 		}
 		if (RcursorTrigger.process(params[RCURSOR_PARAM].value)) {
 			if (polyMode == MPE_MODE){
-				if (MPEsubmode > 0){
+				if (MPEmode > 0){
 					if (cursorI < 9) cursorI ++;
 					else cursorI = 0;
 					cursorIx = cursorMPEsub[cursorI];
@@ -647,8 +642,8 @@ struct 		MIDI8MPE : Module {
 		switch (cursorIx){
 			case 0: {
 				if (polyMode == MPE_MODE){
-					if (MPEsubmode < 1){
-						MPEsubmode ++;
+					if (MPEmode < 1){
+						MPEmode ++;
 						onReset();
 					}else{//last MPE submode... go to Poly
 						polyMode = (PolyMode) (1);
@@ -660,7 +655,7 @@ struct 		MIDI8MPE : Module {
 					onReset();
 				}else {
 					polyMode = MPE_MODE;
-					MPEsubmode = 0; // no MPE submode...
+					MPEmode = 0; // no MPE submode...
 					savedMidiCh = midiInput.channel;// save Poly MIDI channel
 					onReset();
 				}
@@ -717,11 +712,11 @@ struct 		MIDI8MPE : Module {
 			case 0: {
 				if (polyMode > MPE_MODE) {
 					polyMode = (PolyMode) (polyMode - 1);
-					MPEsubmode = 1;
+					MPEmode = 1;
 					savedMidiCh = midiInput.channel;
 					onReset();
-				}else if (MPEsubmode > 0){
-					MPEsubmode --;
+				}else if (MPEmode > 0){
+					MPEmode --;
 					onReset();
 				}else {//last MPE submode... go to Poly
 					polyMode = UNISON_MODE;
@@ -814,7 +809,7 @@ struct 		MIDI8MPE : Module {
 				else if (polyMode == MPE_MODE){
 					if (msg.channel() == MPEmasterCh){
 						Maft = msg.data1;
-					}else if (MPEsubmode == 1){
+					}else if (MPEmode == 1){
 						mpez[msg.channel() - MPEfirstCh] =  msg.data1 * 128 + mpePlusLB[msg.channel() - MPEfirstCh];
 						mpePlusLB[msg.channel() - MPEfirstCh] = 0;
 					}else {
@@ -849,7 +844,7 @@ struct 		MIDI8MPE : Module {
 				if (polyMode == MPE_MODE){
 					if (msg.channel() == MPEmasterCh){
 						processCC(msg);
-					}else if (MPEsubmode == 1){ //Continuum
+					}else if (MPEmode == 1){ //Continuum
 						if (msg.note() == 87){
 							mpePlusLB[msg.channel() - MPEfirstCh] = msg.data2;
 						}else if (msg.note() == 74){
@@ -945,8 +940,8 @@ struct PolyModeDisplay : TransparentWidget {
 	int MPEmasterChI = -1;
 	int *p_MPEfirstCh = &pointerinit;
 	int MPEfirstChI = -1;
-	int *p_MPEsubmode = &pointerinit;
-	int MPEsubmodeI;
+	int *p_MPEmode = &pointerinit;
+	int MPEmodeI;
 	int *p_YccNumber = &pointerinit;
 	int YccNumber = -1;
 	int *p_ZccNumber = &pointerinit;
@@ -958,16 +953,16 @@ struct PolyModeDisplay : TransparentWidget {
 		if (drawFrame ++ > 5){
 			drawFrame = 0;
 			
-			if (MPEsubmodeI != *p_MPEsubmode){
-				MPEsubmodeI = *p_MPEsubmode;
-				//if (MPEsubmodeI > 1) sMode = "M. P. E. w RelVel";///
-				if (MPEsubmodeI == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
+			if (MPEmodeI != *p_MPEmode){
+				MPEmodeI = *p_MPEmode;
+				//if (MPEmodeI > 1) sMode = "M. P. E. w RelVel";///
+				if (MPEmodeI == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
 				else sMode = polyModeStr[polyModeI];
 			}
 			if (polyModeI !=  *p_polyMode) {
 				polyModeI = *p_polyMode;
 				if (polyModeI < 1) {
-					if (MPEsubmodeI == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
+					if (MPEmodeI == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
 					else sMode = polyModeStr[polyModeI];
 				}else{
 					sMode = polyModeStr[polyModeI];
@@ -1292,7 +1287,7 @@ struct MIDI8MPEWidget : ModuleWidget {
 			polyModeDisplay->box.pos = Vec(xPos, yPos);
 			polyModeDisplay->box.size = {132.f, 54.f};
 			polyModeDisplay->p_polyMode = &(module->polyModeIx);
-			polyModeDisplay->p_MPEsubmode = &(module->MPEsubmode);
+			polyModeDisplay->p_MPEmode = &(module->MPEmode);
 			polyModeDisplay->p_numVo = &(module->numVo);
 			polyModeDisplay->p_pbMain = &(module->pbMain);
 			polyModeDisplay->p_pbMPE = &(module->pbMPE);
