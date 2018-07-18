@@ -1,20 +1,13 @@
-
-#include <queue>
-#include <list>
 #include "midi.hpp"
 #include "dsp/filter.hpp"
 #include "dsp/digital.hpp"
 #include "moDllz.hpp"
+#include <list>
 
 /*
  * MIDIPolyInterface converts midi note on/off events, velocity , pitch wheel and mod wheel to CV
  * with 16 Midi Note Buttons with individual vel & gate
  */
-//struct MidiValue {
-//	int val = 0; // Controller value
-//	//TransitionSmoother tSmooth;
-//	bool changed = false; // Value has been changed by midi message (only if it is in sync!)
-//};
 
 struct MidiNoteData {
 	uint8_t velocity = 0;
@@ -223,7 +216,6 @@ struct MIDIPolyInterface : Module {
 	
 	float drift[numPads] = {0.0f};
 	
-	
 	bool padSetLearn = false;
 	int padSetMode = 0;
 	
@@ -244,11 +236,8 @@ struct MIDIPolyInterface : Module {
 	int ClockSeqSamples = 1;
 	int ClockArpSamples = 1;
 
- 
 	const float ClockRatios[13] ={0.50f, 2.f/3.f,0.75f, 1.0f ,4.f/3.f,1.5f, 2.0f, 8.f/3.f, 3.0f, 4.0f, 6.0f, 8.0f,12.0f};
-	//const std::string stringClockRatios[13] ={"1/2", "1/4d","1/2t", "1/4", "1/8d", "1/4t","1/8","1/16d","1/8t","1/16","1/16t","1/32","1/32t"};
 	const bool swingTriplet[13] = {true,true,false,true,true,false,true,true,false,true,false,true,false};
-	
 	
 	int clockSource = 0;
 	int seqclockRatio = 1;
@@ -370,14 +359,11 @@ struct MIDIPolyInterface : Module {
 		pressureFilter.lambda = 100.f * engineGetSampleTime();
 		pitchFilter.lambda = 100.f * engineGetSampleTime();
 	}
-	/* initialize random seed: */
-  //  srand (time(NULL));
 	
 	json_t *toJson() override {
 		json_t *rootJ = json_object();
 		
 		 json_object_set_new(rootJ, "midi", midiInput.toJson());
-	   // addBaseJson(rootJ);
 		for (int i = 0; i < numPads; i++) {
 			json_object_set_new(rootJ, ("key" + std::to_string(i)).c_str(), json_integer(noteButtons[i].key));
 			json_object_set_new(rootJ, ("mode" + std::to_string(i)).c_str(), json_integer(noteButtons[i].mode));
@@ -607,7 +593,6 @@ void MIDIPolyInterface::processMessage(MidiMessage msg) {
 				 if (msg.data2 > 0) {
 					 pressNote((msg.data1 & 0x7f), msg.data2);
 				 } else {
-					 // For some reason, some keyboards send a "note on" event with a velocity of 0 to signal that the key has been released.
 					 releaseNote(msg.data1 & 0x7f);
 				 }
 			 }
@@ -715,9 +700,7 @@ float MIDIPolyInterface::minmaxFit(float val, float minv, float maxv){
 	else if (val > maxv) val = maxv;
 	return val;
 }
-//float driftvolt(int maxdrift){///mV drift
-//		return   =  ((double) rand() / (RAND_MAX)));
-//}
+
 
 ///////////////////         ////           ////          ////        //////////////////////
 /////////////////   ///////////////  /////////  ////////////  //////  ////////////////////
@@ -2253,13 +2236,10 @@ struct MIDIPolyWidget : ModuleWidget
 	addParam(ParamWidget::create<moDllzMuteGP>(Vec(xPos,yPos), module, MIDIPolyInterface::MUTEPOLYB_PARAM, 0.0f, 1.0f, 0.0f));
 	addChild(ModuleLightWidget::create<TinyLight<RedLight>>(Vec(xPos+20, yPos+4), module, MIDIPolyInterface::MUTEPOLY_LIGHT));
 
-		
-		
 		{
 			digiDisplay *mainDisplay = new digiDisplay();
 			mainDisplay->box.pos = Vec(63, 57);
 			mainDisplay->box.size = {198, 44};
-
 			mainDisplay->clockSourceP = &(module->clockSource);
 			mainDisplay->BPMdecimalsP = &(module->BPMdecimals);
 			mainDisplay->displayedBPMP = &(module->displayedBPM);
@@ -2274,7 +2254,6 @@ struct MIDIPolyWidget : ModuleWidget
 			mainDisplay->polytransP = &(module->polyTransParam);
 			addChild(mainDisplay);
 		}
-		
 	}
 };
 //void MIDIPolyWidget::step() {

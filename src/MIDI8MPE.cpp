@@ -1,5 +1,3 @@
-#include <queue>
-#include <list>
 #include "midi.hpp"
 #include "dsp/filter.hpp"
 #include "dsp/digital.hpp"
@@ -20,7 +18,7 @@ struct 		MIDI8MPE : Module {
 		LEARNCCD_PARAM,
 		LEARNCCE_PARAM,
 		LEARNCCF_PARAM,
-		SUSTAINHOLD_PARAM,
+		SUSTHOLD_PARAM,
 		NUM_PARAMS
 	};
 	enum InputIds {
@@ -44,6 +42,7 @@ struct 		MIDI8MPE : Module {
 	enum LightIds {
 		RESETMIDI_LIGHT,
 		ENUMS(CH_LIGHT, 8),
+		SUSTHOLD_LIGHT,
 		NUM_LIGHTS
 	};
 
@@ -440,6 +439,7 @@ struct 		MIDI8MPE : Module {
 
 	void pressPedal() {
 		pedal = true;
+		lights[SUSTHOLD_LIGHT].value = params[SUSTHOLD_PARAM].value;
 		for (int i = 0; i < numVo; i++) {
 			pedalgates[i] = gates[i];
 		}
@@ -447,6 +447,7 @@ struct 		MIDI8MPE : Module {
 
 	void releasePedal() {
 		pedal = false;
+		lights[SUSTHOLD_LIGHT].value = 0.f;
 		// When pedal is off, recover notes for pressed keys (if any) after they were already being "cycled" out by pedal-sustained notes.
 		if (polyMode == MPE_MODE) {
 			for (int i = 0; i < 8; i++) {
@@ -506,7 +507,7 @@ struct 		MIDI8MPE : Module {
 			pbVo = MpitFilter.process(rescale(Mpit, 8192, 16383, 0.f, 5.f));
 		}
 //		outputs[MMA_OUTPUT].value = pbVo;
-		bool sustainHold = (params[SUSTAINHOLD_PARAM].value > .5 );
+		bool sustainHold = (params[SUSTHOLD_PARAM].value > .5 );
 
 		if (polyMode > PolyMode::MPE_MODE){
 			for (int i = 0; i < 8; i++) {
@@ -631,7 +632,6 @@ struct 		MIDI8MPE : Module {
 //////   STEP END
 ///////////////////////
 
-	
 	void dataPlus(){
 		switch (cursorIx){
 			case 0: {
@@ -764,7 +764,6 @@ struct 		MIDI8MPE : Module {
 					midiCCs[cursorIx - 7] = 129;
 			}break;
 		}
-	
 		learnIx = 0;
 		return;
 	}
@@ -817,7 +816,7 @@ struct 		MIDI8MPE : Module {
 					Maft = msg.data1;
 				}
 			} break;
-				// pitch wheel
+				// pitch Bend
 			case 0xe:{
 				if (learnIx > 0) {// learn enabled ???
 					midiCCs[learnIx - 1] = 128;
@@ -831,7 +830,7 @@ struct 		MIDI8MPE : Module {
 						mpex[msg.channel() - MPEfirstCh] = msg.data2 * 128 + msg.data1 - 8192;
 					}
 				}else{
-					Mpit = msg.data2 * 128 + msg.data1;
+					Mpit = msg.data2 * 128 + msg.data1; //14bit Pitch Bend
 				}
 			} break;
 			// cc
@@ -868,8 +867,7 @@ struct 		MIDI8MPE : Module {
 	}
 
 	void processCC(MidiMessage msg) {
-		if (msg.note() ==  0x40) {
-			///Msus = msg.data2;
+		if (msg.note() ==  0x40) { //internal sust pedal
 			if (msg.value() >= 64)
 				pressPedal();
 			else
@@ -881,38 +879,11 @@ struct 		MIDI8MPE : Module {
 				return;
 			}
 		}
-//		switch (msg.note()) {
-//			case 0x01: // mod
-//				Mmod = msg.data2;
-//				break;
-////			case 0x07: // vol
-////				Mvol = msg.data2;
-////				break;
-////			case 0x0B: // Expression
-////				Mexp = msg.data2;
-////				break;
-//			// sustain
-//			case 0x40: {
-//				Msus = msg.data2;
-//				if (msg.value() >= 64)
-//					pressPedal();
-//				else
-//					releasePedal();
-//			} break;
-//			default: {
-//
-//
-//				if (msg.note() == midiAcc){
-//					Mcca = msg.data2;
-//				}else if (msg.note() == midiBcc){
-//					Mccb = msg.data2;
-//				}
-//			} break;
-//		}
 	}
 	void MidiPanic() {
 		onReset();
 		pedal = false;
+		lights[SUSTHOLD_LIGHT].value = 0.f;
 		for (int i = 0; i < 8; i++){
 			notes[i] = 0;
 			vels[i] = 0;
@@ -1055,8 +1026,8 @@ struct PolyModeDisplay : TransparentWidget {
 		nvgTextAlign(vg, NVG_ALIGN_CENTER);
 		nvgTextBox(vg, 4.f, 11.0f,124.f, sMode.c_str(), NULL);
 	
-		nvgTextBox(vg, 50.f, 53.f, 31.f, yyDisplay.c_str(), NULL);// YY
-		nvgTextBox(vg, 82.f, 53.f, 31.f, zzDisplay.c_str(), NULL);// ZZ
+		nvgTextBox(vg, 50.f, 52.f, 31.f, yyDisplay.c_str(), NULL);// YY
+		nvgTextBox(vg, 82.f, 52.f, 31.f, zzDisplay.c_str(), NULL);// ZZ
 		
 		if (polyModeI < 1){
 			nvgTextBox(vg, 4.f, 24.f,124.f, sMPEmidiCh.c_str(), NULL);// MPE Channels
@@ -1074,102 +1045,36 @@ struct PolyModeDisplay : TransparentWidget {
 		nvgBeginPath(vg);
 		switch (cursorIxI){
 			case 0:{ // PolyMode
-				nvgRoundedRect(vg, 2.f, 1.f, 128.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 1.f, 1.f, 130.f, 12.f, 3.f);
 			}break;
 			case 1:{ //numVoices Poly
-				nvgRoundedRect(vg, 2.f, 14.f, 128.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 1.f, 14.f, 130.f, 12.f, 3.f);
 			}break;
 			case 2:{ //MPE channels
-				nvgRoundedRect(vg, 2.f, 14.f, 128.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 1.f, 14.f, 130.f, 12.f, 3.f);
 			}break;
 			case 3:{//mainPB
-				nvgRoundedRect(vg, 2.f, 27.f, 52.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 1.f, 27.f, 52.f, 12.f, 3.f);
 			}break;
 			case 4:{//mpePB
-				nvgRoundedRect(vg, 52.f, 27.f, 76.f, 12.f, 1.f);
+				nvgRoundedRect(vg, 53.f, 27.f, 77.f, 12.f, 3.f);
 			}break;
 			case 5:{//YY
-				nvgRoundedRect(vg, 50.f, 42.f, 31, 13.f, 1.f);
+				nvgRoundedRect(vg, 50.f, 42.f, 31, 13.f, 3.f);
 			}break;
 			case 6:{//ZZ
-				nvgRoundedRect(vg, 82.f, 42.f, 31, 13.f, 1.f);
+				nvgRoundedRect(vg, 82.f, 42.f, 31, 13.f, 3.f);
 			}break;
 		}
 
 		if (flashFocus > 0)
 			flashFocus -= 2;
-		int rgbint = 0x44 + flashFocus;
-		nvgFillColor(vg, nvgRGB(rgbint, rgbint, rgbint)); //SELECTED
+		int rgbint = 0x55 + flashFocus;
+		nvgFillColor(vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
 		nvgFill(vg);
 		
 	}
 };
-//struct YZDisplay : TransparentWidget {
-//	YZDisplay(){
-//		font = Font::load(mFONT_FILE);
-//	}
-//	float mdfontSize = 12.f;
-//	std::string sDisplay = "";
-//	int pointerinit = 0;
-//	int *p_cursor = &pointerinit;
-//	int cursorI = -1;
-//	int displayID = 0;//set on each instance
-//	int *p_ccNumber = &pointerinit;
-//	int ccNumber = -1;
-//	int flashFocus = 0;
-//	int displayFrames = 0;
-//	std::shared_ptr<Font> font;
-//	void draw(NVGcontext* vg) {
-//		if(displayFrames ++ > 5){
-//			displayFrames = 0;
-//			if  (ccNumber != *p_ccNumber){
-//				ccNumber = *p_ccNumber;
-//				switch (ccNumber) {
-//					case 128 :{
-//						sDisplay = "chnAT";
-//					}break;
-//					case 129 :{//(locked)  Rel Vel
-//						sDisplay = "rVel";
-//					}break;
-//					case 130 :{//(locked)  note AfterT
-//						sDisplay = "nteAT";
-//					}break;
-//					case 131 :{//HiRes MPE Y
-//						sDisplay = "cc74+";
-//					}break;
-//					case 132 :{//HiRes MPE Z
-//						sDisplay = "chAT+";
-//					}break;
-//					default :{
-//						sDisplay = "cc" + std::to_string(ccNumber);
-//					}
-//				}
-//			}
-//		}
-//
-//		nvgFillColor(vg, nvgRGB(0xcc, 0xcc, 0xcc));//Normal
-//		nvgFontSize(vg, mdfontSize);
-//		nvgFontFaceId(vg, font->handle);
-//		nvgTextAlign(vg, NVG_ALIGN_CENTER);
-//		nvgTextBox(vg, 0.f, 10.f,box.size.x, sDisplay.c_str(), NULL);
-//
-//		if (cursorI != *p_cursor){
-//			cursorI = *p_cursor;
-//			if (*p_cursor == displayID)
-//				flashFocus = 64;
-//		}
-//		if ((displayID == cursorI) && (!learnOn)){
-//			nvgGlobalCompositeBlendFunc(vg,  NVG_ONE , NVG_ONE);
-//			nvgBeginPath(vg);
-//			nvgRoundedRect(vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-//			if (flashFocus > 0)
-//				flashFocus -= 2;
-//			int rgbint = 0x44 + flashFocus;
-//			nvgFillColor(vg, nvgRGB(rgbint, rgbint, rgbint)); //SELECTED
-//			nvgFill(vg);
-//		}
-//	}
-//};
 
 struct MidiccDisplay : TransparentWidget {
 	MidiccDisplay(){
@@ -1184,6 +1089,7 @@ struct MidiccDisplay : TransparentWidget {
 	int *p_ccNumber = &pointerinit;
 	int ccNumber = -1;
 	bool learnOn = false;
+	bool learnChanged = false;
 	int *p_learnIx = &pointerinit;
 	int flashFocus = 0;
 	int displayFrames = 0;
@@ -1192,9 +1098,11 @@ struct MidiccDisplay : TransparentWidget {
 		if(displayFrames ++ > 5){
 			displayFrames = 0;
 			learnOn = (displayID - 6 == *p_learnIx);
-			if (learnOn)
+			if (learnOn){
+				learnChanged = true;
 				sDisplay = "LRN";
-			else if  (ccNumber != *p_ccNumber){
+			}else if ((ccNumber != *p_ccNumber) || (learnChanged)){
+				learnChanged = false;
 				ccNumber = *p_ccNumber;
 				switch (ccNumber) {
 					case 128 :{
@@ -1234,13 +1142,13 @@ struct MidiccDisplay : TransparentWidget {
 			nvgStroke(vg);
 			nvgRoundedRect(vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
 
-			nvgFillColor(vg, nvgRGBA(0xcc, 0x0, 0x0,0x44));
+			nvgFillColor(vg, nvgRGBA(0xcc, 0x0, 0x0,0x64));
 			nvgFill(vg);
 			///text color
 			nvgFillColor(vg, nvgRGB(0xff, 0x00, 0x00));//LEARN
 		}else{
 			///text color
-			nvgFillColor(vg, nvgRGB(0xcc, 0xcc, 0xcc));//Normal
+			nvgFillColor(vg, nvgRGB(0xcc, 0xcc, 0xcc));
 		}
 		nvgFontSize(vg, mdfontSize);
 		nvgFontFaceId(vg, font->handle);
@@ -1260,8 +1168,8 @@ struct MidiccDisplay : TransparentWidget {
 //			nvgStroke(vg);
 			if (flashFocus > 0)
 				flashFocus -= 2;
-			int rgbint = 0x44 + flashFocus;
-			nvgFillColor(vg, nvgRGB(rgbint, rgbint, rgbint)); //SELECTED
+			int rgbint = 0x55 + flashFocus;
+			nvgFillColor(vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
 			nvgFill(vg);
 		}
 	}
@@ -1309,6 +1217,11 @@ struct springDataKnob : SVGKnob {
 		}
 };
 
+struct TranspOffRedLight : TranspOffLight {
+	TranspOffRedLight() {
+		addBaseColor(nvgRGBA(0xff, 0x00, 0x00, 0x88));//borderColor = nvgRGBA(0, 0, 0, 0x60);
+	}
+};
 
 
 struct MIDI8MPEWidget : ModuleWidget {
@@ -1346,9 +1259,9 @@ struct MIDI8MPEWidget : ModuleWidget {
 			midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
 			midiWidget->channelChoice->textOffset = Vec(2.f,10.f);
 			
-			midiWidget->driverChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-			midiWidget->deviceChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-			midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
+			midiWidget->driverChoice->color = nvgRGB(0xcc, 0xcc, 0xcc);
+			midiWidget->deviceChoice->color = nvgRGB(0xcc, 0xcc, 0xcc);
+			midiWidget->channelChoice->color = nvgRGB(0xcc, 0xcc, 0xcc);
 			addChild(midiWidget);
 		}
 		BlockChannel *blockChannel = Widget::create<BlockChannel>(Vec(8.f,46.f));
@@ -1535,10 +1448,11 @@ struct MIDI8MPEWidget : ModuleWidget {
 		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCF_PARAM, 0.0, 1.0, 0.0));
 		
 		
-		///Sustain hold notes
+		///Sustain hold notes		
 		xPos = 173.f;
 		yPos = 338.f;
-		addParam(ParamWidget::create<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDI8MPE::SUSTAINHOLD_PARAM, 0.0, 1.0, 1.0));
+		addParam(ParamWidget::create<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_PARAM, 0.0, 1.0, 1.0));
+		addChild(ModuleLightWidget::create<TranspOffRedLight>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_LIGHT));
 		
 		
 //		{

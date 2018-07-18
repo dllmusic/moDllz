@@ -1,6 +1,3 @@
-
-#include <list>
-#include <algorithm>
 #include "dsp/digital.hpp"
 #include "moDllz.hpp"
 #include "midi.hpp"
@@ -177,8 +174,6 @@ struct MIDIdualCV :  Module {
 					outputs[VELOCITY_OUTPUT_Lwr].value = static_cast<float>(lowerNote.vel) / 127.0f * 10.0f;
 					outputs[VELOCITY_OUTPUT_Upr].value = static_cast<float>(upperNote.vel) / 127.0 * 10.0;
 			}else{
-				//firstNoGlideLwr = true;// first gate for glide bypass mode
-				//firstNoGlideUpr = true;// first gate for glide bypass mode
 				lowerNote.note = 128;
 				upperNote.note = -1;
 			}
@@ -328,8 +323,6 @@ void processCC(MidiMessage msg) {
 		sustpedal = false;
 	}
 	
-	
-	
 json_t *toJson() override {
 	json_t *rootJ = json_object();
 	json_object_set_new(rootJ, "midi", midiInput.toJson());
@@ -340,21 +333,8 @@ void fromJson(json_t *rootJ) override {
 	json_t *midiJ = json_object_get(rootJ, "midi");
 	midiInput.fromJson(midiJ);
 }
+
 };
-
-/////////////
-
-//struct slewLowerKnob : moDllzKnob26 {
-//
-//
-//	void onChange(EventChange &e) {
-//			//dirty = true;
-//			float slewfloat = 1.0f/(5.0f + value * engineGetSampleRate());
-//			this->p_slewLower->setRiseFall(slewfloat,slewfloat);
-//			moDllzKnob26::onChange(e);
-//		}
-//};
-
 
 
 ///////////

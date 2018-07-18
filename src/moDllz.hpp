@@ -139,6 +139,18 @@ struct moDllzSwitchLedHT : SVGSwitch, ToggleSwitch {
         addFrame(SVG::load(assetPlugin(plugin, "res/moDllzSwitchLedHT_2.svg")));
     }
 };
+
+/// Transp Light over led switches
+struct TranspOffLight : ModuleLightWidget {
+	TranspOffLight() {
+		box.size = Vec(10.f,10.f);
+		bgColor = COLOR_BLACK_TRANSPARENT;
+		borderColor =COLOR_BLACK_TRANSPARENT;
+		//addBaseColor(nvgRGBA(0xFF, 0, 0, 0x80));//borderColor = nvgRGBA(0, 0, 0, 0x60);
+	}
+};
+
+
 ///switch TriState
 struct moDllzSwitchT : SVGSwitch, ToggleSwitch {
     moDllzSwitchT() {
