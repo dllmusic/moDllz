@@ -248,9 +248,12 @@ struct 		MIDI8MPE : Module {
 				MPEyFilter[i].lambda = lambdaf;
 				MPEzFilter[i].lambda = lambdaf;
 			}
-			if (MPEsubmode > 0){
+			if (MPEsubmode > 0){// Haken Plus
 				displayYcc = 131;
 				displayZcc = 132;
+				MPEmasterCh = 16;// 0 ~ 15
+				MPEfirstCh = 0;// 0 ~ 15
+				pbMPE = 96;
 			}else{
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
