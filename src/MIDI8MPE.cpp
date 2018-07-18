@@ -251,7 +251,7 @@ struct 		MIDI8MPE : Module {
 			if (MPEsubmode > 0){// Haken Plus
 				displayYcc = 131;
 				displayZcc = 132;
-				MPEmasterCh = 16;// 0 ~ 15
+				MPEmasterCh = 15;// 0 ~ 15
 				MPEfirstCh = 0;// 0 ~ 15
 				pbMPE = 96;
 			}else{
