@@ -380,13 +380,14 @@ struct 		MIDI8MPE : Module {
 					}
 					else {
 						gates[i] = false;
-						//if (MPEsubmode == 2)
-							vels[i] = vel;/// (Roli) with Rel Vel
 					}
+					if (vel < 128) // 128 = from NoteOn ZeroVel
+						vels[i] = vel;///Rel Vel
 				}
 			} break;
 
 			case REASSIGN_MODE: {
+				if (vel > 128) vel = 64;
 				for (int i = 0; i < numVo; i++) {
 					if (i < (int) cachedNotes.size()) {
 						if (!pedalgates[i])
@@ -395,11 +396,13 @@ struct 		MIDI8MPE : Module {
 					}
 					else {
 						gates[i] = false;
+						mpey[i] = vel * 128;
 					}
 				}
 			} break;
 
 			case UNISON_MODE: {
+				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					uint8_t backnote = cachedNotes.back();
 					for (int i = 0; i < numVo; i++) {
@@ -414,6 +417,7 @@ struct 		MIDI8MPE : Module {
 						mpey[i] = vel * 128;
 					}
 				}
+				
 			} break;
 
 			// default ROTATE_MODE REUSE_MODE RESET_MODE
@@ -430,7 +434,10 @@ struct 		MIDI8MPE : Module {
 						else {
 							gates[i] = false;
 						}
-						mpey[i] = vel * 128;
+						if (vel < 128) // 128 = from NoteOn ZeroVel
+							mpey[i] = vel * 128;
+						else//Fixed RelVel
+							mpey[i] = 8192;
 					}
 				}
 			} break;
@@ -482,7 +489,6 @@ struct 		MIDI8MPE : Module {
 			}
 		}
 	}
-	
 	
 	void onSampleRateChange() override {
 		onReset();
@@ -784,7 +790,7 @@ struct 		MIDI8MPE : Module {
 					pressNote(msg.channel(), msg.note(), msg.value());
 				}
 				else {
-					releaseNote(msg.channel(), msg.note(), 64);
+					releaseNote(msg.channel(), msg.note(), 128);//128 to bypass Release vel on Vel Outputs
 				}
 			} break;
 			// note (poly) aftertouch
