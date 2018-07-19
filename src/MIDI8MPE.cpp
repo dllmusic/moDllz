@@ -1068,7 +1068,7 @@ struct PolyModeDisplay : TransparentWidget {
 				nvgRoundedRect(vg, 1.f, 27.f, 52.f, 12.f, 3.f);
 			}break;
 			case 4:{//mpePB
-				nvgRoundedRect(vg, 53.f, 27.f, 77.f, 12.f, 3.f);
+				nvgRoundedRect(vg, 54.f, 27.f, 77.f, 12.f, 3.f);
 			}break;
 			case 5:{//YY
 				nvgRoundedRect(vg, 50.f, 42.f, 31, 13.f, 3.f);
