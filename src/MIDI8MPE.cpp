@@ -1,6 +1,3 @@
-#include "midi.hpp"
-#include "dsp/filter.hpp"
-#include "dsp/digital.hpp"
 #include "moDllz.hpp"
 #include <algorithm>    // std::find
 #include <vector>       // std::vector
@@ -19,6 +16,7 @@ struct 		MIDI8MPE : Module {
 		LEARNCCE_PARAM,
 		LEARNCCF_PARAM,
 		SUSTHOLD_PARAM,
+		DATAKNOB_PARAM,
 		NUM_PARAMS
 	};
 	enum InputIds {
@@ -46,7 +44,7 @@ struct 		MIDI8MPE : Module {
 		NUM_LIGHTS
 	};
 
-	MidiInputQueue midiInput;
+	midi::InputQueue midiInput;
 
 	enum PolyMode {
 		MPE_MODE,
@@ -117,33 +115,48 @@ struct 		MIDI8MPE : Module {
 	int cursorPoly[9] = {0,1,3,7,8,9,10,11,12};
 	int cursorMPE[12] = {0,2,3,4,5,6,7,8,9,10,11,12};
 	int cursorMPEsub[10] = {0,2,3,4,7,8,9,10,11,12};
-	float dummy = 0.f;
-	float *dataKnob = &dummy;
-	int frameData = 100000;
+	//float dummy = 0.f;
+	float dataKnob = 0.f;
+	int frameData = 0;
+	
 
-	ExponentialFilter MPExFilter[8];
-	ExponentialFilter MPEyFilter[8];
-	ExponentialFilter MPEzFilter[8];
-	ExponentialFilter MCCsFilter[6];
-	ExponentialFilter MpitFilter;
+	dsp::ExponentialFilter MPExFilter[8];
+	dsp::ExponentialFilter MPEyFilter[8];
+	dsp::ExponentialFilter MPEzFilter[8];
+	dsp::ExponentialFilter MCCsFilter[6];
+	dsp::ExponentialFilter MpitFilter;
 	
 	// retrigger for stolen notes (when gates already open)
-	PulseGenerator reTrigger[8];
-	SchmittTrigger resetMidiTrigger;
+	dsp::PulseGenerator reTrigger[8];
+	dsp::SchmittTrigger resetMidiTrigger;
 
-	SchmittTrigger PlusOneTrigger;
-	SchmittTrigger MinusOneTrigger;
-	SchmittTrigger LcursorTrigger;
-	SchmittTrigger RcursorTrigger;
+	dsp::SchmittTrigger PlusOneTrigger;
+	dsp::SchmittTrigger MinusOneTrigger;
+	dsp::SchmittTrigger LcursorTrigger;
+	dsp::SchmittTrigger RcursorTrigger;
 
-	SchmittTrigger learnCCsTrigger[6];
+	dsp::SchmittTrigger learnCCsTrigger[6];
 
 	
-	MIDI8MPE() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
+	MIDI8MPE() {
+		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+		configParam(RESETMIDI_PARAM, 0.f, 1.f, 0.f);
+		configParam(MINUSONE_PARAM, 0.f, 1.f, 0.f);
+		configParam(PLUSONE_PARAM, 0.f, 1.f, 0.f);
+		configParam(LCURSOR_PARAM, 0.f, 1.f, 0.f);
+		configParam(RCURSOR_PARAM, 0.f, 1.f, 0.f);
+		configParam(LEARNCCA_PARAM, 0.f, 1.f, 0.f);
+		configParam(LEARNCCB_PARAM, 0.f, 1.f, 0.f);
+		configParam(LEARNCCC_PARAM, 0.f, 1.f, 0.f);
+		configParam(LEARNCCD_PARAM, 0.f, 1.f, 0.f);
+		configParam(LEARNCCE_PARAM, 0.f, 1.f, 0.f);
+		configParam(LEARNCCF_PARAM, 0.f, 1.f, 0.f);
+		configParam(SUSTHOLD_PARAM, 0.f, 1.f, 1.f);
+		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
 		onReset();
 	}
 
-	json_t *toJson() override {
+	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", midiInput.toJson());
 		json_object_set_new(rootJ, "polyMode", json_integer(polyMode));
@@ -164,7 +177,7 @@ struct 		MIDI8MPE : Module {
 		return rootJ;
 	}
 
-	void fromJson(json_t *rootJ) override {
+	void dataFromJson(json_t *rootJ) override {
 		json_t *midiJ = json_object_get(rootJ, "midi");
 		if (midiJ)
 			midiInput.fromJson(midiJ);
@@ -236,7 +249,7 @@ struct 		MIDI8MPE : Module {
 		}
 		rotateIndex = -1;
 		cachedNotes.clear();
-		float lambdaf = 100.f * engineGetSampleTime();
+		float lambdaf = 100.f * APP->engine->getSampleTime();
 		
 		if (polyMode == MPE_MODE) {
 			midiInput.channel = -1;
@@ -446,7 +459,7 @@ struct 		MIDI8MPE : Module {
 
 	void pressPedal() {
 		pedal = true;
-		lights[SUSTHOLD_LIGHT].value = params[SUSTHOLD_PARAM].value;
+		lights[SUSTHOLD_LIGHT].value = params[SUSTHOLD_PARAM].getValue();
 		if (polyMode == MPE_MODE) {
 			for (int i = 0; i < 8; i++) {
 				pedalgates[i] = gates[i];
@@ -505,82 +518,84 @@ struct 		MIDI8MPE : Module {
 ///////////////////////
 	
 	
-	void step() override {
+	void process(const ProcessArgs &args) override {
 
-		MidiMessage msg;
+		midi::Message msg;
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
 		}
 
 		float pbVo = 0.f;
 		if (Mpit < 8192){
-			pbVo = MpitFilter.process(rescale(Mpit, 0, 8192, -5.f, 0.f));
+			pbVo = MpitFilter.process(1.f ,rescale(Mpit, 0, 8192, -5.f, 0.f));
 		} else {
-			pbVo = MpitFilter.process(rescale(Mpit, 8192, 16383, 0.f, 5.f));
+			pbVo = MpitFilter.process(1.f ,rescale(Mpit, 8192, 16383, 0.f, 5.f));
 		}
-//		outputs[MMA_OUTPUT].value = pbVo;
-		bool sustainHold = (params[SUSTHOLD_PARAM].value > .5 );
+//		outputs[MMA_OUTPUT].setVoltage(pbVo);
+		bool sustainHold = (params[SUSTHOLD_PARAM].getValue() > .5 );
 
 		if (polyMode > PolyMode::MPE_MODE){
 			for (int i = 0; i < numVo; i++) {
-				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime()))))? 10.f : 0.f;
-				outputs[GATE_OUTPUT + i].value = lastGate;
-				outputs[X_OUTPUT + i].value = ((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f);
-				outputs[VEL_OUTPUT + i].value = rescale(vels[i], 0, 127, 0.f, 10.f);
-				outputs[Y_OUTPUT + i].value = rescale(mpey[i], 0, 16383, 0.f, 10.f);
-				outputs[Z_OUTPUT + i].value = rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f);
+				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
+				outputs[GATE_OUTPUT + i].setVoltage(lastGate);
+				outputs[X_OUTPUT + i].setVoltage(((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f));
+				outputs[VEL_OUTPUT + i].setVoltage(rescale(vels[i], 0, 127, 0.f, 10.f));
+				outputs[Y_OUTPUT + i].setVoltage(rescale(mpey[i], 0, 16383, 0.f, 10.f));
+				outputs[Z_OUTPUT + i].setVoltage(rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f));
 				lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
 			}
 		} else {/// MPE MODE!!!
 			for (int i = 0; i < 8; i++) {
-				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(engineGetSampleTime())))) ? 10.f : 0.f;
-				outputs[GATE_OUTPUT + i].value = lastGate ;
+				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime)))) ? 10.f : 0.f;
+				outputs[GATE_OUTPUT + i].setVoltage(lastGate );
 				if ( mpex[i] < 0){
-					xpitch[i] = (MPExFilter[i].process(rescale(mpex[i], -8192 , 0, -5.f, 0.f))) * pbMPE / 60.f;
+					xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], -8192 , 0, -5.f, 0.f))) * pbMPE / 60.f;
 				} else {
-					xpitch[i] = (MPExFilter[i].process(rescale(mpex[i], 0, 8191, 0.f, 5.f))) * pbMPE / 60.f;
+					xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], 0, 8191, 0.f, 5.f))) * pbMPE / 60.f;
 				}
-				outputs[X_OUTPUT + i].value = xpitch[i] + ((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f);
-				outputs[VEL_OUTPUT + i].value = rescale(vels[i], 0, 127, 0.f, 10.f);
-				outputs[Y_OUTPUT + i].value = MPEyFilter[i].process(rescale(mpey[i], 0, 16383, 0.f, 10.f));
-				outputs[Z_OUTPUT + i].value = MPEzFilter[i].process(rescale(mpez[i], 0, 16383, 0.f, 10.f));
+				outputs[X_OUTPUT + i].setVoltage(xpitch[i] + ((notes[i] - 60) / 12.f) + (pbVo * static_cast<float>(pbMain) / 60.f));
+				outputs[VEL_OUTPUT + i].setVoltage(rescale(vels[i], 0, 127, 0.f, 10.f));
+				outputs[Y_OUTPUT + i].setVoltage(MPEyFilter[i].process(1.f ,rescale(mpey[i], 0, 16383, 0.f, 10.f)));
+				outputs[Z_OUTPUT + i].setVoltage(MPEzFilter[i].process(1.f ,rescale(mpez[i], 0, 16383, 0.f, 10.f)));
 				lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
 			}
 		}
 		for (int i = 0; i < 6; i++){
 			if (midiCCs[i] == 128)
-				outputs[MMA_OUTPUT + i].value = pbVo;
+				outputs[MMA_OUTPUT + i].setVoltage(pbVo);
 			else if (midiCCs[i] == 129)
-				outputs[MMA_OUTPUT + i].value = MCCsFilter[i].process(rescale(Maft, 0, 127, 0.f, 10.f));
+				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(Maft, 0, 127, 0.f, 10.f)));
 			else
-				outputs[MMA_OUTPUT + i].value = MCCsFilter[i].process(rescale(midiCCsVal[i], 0, 127, 0.f, 10.f));
+				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
 		}
 
 		//// PANEL KNOB AND BUTTONS
-		float f_dataKnob = *dataKnob;
-		if ( f_dataKnob > 0.07f){
-			int knobInterval = static_cast<int>(0.05 * static_cast<float>(engineGetSampleRate()) / f_dataKnob);
+		dataKnob = params[DATAKNOB_PARAM].getValue();
+		
+		if ( dataKnob > 0.07f){
+			int knobInterval = static_cast<int>(0.05 * static_cast<float>(args.sampleRate) / dataKnob);
 			if (frameData ++ > knobInterval){
 				frameData = 0;
+				
 				dataPlus();
 			}
-		}else if(f_dataKnob < -0.07f){
-			int knobInterval = static_cast<int>(0.05 * static_cast<float>(engineGetSampleRate()) / -f_dataKnob);
+		}else if(dataKnob < -0.07f){
+			int knobInterval = static_cast<int>(0.05 * static_cast<float>(args.sampleRate) / -dataKnob);
 			if (frameData ++ > knobInterval){
 				frameData = 0;
 				dataMinus();
 			}
 		}
 		
-		if (PlusOneTrigger.process(params[PLUSONE_PARAM].value)) {
+		if (PlusOneTrigger.process(params[PLUSONE_PARAM].getValue())) {
 			dataPlus();
 			return;
 		}
-		if (MinusOneTrigger.process(params[MINUSONE_PARAM].value)) {
+		if (MinusOneTrigger.process(params[MINUSONE_PARAM].getValue())) {
 			dataMinus();
 			return;
 		}
-		if (LcursorTrigger.process(params[LCURSOR_PARAM].value)) {
+		if (LcursorTrigger.process(params[LCURSOR_PARAM].getValue())) {
 			if (polyMode == MPE_MODE){
 				if (MPEmode > 0){
 					if (cursorI > 0) cursorI --;
@@ -599,7 +614,7 @@ struct 		MIDI8MPE : Module {
 			learnIx = 0;
 			return;
 		}
-		if (RcursorTrigger.process(params[RCURSOR_PARAM].value)) {
+		if (RcursorTrigger.process(params[RCURSOR_PARAM].getValue())) {
 			if (polyMode == MPE_MODE){
 				if (MPEmode > 0){
 					if (cursorI < 9) cursorI ++;
@@ -619,7 +634,7 @@ struct 		MIDI8MPE : Module {
 			return;
 		}
 		for (int i = 0; i < 6; i++){
-			if (learnCCsTrigger[i].process(params[LEARNCCA_PARAM + i].value)) {
+			if (learnCCsTrigger[i].process(params[LEARNCCA_PARAM + i].getValue())) {
 				if (learnIx == i + 1)
 					learnIx = 0;
 				else{
@@ -631,7 +646,7 @@ struct 		MIDI8MPE : Module {
 		}
 		
 		///// RESET MIDI
-		if (resetMidiTrigger.process(params[RESETMIDI_PARAM].value)) {
+		if (resetMidiTrigger.process(params[RESETMIDI_PARAM].getValue())) {
 			lights[RESETMIDI_LIGHT].value= 1.0f;
 			onReset();
 			return;
@@ -643,6 +658,136 @@ struct 		MIDI8MPE : Module {
 ///////////////////////
 //////   STEP END
 ///////////////////////
+
+	void processMessage(midi::Message msg) {
+
+
+		switch (msg.getStatus()) {
+			// note off
+			case 0x8: {
+				if ((polyMode == MPE_MODE) && (msg.getChannel() == MPEmasterCh)) return;
+				releaseNote(msg.getChannel(), msg.getNote(), msg.getValue());
+			} break;
+			// note on
+			case 0x9: {
+				if ((polyMode == MPE_MODE) && (msg.getChannel() == MPEmasterCh)) return;
+				if (msg.getValue() > 0) {
+					//noteData[msg.getNote()].velocity = msg.getValue();
+					pressNote(msg.getChannel(), msg.getNote(), msg.getValue());
+				}
+				else {
+					releaseNote(msg.getChannel(), msg.getNote(), 128);//128 to bypass Release vel on Vel Outputs
+				}
+			} break;
+			// note (poly) aftertouch
+			case 0xa: {
+				if (polyMode == MPE_MODE) return;
+				noteData[msg.getNote()].aftertouch = msg.getValue();
+			} break;
+				
+			// channel aftertouch
+			case 0xd: {
+				if (learnIx > 0) {// learn enabled ???
+					midiCCs[learnIx - 1] = 129;
+					learnIx = 0;
+					return;
+				}////////////////////////////////////////
+				else if (polyMode == MPE_MODE){
+					if (msg.getChannel() == MPEmasterCh){
+						Maft = msg.getNote();
+					}else if (MPEmode == 1){
+						mpez[msg.getChannel() - MPEfirstCh] =  msg.getNote() * 128 + mpePlusLB[msg.getChannel() - MPEfirstCh];
+						mpePlusLB[msg.getChannel() - MPEfirstCh] = 0;
+					}else {
+						if (mpeZcc == 128)
+							mpez[msg.getChannel() - MPEfirstCh] = msg.getNote() * 128;
+						if (mpeYcc == 128)
+							mpey[msg.getChannel() - MPEfirstCh] = msg.getNote() * 128;
+						}
+				}else{
+					Maft = msg.getNote();
+				}
+			} break;
+				// pitch Bend
+			case 0xe:{
+				if (learnIx > 0) {// learn enabled ???
+					midiCCs[learnIx - 1] = 128;
+					learnIx = 0;
+					return;
+				}////////////////////////////////////////
+				else if (polyMode == MPE_MODE){
+					if (msg.getChannel() == MPEmasterCh){
+						Mpit = msg.getValue() * 128 + msg.getNote();
+					}else{
+						mpex[msg.getChannel() - MPEfirstCh] = msg.getValue() * 128 + msg.getNote() - 8192;
+					}
+				}else{
+					Mpit = msg.getValue() * 128 + msg.getNote(); //14bit Pitch Bend
+				}
+			} break;
+			// cc
+			case 0xb: {
+				///////// LEARN CC   ???
+				if (learnIx > 0) {
+					midiCCs[learnIx - 1] = msg.getNote();
+					learnIx = 0;
+					return;
+				}else if (polyMode == MPE_MODE){
+					if (msg.getChannel() == MPEmasterCh){
+						processCC(msg);
+					}else if (MPEmode == 1){ //Continuum
+						if (msg.getNote() == 87){
+							mpePlusLB[msg.getChannel() - MPEfirstCh] = msg.getValue();
+						}else if (msg.getNote() == 74){
+							mpey[msg.getChannel() - MPEfirstCh] =  msg.getValue() * 128 + mpePlusLB[msg.getChannel() - MPEfirstCh];
+							mpePlusLB[msg.getChannel() - MPEfirstCh] = 0;
+						}
+
+					}else if (msg.getNote() == mpeYcc){
+					//cc74 0x4a default
+						mpey[msg.getChannel() - MPEfirstCh] = msg.getValue() * 128;
+					}else if (msg.getNote() == mpeZcc){
+						mpez[msg.getChannel() - MPEfirstCh] = msg.getValue() * 128;
+					}
+				}else{
+					processCC(msg);
+				}
+			} break;
+			default: break;
+		}
+	}
+
+	void processCC(midi::Message msg) {
+		if (msg.getNote() ==  0x40) { //internal sust pedal
+			if (msg.getValue() >= 64)
+				pressPedal();
+			else
+				releasePedal();
+		}
+		for (int i = 0; i < 6; i++){
+			if (midiCCs[i] == msg.getNote()){
+				midiCCsVal[i] = msg.getValue();
+				return;
+			}
+		}
+	}
+	void MidiPanic() {
+		onReset();
+		pedal = false;
+		lights[SUSTHOLD_LIGHT].value = 0.f;
+		for (int i = 0; i < 8; i++){
+			notes[i] = 0;
+			vels[i] = 0;
+			mpex[i] = 0;
+			mpey[i] = 0;
+			mpez[i] = 0;
+			gates[i] = false;
+			xpitch[i] = {0.f};
+		}
+		for (int i = 0; i < NUM_OUTPUTS; i++) {
+			outputs[i].setVoltage(0.f);
+		}
+	}
 
 	void dataPlus(){
 		switch (cursorIx){
@@ -666,7 +811,7 @@ struct 		MIDI8MPE : Module {
 					onReset();
 				}
 				polyModeIx = polyMode;
-					
+				
 			}break;
 			case 1: {
 				if (numVo < 8) numVo ++;
@@ -779,141 +924,16 @@ struct 		MIDI8MPE : Module {
 		learnIx = 0;
 		return;
 	}
-	void processMessage(MidiMessage msg) {
-
-
-		switch (msg.status()) {
-			// note off
-			case 0x8: {
-				if ((polyMode == MPE_MODE) && (msg.channel() == MPEmasterCh)) return;
-				releaseNote(msg.channel(), msg.note(), msg.value());
-			} break;
-			// note on
-			case 0x9: {
-				if ((polyMode == MPE_MODE) && (msg.channel() == MPEmasterCh)) return;
-				if (msg.value() > 0) {
-					//noteData[msg.note()].velocity = msg.value();
-					pressNote(msg.channel(), msg.note(), msg.value());
-				}
-				else {
-					releaseNote(msg.channel(), msg.note(), 128);//128 to bypass Release vel on Vel Outputs
-				}
-			} break;
-			// note (poly) aftertouch
-			case 0xa: {
-				if (polyMode == MPE_MODE) return;
-				noteData[msg.note()].aftertouch = msg.value();
-			} break;
-				
-			// channel aftertouch
-			case 0xd: {
-				if (learnIx > 0) {// learn enabled ???
-					midiCCs[learnIx - 1] = 129;
-					learnIx = 0;
-					return;
-				}////////////////////////////////////////
-				else if (polyMode == MPE_MODE){
-					if (msg.channel() == MPEmasterCh){
-						Maft = msg.data1;
-					}else if (MPEmode == 1){
-						mpez[msg.channel() - MPEfirstCh] =  msg.data1 * 128 + mpePlusLB[msg.channel() - MPEfirstCh];
-						mpePlusLB[msg.channel() - MPEfirstCh] = 0;
-					}else {
-						if (mpeZcc == 128)
-							mpez[msg.channel() - MPEfirstCh] = msg.data1 * 128;
-						if (mpeYcc == 128)
-							mpey[msg.channel() - MPEfirstCh] = msg.data1 * 128;
-						}
-				}else{
-					Maft = msg.data1;
-				}
-			} break;
-				// pitch Bend
-			case 0xe:{
-				if (learnIx > 0) {// learn enabled ???
-					midiCCs[learnIx - 1] = 128;
-					learnIx = 0;
-					return;
-				}////////////////////////////////////////
-				else if (polyMode == MPE_MODE){
-					if (msg.channel() == MPEmasterCh){
-						Mpit = msg.data2 * 128 + msg.data1;
-					}else{
-						mpex[msg.channel() - MPEfirstCh] = msg.data2 * 128 + msg.data1 - 8192;
-					}
-				}else{
-					Mpit = msg.data2 * 128 + msg.data1; //14bit Pitch Bend
-				}
-			} break;
-			// cc
-			case 0xb: {
-				///////// LEARN CC   ???
-				if (learnIx > 0) {
-					midiCCs[learnIx - 1] = msg.note();
-					learnIx = 0;
-					return;
-				}else if (polyMode == MPE_MODE){
-					if (msg.channel() == MPEmasterCh){
-						processCC(msg);
-					}else if (MPEmode == 1){ //Continuum
-						if (msg.note() == 87){
-							mpePlusLB[msg.channel() - MPEfirstCh] = msg.data2;
-						}else if (msg.note() == 74){
-							mpey[msg.channel() - MPEfirstCh] =  msg.data2 * 128 + mpePlusLB[msg.channel() - MPEfirstCh];
-							mpePlusLB[msg.channel() - MPEfirstCh] = 0;
-						}
-
-					}else if (msg.note() == mpeYcc){
-					//cc74 0x4a default
-						mpey[msg.channel() - MPEfirstCh] = msg.data2 * 128;
-					}else if (msg.note() == mpeZcc){
-						mpez[msg.channel() - MPEfirstCh] = msg.data2 * 128;
-					}
-				}else{
-					processCC(msg);
-				}
-			} break;
-			default: break;
-		}
-	}
-
-	void processCC(MidiMessage msg) {
-		if (msg.note() ==  0x40) { //internal sust pedal
-			if (msg.value() >= 64)
-				pressPedal();
-			else
-				releasePedal();
-		}
-		for (int i = 0; i < 6; i++){
-			if (midiCCs[i] == msg.note()){
-				midiCCsVal[i] = msg.value();
-				return;
-			}
-		}
-	}
-	void MidiPanic() {
-		onReset();
-		pedal = false;
-		lights[SUSTHOLD_LIGHT].value = 0.f;
-		for (int i = 0; i < 8; i++){
-			notes[i] = 0;
-			vels[i] = 0;
-			mpex[i] = 0;
-			mpey[i] = 0;
-			mpez[i] = 0;
-			gates[i] = false;
-			xpitch[i] = {0.f};
-		}
-		for (int i = 0; i < NUM_OUTPUTS; i++) {
-			outputs[i].value = 0.f;
-		}
-	}
 };
 // Main Display
 struct PolyModeDisplay : TransparentWidget {
 	PolyModeDisplay(){
-		font = Font::load(mFONT_FILE);
+		// font = Font::load(mFONT_FILE);
+		font = APP->window->loadFont(mFONT_FILE);
 	}
+	
+	MIDI8MPE *module;
+	
 	int pointerinit = 0;
 	float mdfontSize = 12.f;
 	std::string sMode ="";
@@ -933,69 +953,68 @@ struct PolyModeDisplay : TransparentWidget {
 		"U N I S O N",
 	};
 	int drawFrame = 0;
-	int *p_polyMode = &pointerinit;
-	int polyModeI = -1;
-	int *p_numVo = &pointerinit;
-	int numVoI = -1;
-	int *p_pbMain = &pointerinit;
-	int pbMainI = -1;
-	int *p_pbMPE = &pointerinit;
-	int pbMPEI = -1;
-	int *p_MPEmasterCh = &pointerinit;
-	int MPEmasterChI = -1;
-	int *p_MPEfirstCh = &pointerinit;
-	int MPEfirstChI = -1;
-	int *p_MPEmode = &pointerinit;
-	int MPEmodeI;
-	int *p_YccNumber = &pointerinit;
-	int YccNumber = -1;
-	int *p_ZccNumber = &pointerinit;
-	int ZccNumber = -1;
-	int *p_cursorIx = &pointerinit;
 	int cursorIxI = 0;
 	int flashFocus = 0;
-	void draw(NVGcontext* vg) {
-		if (drawFrame ++ > 5){
-			drawFrame = 0;
+	void draw(const DrawArgs &args) override {
+		
+		int p_polyMode = 0;
+		int p_MPEmode = 0;
+		int p_numVo = 0;
+		int p_pbMain = 0;
+		int p_pbMPE = 0;
+		int p_MPEmasterCh = 0;
+		int p_MPEfirstCh = 0;
+		int p_YccNumber = 0;
+		int p_ZccNumber = 0;
+		int p_cursorIx = 0;
+		
+	if (module) {
+				p_polyMode = module->polyModeIx;
+				p_MPEmode = module->MPEmode;
+				p_numVo = module->numVo;
+				p_pbMain = module->pbMain;
+				p_pbMPE = module->pbMPE;
+				p_MPEmasterCh = module->MPEmasterCh;
+				p_MPEfirstCh = module->MPEfirstCh;
+				p_YccNumber = module->displayYcc;
+				p_ZccNumber = module->displayZcc;
+				p_cursorIx = module->cursorIx;
+	
+	if (drawFrame ++ > 5){
+		drawFrame = 0;
+		
 			
-			if (MPEmodeI != *p_MPEmode){
-				MPEmodeI = *p_MPEmode;
-				//if (MPEmodeI > 1) sMode = "M. P. E. w RelVel";///
-				if (MPEmodeI == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
-				else sMode = polyModeStr[polyModeI];
-			}
-			if (polyModeI !=  *p_polyMode) {
-				polyModeI = *p_polyMode;
-				if (polyModeI < 1) {
-					if (MPEmodeI == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
-					else sMode = polyModeStr[polyModeI];
+			//if (MPEmodeI != p_MPEmode){
+			//	MPEmodeI = p_MPEmode;
+				///
+				//if (p_MPEmode == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
+				//else sMode = polyModeStr[p_polyMode];
+			//}
+			
+			
+			//if (polyModeI !=  p_polyMode) {
+				//polyModeI = p_polyMode;
+				if (p_polyMode < 1) {
+					if (p_MPEmode == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
+					else if (p_MPEmode > 1) sMode = "M. P. E. w RelVel";
+					else sMode = polyModeStr[p_polyMode];
 				}else{
-					sMode = polyModeStr[polyModeI];
+					sMode = polyModeStr[p_polyMode];
 				}
-			}
-
-			if (numVoI != *p_numVo){
-				numVoI = *p_numVo;
-				sVo = "Poly "+ std::to_string(numVoI) +" Vo outs";
-			}
-			if (pbMainI != *p_pbMain){
-				pbMainI = *p_pbMain;
-				sPBM = "PBend:" + std::to_string(pbMainI);
-				
-			}
-			if (pbMPEI != *p_pbMPE){
-				pbMPEI = *p_pbMPE;
-				sPBMPE = " CH PBend:" + std::to_string(pbMPEI);
-			}
-
-			if  ((MPEmasterChI != *p_MPEmasterCh) || (MPEfirstChI != *p_MPEfirstCh)){
-				MPEmasterChI = *p_MPEmasterCh;
-				MPEfirstChI = *p_MPEfirstCh;
-				sMPEmidiCh = "channels M:" + std::to_string(MPEmasterChI + 1) + " Vo:" + std::to_string(MPEfirstChI + 1) + "++";
-			}
-			if  (YccNumber != *p_YccNumber){
-				YccNumber = *p_YccNumber;
-				switch (YccNumber) {
+				sVo = "Poly "+ std::to_string(p_numVo) +" Vo outs";
+				sPBM = "PBend:" + std::to_string(p_pbMain);
+				sPBMPE = " CH PBend:" + std::to_string(p_pbMPE);
+			
+			
+			
+//			if  ((MPEmasterChI != *p_MPEmasterCh) || (MPEfirstChI != *p_MPEfirstCh)){
+//				MPEmasterChI = *p_MPEmasterCh;
+//				MPEfirstChI = *p_MPEfirstCh;
+				sMPEmidiCh = "channels M:" + std::to_string(p_MPEmasterCh + 1) + " Vo:" + std::to_string(p_MPEfirstCh + 1) + "++";
+			//}
+			//if  (YccNumber != *p_YccNumber){
+			//	YccNumber = *p_YccNumber;
+				switch (p_YccNumber) {
 					case 129 :{//(locked)  Rel Vel
 						yyDisplay = "rVel";
 					}break;
@@ -1003,13 +1022,13 @@ struct PolyModeDisplay : TransparentWidget {
 						yyDisplay = "cc74+";
 					}break;
 					default :{
-						yyDisplay = "cc" + std::to_string(YccNumber);
+						yyDisplay = "cc" + std::to_string(p_YccNumber);
 					}
 				}
-			}
-			if  (ZccNumber != *p_ZccNumber){
-				ZccNumber = *p_ZccNumber;
-				switch (ZccNumber) {
+			//}
+			//if  (ZccNumber != *p_ZccNumber){
+			//	ZccNumber = *p_ZccNumber;
+				switch (p_ZccNumber) {
 					case 128 :{
 						zzDisplay = "chnAT";
 					}break;
@@ -1020,101 +1039,105 @@ struct PolyModeDisplay : TransparentWidget {
 						zzDisplay = "chAT+";
 					}break;
 					default :{
-						zzDisplay = "cc" + std::to_string(ZccNumber);
+						zzDisplay = "cc" + std::to_string(p_ZccNumber);
 					}
 				}
-			}
-			if (cursorIxI != *p_cursorIx){
-				cursorIxI = *p_cursorIx;
+			//}
+			if (cursorIxI != p_cursorIx){
+				cursorIxI = p_cursorIx;
 				flashFocus = 64;
 			}
 		}
-		nvgFontSize(vg, mdfontSize);
-		nvgFontFaceId(vg, font->handle);
-		nvgFillColor(vg, nvgRGB(0xcc, 0xcc, 0xcc));//Text
+		nvgFontSize(args.vg, mdfontSize);
+		nvgFontFaceId(args.vg, font->handle);
+		nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));//Text
 
-		//nvgGlobalCompositeOperation(vg, NVG_SOURCE_OUT);
-		nvgTextAlign(vg, NVG_ALIGN_CENTER);
-		nvgTextBox(vg, 4.f, 11.0f,124.f, sMode.c_str(), NULL);
+		//nvgGlobalCompositeOperation(args.vg, NVG_SOURCE_OUT);
+		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+		nvgTextBox(args.vg, 4.f, 11.0f,124.f, sMode.c_str(), NULL);
 	
-		nvgTextBox(vg, 50.f, 52.f, 31.f, yyDisplay.c_str(), NULL);// YY
-		nvgTextBox(vg, 82.f, 52.f, 31.f, zzDisplay.c_str(), NULL);// ZZ
+		nvgTextBox(args.vg, 50.f, 52.f, 31.f, yyDisplay.c_str(), NULL);// YY
+		nvgTextBox(args.vg, 82.f, 52.f, 31.f, zzDisplay.c_str(), NULL);// ZZ
 		
-		if (polyModeI < 1){
-			nvgTextBox(vg, 4.f, 24.f,124.f, sMPEmidiCh.c_str(), NULL);// MPE Channels
-			nvgTextAlign(vg, NVG_ALIGN_LEFT);
-			nvgTextBox(vg, 58.f, 37.f,66.f, sPBMPE.c_str(), NULL);//MPE PitchBend
+		if (p_polyMode < 1){
+			nvgTextBox(args.vg, 4.f, 24.f,124.f, sMPEmidiCh.c_str(), NULL);// MPE Channels
+			nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
+			nvgTextBox(args.vg, 58.f, 37.f,66.f, sPBMPE.c_str(), NULL);//MPE PitchBend
 		} else {
-			nvgTextBox(vg, 4.f, 24.f,124.f, sVo.c_str(), NULL);
+			nvgTextBox(args.vg, 4.f, 24.f,124.f, sVo.c_str(), NULL);
 		}
 		
-		nvgTextAlign(vg, NVG_ALIGN_LEFT);
-		nvgTextBox(vg, 4.f, 37.0f, 50.f, sPBM.c_str(), NULL);
+		nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
+		nvgTextBox(args.vg, 4.f, 37.0f, 50.f, sPBM.c_str(), NULL);
 		
-		nvgGlobalCompositeBlendFunc(vg,  NVG_ONE , NVG_ONE);
+		nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 		
-		nvgBeginPath(vg);
+		nvgBeginPath(args.vg);
 		switch (cursorIxI){
 			case 0:{ // PolyMode
-				nvgRoundedRect(vg, 1.f, 1.f, 130.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 1.f, 1.f, 130.f, 12.f, 3.f);
 			}break;
 			case 1:{ //numVoices Poly
-				nvgRoundedRect(vg, 1.f, 14.f, 130.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 1.f, 14.f, 130.f, 12.f, 3.f);
 			}break;
 			case 2:{ //MPE channels
-				nvgRoundedRect(vg, 1.f, 14.f, 130.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 1.f, 14.f, 130.f, 12.f, 3.f);
 			}break;
 			case 3:{//mainPB
-				nvgRoundedRect(vg, 1.f, 27.f, 52.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 1.f, 27.f, 52.f, 12.f, 3.f);
 			}break;
 			case 4:{//mpePB
-				nvgRoundedRect(vg, 54.f, 27.f, 77.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 54.f, 27.f, 77.f, 12.f, 3.f);
 			}break;
 			case 5:{//YY
-				nvgRoundedRect(vg, 50.f, 42.f, 31, 13.f, 3.f);
+				nvgRoundedRect(args.vg, 50.f, 42.f, 31, 13.f, 3.f);
 			}break;
 			case 6:{//ZZ
-				nvgRoundedRect(vg, 82.f, 42.f, 31, 13.f, 3.f);
+				nvgRoundedRect(args.vg, 82.f, 42.f, 31, 13.f, 3.f);
 			}break;
 		}
 
 		if (flashFocus > 0)
 			flashFocus -= 2;
 		int rgbint = 0x55 + flashFocus;
-		nvgFillColor(vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
-		nvgFill(vg);
-		
+		nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
+		nvgFill(args.vg);
+	}
 	}
 };
 
 struct MidiccDisplay : TransparentWidget {
 	MidiccDisplay(){
-		font = Font::load(mFONT_FILE);
-	}
+	font = APP->window->loadFont(mFONT_FILE);
+}
+	MIDI8MPE *module;
 	float mdfontSize = 12.f;
 	std::string sDisplay = "";
 	int pointerinit = 0;
-	int *p_cursor = &pointerinit;
+	int p_cursor = 0;
 	int cursorI = -1;
 	int displayID = 0;//set on each instance
-	int *p_ccNumber = &pointerinit;
 	int ccNumber = -1;
 	bool learnOn = false;
 	bool learnChanged = false;
-	int *p_learnIx = &pointerinit;
+
 	int flashFocus = 0;
 	int displayFrames = 0;
 	std::shared_ptr<Font> font;
-	void draw(NVGcontext* vg) {
-		if(displayFrames ++ > 5){
+	void draw(const DrawArgs &args) override{
+
+		if ((module) && (displayFrames ++ > 5)){
 			displayFrames = 0;
-			learnOn = (displayID - 6 == *p_learnIx);
+			int p_ccNumber = module->midiCCs[displayID];
+			p_cursor = module->cursorIx - 7;
+			//int p_learnIx = ;
+			learnOn = (displayID + 1 == module->learnIx);
 			if (learnOn){
 				learnChanged = true;
 				sDisplay = "LRN";
-			}else if ((ccNumber != *p_ccNumber) || (learnChanged)){
+			}else if ((ccNumber != p_ccNumber) || (learnChanged)){
 				learnChanged = false;
-				ccNumber = *p_ccNumber;
+				ccNumber = p_ccNumber;
 				switch (ccNumber) {
 					case 128 :{
 						sDisplay = "PBnd";
@@ -1147,85 +1170,100 @@ struct MidiccDisplay : TransparentWidget {
 			}
 		}
 		if (learnOn) {
-			nvgBeginPath(vg);
-			nvgRoundedRect(vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-			nvgStrokeColor(vg, nvgRGB(0xdd, 0x0, 0x0));
-			nvgStroke(vg);
-			nvgRoundedRect(vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
+			nvgBeginPath(args.vg);
+			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
+			nvgStrokeColor(args.vg, nvgRGB(0xdd, 0x0, 0x0));
+			nvgStroke(args.vg);
+			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
 
-			nvgFillColor(vg, nvgRGBA(0xcc, 0x0, 0x0,0x64));
-			nvgFill(vg);
+			nvgFillColor(args.vg, nvgRGBA(0xcc, 0x0, 0x0,0x64));
+			nvgFill(args.vg);
 			///text color
-			nvgFillColor(vg, nvgRGB(0xff, 0x00, 0x00));//LEARN
+			nvgFillColor(args.vg, nvgRGB(0xff, 0x00, 0x00));//LEARN
 		}else{
 			///text color
-			nvgFillColor(vg, nvgRGB(0xcc, 0xcc, 0xcc));
+			nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));
 		}
-		nvgFontSize(vg, mdfontSize);
-		nvgFontFaceId(vg, font->handle);
-		nvgTextAlign(vg, NVG_ALIGN_CENTER);
-		nvgTextBox(vg, 0.f, 10.f,box.size.x, sDisplay.c_str(), NULL);
+		nvgFontSize(args.vg, mdfontSize);
+		nvgFontFaceId(args.vg, font->handle);
+		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+		nvgTextBox(args.vg, 0.f, 10.f,box.size.x, sDisplay.c_str(), NULL);
 
-		if (cursorI != *p_cursor){
-			cursorI = *p_cursor;
-			if (*p_cursor == displayID)
+		if (cursorI != p_cursor){
+			cursorI = p_cursor;
+			if (p_cursor == displayID)
 				flashFocus = 64;
 		}
 		if ((displayID == cursorI) && (!learnOn)){
-			nvgGlobalCompositeBlendFunc(vg,  NVG_ONE , NVG_ONE);
-			nvgBeginPath(vg);
-			nvgRoundedRect(vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-//			nvgStrokeColor(vg, nvgRGB(0x66, 0x66, 0x66));
-//			nvgStroke(vg);
+			nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+			nvgBeginPath(args.vg);
+			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
+//			nvgStrokeColor(args.vg, nvgRGB(0x66, 0x66, 0x66));
+//			nvgStroke(args.vg);
 			if (flashFocus > 0)
 				flashFocus -= 2;
 			int rgbint = 0x55 + flashFocus;
-			nvgFillColor(vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
-			nvgFill(vg);
+			nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
+			nvgFill(args.vg);
 		}
 	}
 };
 
 
 struct BlockChannel : OpaqueWidget {
-	int *p_polyMode;
-	void draw(NVGcontext* vg) {
-		if ( *p_polyMode > 0) {
+	MIDI8MPE *module;
+	void draw(const DrawArgs &args) override {
+		if (module) {
+		int p_polyMode = module->polyModeIx;
+		if ( p_polyMode > 0) {
 				box.size = Vec(0.f,0.f);
 			}else{
 				box.size = Vec(94.f,13.f);
 				NVGcolor ledColor = nvgRGBA(0x00, 0x00, 0x00,0xaa);
-				nvgBeginPath(vg);
-				nvgRoundedRect(vg, 0.f, 0.f, 94.f, 13.f,3.f);
-				nvgFillColor(vg, ledColor);
-				nvgFill(vg);
+				nvgBeginPath(args.vg);
+				nvgRoundedRect(args.vg, 0.f, 0.f, 94.f, 13.f,3.f);
+				nvgFillColor(args.vg, ledColor);
+				nvgFill(args.vg);
 			}
+		}
 	}
 };
 
 ///MIDIlearnMCC
-struct learnMccButton : SVGSwitch, MomentarySwitch {
+struct learnMccButton : SvgSwitch {
 	learnMccButton() {
+		momentary = true;
 		box.size = Vec(26, 13);
-		addFrame(SVG::load(assetPlugin(plugin, "res/learnMcc_0.svg")));
-		addFrame(SVG::load(assetPlugin(plugin, "res/learnMcc_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/learnMcc_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/learnMcc_1.svg")));
 	}
 };
 
 
-struct springDataKnob : SVGKnob {
-		int *p_frameData;
+struct springDataKnob : SvgKnob {
+//		int *p_frameData;
 
+	//MIDI8MPE *module;
+	
 	springDataKnob() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSVG(SVG::load(assetPlugin(plugin, "res/dataKnob.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dataKnob.svg")));
 		shadow->opacity = 0.f;
 	}
-		void onMouseUp(EventMouseUp &e){
-			this->value = 0.f;
-			*p_frameData = 100000; //reset frame Counter to start (over sampleRate counter)
+
+	void onButton(const event::Button &e) override{
+		math::Vec c = box.size.div(2);
+		float dist = e.pos.minus(c).norm();
+		if (dist <= c.x) {
+			ParamWidget::onButton(e);
 		}
+		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_RELEASE) this->resetAction();
+	//resetAction();???
+		//this->setValue(0.f);
+			//this->value = 0.f;
+		//module->frameData = 100000; //reset frame Counter to start (over sampleRate counter)
+	}
 };
 
 struct TranspOffRedLight : TranspOffLight {
@@ -1236,20 +1274,21 @@ struct TranspOffRedLight : TranspOffLight {
 
 
 struct MIDI8MPEWidget : ModuleWidget {
-	MIDI8MPEWidget(MIDI8MPE *module) : ModuleWidget(module) {
-		setPanel(SVG::load(assetPlugin(plugin,"res/MIDI8MPE.svg")));
+	MIDI8MPEWidget(MIDI8MPE *module) {
+		setModule(module);
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance,"res/MIDI8MPE.svg")));
 		//Screws
-		addChild(Widget::create<ScrewBlack>(Vec(0, 0)));
-		addChild(Widget::create<ScrewBlack>(Vec(180, 0)));
-		addChild(Widget::create<ScrewBlack>(Vec(0, 365)));
-		addChild(Widget::create<ScrewBlack>(Vec(180, 365)));
+		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
+		addChild(createWidget<ScrewBlack>(Vec(180, 0)));
+		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
+		addChild(createWidget<ScrewBlack>(Vec(180, 365)));
 		
 		float xPos = 8.f;//61;
 		float yPos = 18.f;
 		{
-			MidiWidget *midiWidget = Widget::create<MidiWidget>(Vec(xPos,yPos));
+			MidiWidget *midiWidget = createWidget<MidiWidget>(Vec(xPos,yPos));
 			midiWidget->box.size = Vec(132.f,41.f);
-			midiWidget->midiIO = &module->midiInput;
+			midiWidget->setMidiPort(module ? &module->midiInput : NULL);
 			
 			midiWidget->driverChoice->box.size.y = 12.f;
 			midiWidget->deviceChoice->box.size.y = 12.f;
@@ -1262,9 +1301,9 @@ struct MIDI8MPEWidget : ModuleWidget {
 			midiWidget->driverSeparator->box.pos = Vec(0.f, 15.f);
 			midiWidget->deviceSeparator->box.pos = Vec(0.f, 28.f);
 
-			midiWidget->driverChoice->font = Font::load(mFONT_FILE);
-			midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
-			midiWidget->channelChoice->font = Font::load(mFONT_FILE);
+			//midiWidget->driverChoice->font = Font::load(mFONT_FILE);
+			//midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
+			//midiWidget->channelChoice->font = Font::load(mFONT_FILE);
 
 			midiWidget->driverChoice->textOffset = Vec(2.f,10.f);
 			midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
@@ -1275,14 +1314,14 @@ struct MIDI8MPEWidget : ModuleWidget {
 			midiWidget->channelChoice->color = nvgRGB(0xcc, 0xcc, 0xcc);
 			addChild(midiWidget);
 		}
-		BlockChannel *blockChannel = Widget::create<BlockChannel>(Vec(8.f,46.f));
-		blockChannel->p_polyMode = &(module->polyModeIx);
+		BlockChannel *blockChannel = createWidget<BlockChannel>(Vec(8.f,46.f));
+		blockChannel->module = module;
 		addChild(blockChannel);
 		
 		xPos = 102.f;
 		yPos = 47.f;
-		addParam(ParamWidget::create<moDllzMidiPanic>(Vec(xPos, yPos), module, MIDI8MPE::RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f));
-		addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(xPos+3.f, yPos+3.f), module, MIDI8MPE::RESETMIDI_LIGHT));
+		addParam(createParam<moDllzMidiPanic>(Vec(xPos, yPos), module, MIDI8MPE::RESETMIDI_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos+3.f, yPos+3.f), module, MIDI8MPE::RESETMIDI_LIGHT));
 		
 		xPos = 8.f;
 		yPos = 62.f;
@@ -1291,179 +1330,79 @@ struct MIDI8MPEWidget : ModuleWidget {
 			PolyModeDisplay *polyModeDisplay = new PolyModeDisplay();
 			polyModeDisplay->box.pos = Vec(xPos, yPos);
 			polyModeDisplay->box.size = {132.f, 54.f};
-			polyModeDisplay->p_polyMode = &(module->polyModeIx);
-			polyModeDisplay->p_MPEmode = &(module->MPEmode);
-			polyModeDisplay->p_numVo = &(module->numVo);
-			polyModeDisplay->p_pbMain = &(module->pbMain);
-			polyModeDisplay->p_pbMPE = &(module->pbMPE);
-			polyModeDisplay->p_MPEmasterCh = &(module->MPEmasterCh);
-			polyModeDisplay->p_MPEfirstCh = &(module->MPEfirstCh);
-			polyModeDisplay->p_YccNumber = &(module->displayYcc);
-			polyModeDisplay->p_ZccNumber = &(module->displayZcc);
-			polyModeDisplay->p_cursorIx = &(module->cursorIx);
+			polyModeDisplay->module = module;
 			addChild(polyModeDisplay);
 		}
 		
 		yPos = 20.f;
 		xPos = 145.f;
-		addParam(ParamWidget::create<minusButton>(Vec(xPos, yPos), module, MIDI8MPE::MINUSONE_PARAM, 0.0f, 1.0f, 0.0f));
+		addParam(createParam<minusButton>(Vec(xPos, yPos), module, MIDI8MPE::MINUSONE_PARAM));
 		xPos = 169.f;
-		addParam(ParamWidget::create<plusButton>(Vec(xPos, yPos), module, MIDI8MPE::PLUSONE_PARAM, 0.0f, 1.0f, 0.0f));
+		addParam(createParam<plusButton>(Vec(xPos, yPos), module, MIDI8MPE::PLUSONE_PARAM));
 
 		
 		xPos = 147.f;
 		yPos = 40.f;
 ////DATA KNOB
 		
-		{   springDataKnob *sDataKnob = new springDataKnob();
-			sDataKnob->box.pos = Vec(xPos, yPos);
-			sDataKnob->box.size = {36.f, 36.f};
-			sDataKnob->minValue = -1.f;
-			sDataKnob->maxValue = 1.f;
-			sDataKnob->defaultValue = 0.f;
-			sDataKnob->p_frameData = &(module->frameData);
-			module->dataKnob = &(sDataKnob->value);
-			addChild(sDataKnob);
-		}
-		
+//		{   springDataKnob *sDataKnob = new springDataKnob();
+//			sDataKnob->box.pos = Vec(xPos, yPos);
+//			sDataKnob->box.size = {36.f, 36.f};
+//			sDataKnob->minValue (-1.f);
+//			sDataKnob->maxValue (1.f);
+//			sDataKnob->defaultValue (0.f);
+//			sDataKnob->p_frameData = &(module->frameData);
+//			module->dataKnob = &(sDataKnob->value);
+//			addChild(sDataKnob);
+//		}
+		addParam(createParam<springDataKnob>(Vec(xPos, yPos), module, MIDI8MPE::DATAKNOB_PARAM));
+//
 		yPos = 85.f;
 		xPos = 145.5f;
-		addParam(ParamWidget::create<moDllzcursorL>(Vec(xPos, yPos), module, MIDI8MPE::LCURSOR_PARAM, 0.0f, 1.0f, 0.0f));
+		addParam(createParam<moDllzcursorL>(Vec(xPos, yPos), module, MIDI8MPE::LCURSOR_PARAM));
 		xPos = 165.5f;
-		addParam(ParamWidget::create<moDllzcursorR>(Vec(xPos, yPos), module, MIDI8MPE::RCURSOR_PARAM, 0.0f, 1.0f, 0.0f));
+		addParam(createParam<moDllzcursorR>(Vec(xPos, yPos), module, MIDI8MPE::RCURSOR_PARAM));
 
-//		yPos = 104.f;
-//		xPos = 59.f;
-//		{
-//			MidiccDisplay *mpeYDisplay = new MidiccDisplay();
-//			mpeYDisplay->box.pos = Vec(xPos, yPos);
-//			mpeYDisplay->box.size = {29.5f, 13.f};
-//			mpeYDisplay->displayID = 5;
-//			mpeYDisplay->p_cursor = &(module->cursorIx);
-//			mpeYDisplay->p_ccNumber = &(module->displayYcc);
-//			mpeYDisplay->p_learnOn = &(module->learnYcc);
-//			addChild(mpeYDisplay);
-//		}
-//
-//		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCY_PARAM, 0.0, 1.0, 0.0));
-//		xPos = 89.5f;
-//		{
-//			MidiccDisplay *mpeZDisplay = new MidiccDisplay();
-//			mpeZDisplay->box.pos = Vec(xPos, yPos);
-//			mpeZDisplay->box.size = {29.5f, 13.f};
-//			mpeZDisplay->displayID = 6;
-//			mpeZDisplay->p_cursor = &(module->cursorIx);
-//			mpeZDisplay->p_ccNumber = &(module->displayZcc);
-//			mpeZDisplay->p_learnOn = &(module->learnZcc);
-//			addChild(mpeZDisplay);
-//		}
-//		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCZ_PARAM, 0.0, 1.0, 0.0));
-		
-		
-		
 		yPos = 118.f;
 		float const xOffset = 32.f;
 		for (int i = 0; i < 8; i++){
 			xPos = 30.f;
-			addChild(ModuleLightWidget::create<TinyLight<RedLight>>(Vec(xPos-7.f, yPos+10.f), module, MIDI8MPE::CH_LIGHT + i));
-			addOutput(Port::create<moDllzPortDark>(Vec(xPos, yPos), Port::OUTPUT, module, MIDI8MPE::X_OUTPUT + i));
+			addChild(createLight<TinyLight<RedLight>>(Vec(xPos-7.f, yPos+10.f), module, MIDI8MPE::CH_LIGHT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos, yPos),  module, MIDI8MPE::X_OUTPUT + i));
 			xPos += xOffset;
-			addOutput(Port::create<moDllzPortDark>(Vec(xPos, yPos), Port::OUTPUT, module, MIDI8MPE::Y_OUTPUT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos, yPos),  module, MIDI8MPE::Y_OUTPUT + i));
 			xPos += xOffset;
-			addOutput(Port::create<moDllzPortDark>(Vec(xPos, yPos), Port::OUTPUT, module, MIDI8MPE::Z_OUTPUT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos, yPos),  module, MIDI8MPE::Z_OUTPUT + i));
 			xPos += xOffset;
-			addOutput(Port::create<moDllzPortDark>(Vec(xPos, yPos), Port::OUTPUT, module, MIDI8MPE::VEL_OUTPUT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos, yPos),  module, MIDI8MPE::VEL_OUTPUT + i));
 			xPos += xOffset;
-			addOutput(Port::create<moDllzPortDark>(Vec(xPos, yPos), Port::OUTPUT, module, MIDI8MPE::GATE_OUTPUT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos, yPos),  module, MIDI8MPE::GATE_OUTPUT + i));
 			yPos += 25.f;
 		}
 		yPos = 336.f;
 		xPos = 10.5f;
 		for ( int i = 0; i < 6; i++){
-			addOutput(Port::create<moDllzPort>(Vec(xPos, yPos), Port::OUTPUT, module, MIDI8MPE::MMA_OUTPUT + i));
+			addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDI8MPE::MMA_OUTPUT + i));
 			xPos += 27.f;
 		}
 		
 		yPos = 322.f;
 		xPos = 9.f;
-		{
-			MidiccDisplay *MccADisplay = new MidiccDisplay();
-			MccADisplay->box.pos = Vec(xPos, yPos);
-			MccADisplay->box.size = {26.f, 13.f};
-			MccADisplay->displayID = 7;
-			MccADisplay->p_cursor = &(module->cursorIx);
-			MccADisplay->p_ccNumber = &(module->midiCCs[0]);
-			MccADisplay->p_learnIx = &(module->learnIx);
-			addChild(MccADisplay);
+		for (int i = 0; i < 6; i++){
+				MidiccDisplay *MccDisplay = new MidiccDisplay();
+				MccDisplay->box.pos = Vec(xPos, yPos);
+				MccDisplay->box.size = {26.f, 13.f};
+				MccDisplay->displayID = i;// + 7;
+				MccDisplay->module = module;
+				addChild(MccDisplay);
+				addParam(createParam<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCA_PARAM + i));
+			xPos += 27.f;
 		}
-		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCA_PARAM, 0.0, 1.0, 0.0));
-		xPos += 27.f;
-		{
-			MidiccDisplay *MccBDisplay = new MidiccDisplay();
-			MccBDisplay->box.pos = Vec(xPos, yPos);
-			MccBDisplay->box.size = {26.f, 13.f};
-			MccBDisplay->displayID = 8;
-			MccBDisplay->p_cursor = &(module->cursorIx);
-			MccBDisplay->p_ccNumber = &(module->midiCCs[1]);
-			MccBDisplay->p_learnIx = &(module->learnIx);
-			addChild(MccBDisplay);
-		}
-		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCB_PARAM, 0.0, 1.0, 0.0));
-		xPos += 27.f;
-		{
-			MidiccDisplay *MccCDisplay = new MidiccDisplay();
-			MccCDisplay->box.pos = Vec(xPos, yPos);
-			MccCDisplay->box.size = {26.f, 13.f};
-			MccCDisplay->displayID = 9;
-			MccCDisplay->p_cursor = &(module->cursorIx);
-			MccCDisplay->p_ccNumber = &(module->midiCCs[2]);
-			MccCDisplay->p_learnIx = &(module->learnIx);
-			addChild(MccCDisplay);
-		}
-		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCC_PARAM, 0.0, 1.0, 0.0));
-		xPos += 27.f;
-		{
-			MidiccDisplay *MccDDisplay = new MidiccDisplay();
-			MccDDisplay->box.pos = Vec(xPos, yPos);
-			MccDDisplay->box.size = {26.f, 13.f};
-			MccDDisplay->displayID = 10;
-			MccDDisplay->p_cursor = &(module->cursorIx);
-			MccDDisplay->p_ccNumber = &(module->midiCCs[3]);
-			MccDDisplay->p_learnIx = &(module->learnIx);
-			addChild(MccDDisplay);
-		}
-		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCD_PARAM, 0.0, 1.0, 0.0));
-		xPos += 27.f;
-		{
-			MidiccDisplay *MccEDisplay = new MidiccDisplay();
-			MccEDisplay->box.pos = Vec(xPos, yPos);
-			MccEDisplay->box.size = {26.f, 13.f};
-			MccEDisplay->displayID = 11;
-			MccEDisplay->p_cursor = &(module->cursorIx);
-			MccEDisplay->p_ccNumber = &(module->midiCCs[4]);
-			MccEDisplay->p_learnIx = &(module->learnIx);
-			addChild(MccEDisplay);
-		}
-		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCE_PARAM, 0.0, 1.0, 0.0));
-		xPos += 27.f;
-		{
-			MidiccDisplay *MccFDisplay = new MidiccDisplay();
-			MccFDisplay->box.pos = Vec(xPos, yPos);
-			MccFDisplay->box.size = {26.f, 13.f};
-			MccFDisplay->displayID = 12;
-			MccFDisplay->p_cursor = &(module->cursorIx);
-			MccFDisplay->p_ccNumber = &(module->midiCCs[5]);
-			MccFDisplay->p_learnIx = &(module->learnIx);
-			addChild(MccFDisplay);
-		}
-		addParam(ParamWidget::create<learnMccButton>(Vec(xPos, yPos), module, MIDI8MPE::LEARNCCF_PARAM, 0.0, 1.0, 0.0));
-		
-		
 		///Sustain hold notes		
 		xPos = 173.f;
 		yPos = 338.f;
-		addParam(ParamWidget::create<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_PARAM, 0.0, 1.0, 1.0));
-		addChild(ModuleLightWidget::create<TranspOffRedLight>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_LIGHT));
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_PARAM));
+		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_LIGHT));
 		
 		
 //		{
@@ -1477,5 +1416,4 @@ struct MIDI8MPEWidget : ModuleWidget {
 };
 
 
-Model *modelMIDI8MPE = Model::create<MIDI8MPE, MIDI8MPEWidget>("moDllz", "MIDI8MPE", "MIDI 8cv MPE", MIDI_TAG, EXTERNAL_TAG, MULTIPLE_TAG);
-
+Model *modelMIDI8MPE = createModel<MIDI8MPE, MIDI8MPEWidget>("MIDI8MPE");
