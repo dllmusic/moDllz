@@ -2,7 +2,6 @@
 /*
  * XBender
  */
-
 struct XBender : Module {
 	enum ParamIds {
 		XBEND_PARAM,
@@ -46,7 +45,6 @@ struct XBender : Module {
 		SNAPAXIS_LIGHT,
 		NUM_LIGHTS
 	};
-	
 	float inAxis = 0.f;
 	float axisSlew = 0.f;
 	int axisTransParam = 0;
@@ -83,7 +81,6 @@ struct XBender : Module {
 	
 	dsp::SlewLimiter slewlimiter;
 	
-	
 	XBender() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(YCENTER_PARAM, -120.f, 120.f, 0.f);
@@ -118,7 +115,6 @@ struct XBender : Module {
 		json_object_set_new(rootJ, "axisTransParam", json_integer(axisTransParam));
 		return rootJ;
 	}
-	
 	void dataFromJson(json_t *rootJ) override {
 		json_t *selectedAxisIJ = json_object_get(rootJ,("selectedAxisI"));
 		selectedAxisI = json_integer_value(selectedAxisIJ);
@@ -132,7 +128,6 @@ struct XBender : Module {
 /////////////////////////////////////////////
 
 void XBender::process(const ProcessArgs &args) {
-
 	
 	if(inputs[AXISSELECT_INPUT].isConnected()) {
 		if (params[SNAPAXIS_PARAM].getValue() > 0.5f){
@@ -150,39 +145,33 @@ void XBender::process(const ProcessArgs &args) {
 	}
 	
 	lights[SNAPAXIS_LIGHT].value = (params[SNAPAXIS_PARAM].getValue() > 0.5f)? 1.f : 0.f;
-	
 	axisXfade = clamp((params[AXISXFADE_PARAM].getValue() + inputs[AXISXFADE_INPUT].getVoltage()/ 10.f), 0.f, 1.f);
-	
+
 	if (inputs[AXISEXT_INPUT].isConnected()){
 		float axisext = inputs[AXISEXT_INPUT].getVoltage();
 		axisSlew = crossfade(axisext, inAxis, axisXfade);
 	} else axisSlew = inAxis;
-	float slewsum = 0.f;
-	slewsum = clamp((params[AXISSLEW_PARAM].getValue() + inputs[AXISSLEW_INPUT].getVoltage() * .1f), 0.f , 1.f);
+
+	float slewsum = clamp((params[AXISSLEW_PARAM].getValue() + inputs[AXISSLEW_INPUT].getVoltage() * .1f), 0.f , 1.f);
 	if (slewchanged != slewsum) {
 		slewchanged = slewsum;
 		float slewfloat = 1.0f/(5.0f + slewsum * args.sampleRate);
 		slewlimiter.setRiseFall(slewfloat,slewfloat);
 	}
+	
 	finalAxis = slewlimiter.process(1.f,axisSlew) + (inputs[AXISMOD_INPUT].getVoltage() * params[AXISMOD_PARAM].getValue());
 	AxisShift = (static_cast<float>(axisTransParam)/12.f);
 	finalAxis += clamp(AxisShift, -12.f,12.f);
 	
 	float range = clamp((params[XBENDRANGE_PARAM].getValue() + inputs[XBENDRANGE_INPUT].getVoltage()/2.f), 1.f,5.f);
-	/////////// MOTORIZED KNOB
-	//float xbend = clamp((params[XBEND_PARAM].getValue() + (inputs[XBENDCV_INPUT].getVoltage() /5.f) * (params[XBENDCVTRIM_PARAM].getValue() /24.f)),-1.f, 1.f);
 	XBenderKnobCV = (params[XBENDCVTRIM_PARAM].getValue() / 24.f) * (inputs[XBENDCV_INPUT].getVoltage() / 5.f);
-	
 	XBenderKnobVal = params[XBEND_PARAM].getValue();
-	
 	xbend = clamp((XBenderKnobVal + XBenderKnobCV),-1.f,1.f);
 	
-	/////////////////////////
 	float bend = clamp((params[BEND_PARAM].getValue() + (inputs[BENDCV_INPUT].getVoltage() /5.f) * (params[BENDCVTRIM_PARAM].getValue() /60.f)),-1.f, 1.f);
 	
 	for (int i = 0; i < 8; i++){
 		if (inputs[IN_INPUT + i].isConnected()) {
-		
 			if (axisSelectTrigger[i].process(params[AXISSELECT_PARAM + i].getValue())) {
 				selectedAxisI = i;
 				selectedAxisF = static_cast<float>(i); // float for display
@@ -193,12 +182,11 @@ void XBender::process(const ProcessArgs &args) {
 			float diff = (finalAxis - ioxbended[i].inx) * xbend * range;
 			ioxbended[i].xout = clamp((ioxbended[i].inx + diff + bend * 6.f),-12.f,12.f);
 			outputs[OUT_OUTPUT + i].setVoltage(ioxbended[i].xout);
-
 		}else{
 			lights[AXIS_LIGHT + i].value = 0;
 			ioxbended[i].iactive=false;
 		}
-	} //for loop ix
+	} //for loop i
   
 	outputs[AXIS_OUTPUT].setVoltage(finalAxis);
 	
@@ -206,7 +194,7 @@ void XBender::process(const ProcessArgs &args) {
 			if (axisTransParam < 48) axisTransParam ++;
 	if (axisTransDwnTrigger.process(params[AXISTRNSDWN_PARAM].getValue()))
 			if (axisTransParam > -48) axisTransParam --;
-   
+
 	bool autoZoom = (params[AUTOZOOM_PARAM].getValue() > 0.f);
 	if (autoZoom){
 		frameAutoZoom ++;
@@ -243,65 +231,27 @@ void XBender::process(const ProcessArgs &args) {
 		dZoom = params[XBender::YZOOM_PARAM].getValue();
 		lights[AUTOZOOM_LIGHT].value = 0.f;
 	}
-
-	testVal = xbend;
-}//closing STEP
-
-
+}/////////////////////   closing STEP   ////////////////////////////////////////////////
 
 ///Bend Realtime Display
 struct BenderDisplay : TransparentWidget {
 	XBender *module;
 	BenderDisplay() {
-	
 	}
-	//XBender::ioXBended *ioxB;
-	
-	//float *pAxis =  NULL;
-	//float *pyCenter ;
-	//float *pyZoom ;
-	//float *pdisplaymode ;
-	//float *pAxisIx;
-	
-
-//	benderDisplay->ioxB = &(module->ioxbended[0]);
-//	benderDisplay->pAxis = &(module->finalAxis);
-//	benderDisplay->pAxisIx = &(module->selectedAxisF);
-//	benderDisplay->pdisplaymode = &(module->params[XBender::DISPLAYMODE_PARAM].getValue());
-//	benderDisplay->pyCenter = &(module->dCenter);
-//	benderDisplay->pyZoom = &(module->dZoom);
-//	benderDisplay->pAxisXfade = &(module->axisXfade);
 	
 	void draw(const DrawArgs &args) override
 	{
-		
-		const float dispHeight = 228.f;
-		const float dispCenter = dispHeight / 2.f;
-		
-		//float yZoom = *pyZoom;
-		//float yCenter =  *pyCenter * yZoom + dispCenter;
-		//float displaymode = *pdisplaymode;
-		//float AxisIx = *pAxisIx;
-		float yZoom = module ? module->dZoom : 0.f;
-		float yCenter = (module ? module->dCenter : 0.f) *  yZoom + dispCenter;
-		
-		//float displaymode = module ? module->params[XBender::DISPLAYMODE_PARAM].getValue()  : 0.f;
-		float displaymode = 0.f;
-		float AxisIx = module ? module->selectedAxisF : 0.f;
-		float Axis =  module ? module->finalAxis : 0.f;
-		
-		float AxisXfade = module ? module->axisXfade : 0.f;
-		
-		float keyw = 10.f * yZoom /12.f;
-		
-		//XBender::ioXBended ioxB = module->ioxbended[] ;
-		
-		
-		// crop drawing to display
-		nvgScissor(args.vg, 0.f, 0.f, 152.f, dispHeight);
-		
-		
-		///// BACKGROUND
+		if (module) {
+			const float dispHeight = 228.f;
+			const float dispCenter = dispHeight / 2.f;
+			float yZoom = module->dZoom;
+			float yCenter = module->dCenter * yZoom + dispCenter;
+			float AxisIx = module->selectedAxisF;
+			float Axis = module->finalAxis;
+			float AxisXfade = module->axisXfade;
+			float keyw = 10.f * yZoom /12.f;
+			nvgScissor(args.vg, 0.f, 0.f, 152.f, dispHeight);// crop drawing to display
+			///// BACKGROUND
 			nvgBeginPath(args.vg);
 			nvgFillColor(args.vg, nvgRGB(0x2a, 0x2a, 0x2a));
 			nvgRect(args.vg, 20.f, yCenter - 120.f * yZoom, 110.f, 20.f * yZoom);
@@ -330,7 +280,7 @@ struct BenderDisplay : TransparentWidget {
 					nvgMoveTo(args.vg, 20.f, yCenter + 10.f * yZoom * i);
 					nvgLineTo(args.vg, 130.f,yCenter + 10.f * yZoom * i);
 					nvgStroke(args.vg);
-				}else if ((i < 5) && (displaymode == 0.f )){
+				}else if (i < 5){
 					// keyboard
 					float keyPos = yCenter + 10.f * yZoom * i;
 					// C's highlight
@@ -378,18 +328,11 @@ struct BenderDisplay : TransparentWidget {
 				nvgRect(args.vg, 20.f, yCenter - keyw * 0.5f, 110.f, keyw);
 				nvgFill(args.vg);
 			}
-		
-		
-		///// Bend Lines
-		const float yfirst = 10.5f;
-		const float ystep = 26.f;
-		if ((module) && (displaymode == 0.f)) {
+			// Bend Lines
+			const float yfirst = 10.5f;
+			const float ystep = 26.f;
 			for (int i = 0; i < 8 ; i++){
-				//nowactive =;
-				bool ioactive = module->ioxbended[i].iactive;
-				//if (ioxB[i].iactive){
-				if (ioactive) {
-					
+				if (module->ioxbended[i].iactive) {
 				float yport = yfirst + i * ystep;
 					float yi =  yZoom * module->ioxbended[i].inx * -10.f + yCenter ;
 					float yo =  yZoom * module->ioxbended[i].xout * -10.f + yCenter ;
@@ -412,33 +355,43 @@ struct BenderDisplay : TransparentWidget {
 					}
 				}
 			}
+			// Axis Line
+			NVGcolor extColor = nvgRGBA(0xee, 0xee, 0x00, (1.f - AxisXfade) * 0xff);
+			NVGcolor intColor = nvgRGBA(0xee, 0x00, 0x00, AxisXfade * 0xff);
+			NVGcolor axisColor = nvgRGB(0xee, (1.f - AxisXfade) * 0xee, 0x00);
+			Axis = yZoom * Axis * -10.f + yCenter;
+			nvgStrokeWidth(args.vg,1.f);
+			//ext
+			nvgBeginPath(args.vg);
+			nvgStrokeColor(args.vg,extColor);
+			nvgMoveTo(args.vg, 0.f, 228.f);
+			nvgLineTo(args.vg, 20.f, Axis);
+			nvgStroke(args.vg);
+			// int
+			nvgBeginPath(args.vg);
+			nvgStrokeColor(args.vg,intColor);
+			nvgMoveTo(args.vg, 0.f, yfirst + AxisIx * ystep);
+			nvgLineTo(args.vg, 20.f, Axis);
+			nvgStroke(args.vg);
+			// axis
+			nvgBeginPath(args.vg);
+			nvgStrokeColor(args.vg,axisColor);
+			nvgMoveTo(args.vg, 20.f, Axis);
+			nvgLineTo(args.vg, 130.f, Axis);
+			nvgLineTo(args.vg, 150.f, 222.f);
+			nvgStroke(args.vg);
+		}else{///PREVIEW
+			std::shared_ptr<Font> font;
+			std::string s1 = "8 Channel";
+			std::string s2 = "Axis X-fader";
+			font = APP->window->loadFont(mFONT_FILE);
+			nvgFontSize(args.vg, 24.f);
+			nvgFontFaceId(args.vg, font->handle);
+			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+			nvgFillColor(args.vg, nvgRGB(0xDD,0xDD,0xDD));
+			nvgTextBox(args.vg, 0.f, 80.0f,box.size.x, s1.c_str(), NULL);
+			nvgTextBox(args.vg, 0.f, 112.0f,box.size.x, s2.c_str(), NULL);
 		}
-		/// Axis Line
-		NVGcolor extColor = nvgRGBA(0xee, 0xee, 0x00, (1.f - AxisXfade) * 0xff);
-		NVGcolor intColor = nvgRGBA(0xee, 0x00, 0x00, AxisXfade * 0xff);
-		NVGcolor axisColor = nvgRGB(0xee, (1.f - AxisXfade) * 0xee, 0x00);
-	
-		Axis = yZoom * Axis * -10.f + yCenter;
-		nvgStrokeWidth(args.vg,1.f);
-	//ext
-		nvgBeginPath(args.vg);
-		nvgStrokeColor(args.vg,extColor);
-		nvgMoveTo(args.vg, 0.f, 228.f);
-		nvgLineTo(args.vg, 20.f, Axis);
-		nvgStroke(args.vg);
-	// int
-		nvgBeginPath(args.vg);
-		nvgStrokeColor(args.vg,intColor);
-		nvgMoveTo(args.vg, 0.f, yfirst + AxisIx * ystep);
-		nvgLineTo(args.vg, 20.f, Axis);
-		nvgStroke(args.vg);
-	// axis
-		nvgBeginPath(args.vg);
-		nvgStrokeColor(args.vg,axisColor);
-		nvgMoveTo(args.vg, 20.f, Axis);
-		nvgLineTo(args.vg, 130.f, Axis);
-		nvgLineTo(args.vg, 150.f, 222.f);
-		nvgStroke(args.vg);
 	}
 };
 
@@ -448,21 +401,12 @@ struct AxisTranspDisplay : TransparentWidget {
 	std::shared_ptr<Font> font;
 	std::string s;
 	float mdfontSize = 11.f;
-	int *pAxisTransP = nullptr;
-	int AxisTransP = 128;
-	
 	AxisTranspDisplay(){
 		font = APP->window->loadFont(FONT_FILE);
 	}
-
-	
 	void draw(const DrawArgs &args) override {
 		int AxisTransP = module ? module->axisTransParam : 0;
-		//if (AxisTransP != *pAxisTransP) {
-		//	AxisTransP = *pAxisTransP;
-		//	s = std::to_string(*pAxisTransP);
 		s = std::to_string(AxisTransP);
-		//}
 		nvgFontSize(args.vg, mdfontSize);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -470,7 +414,6 @@ struct AxisTranspDisplay : TransparentWidget {
 		nvgTextBox(args.vg, 0.f, 14.0f,box.size.x, s.c_str(), NULL);
 	}
 };
-
 
 struct RangeSelector: moDllzSmSelector{
 	RangeSelector(){
@@ -480,54 +423,12 @@ struct RangeSelector: moDllzSmSelector{
 };
 
 struct xbendKnob : SvgKnob {
-//	 XBender *module;
-//	float *ptoKnobCV = 0;
-//	float *pxbend = 0;
-//
-//	float toKnobCV = 0.f;
-//	float KnobVal = 0.f;
-
 	xbendKnob() {
 		minAngle = -0.83*M_PI;
 		maxAngle = 0.83*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/xbendKnob.svg")));
 		shadow->opacity = 0.f;
 	}
-//	void process(const ProcessArgs &args) {
-//		if (KnobVal != *pxbend){
-//			KnobVal = *pxbend;
-//			toKnobCV = *ptoKnobCV;
-//			value = KnobVal;
-//			dirty = true;
-//		}
-//		if (dirty) {
-//			float angle;
-//			if (isfinite(minValue) && isfinite(maxValue)) {
-//				angle = rescale(value, minValue, maxValue, minAngle, maxAngle);
-//			}
-//			else {
-//				angle = rescale(value, -1.0, 1.0, minAngle, maxAngle);
-//				angle = fmodf(angle, 2*M_PI);
-//			}
-//			tw->identity();
-//			// Rotate SVG
-//			Vec center = sw->box.getCenter();
-//			tw->translate(center);
-//			tw->rotate(angle);
-//			tw->translate(center.neg());
-//			// Redraw
-//			module->XBenderKnobVal = value - toKnobCV;
-//		}
-//		FramebufferWidget::step();
-//	}
-//
-//	void onChange(EventChange &e) {
-//		dirty = true;
-//		Knob::onChange(e);
-//	}
-//	void onMouseUp(EventMouseUp &e){
-//
-//	}
 };
 
 struct zTTrim : SvgKnob {
@@ -563,9 +464,7 @@ struct snapAxisButton : SvgSwitch {
   }
 };
 
-
 struct XBenderWidget : ModuleWidget {
-	
 	XBenderWidget(XBender *module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/XBender.svg")));
@@ -577,10 +476,8 @@ struct XBenderWidget : ModuleWidget {
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 0)));
 		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 365)));
-		
 		xPos = 73.f;
 		yPos = 22.f;
-		
 		{
 			BenderDisplay *benderDisplay = new BenderDisplay();
 			benderDisplay->box.pos = Vec(xPos, yPos);
@@ -588,28 +485,18 @@ struct XBenderWidget : ModuleWidget {
 		 	benderDisplay->module = module;
 		 	addChild(benderDisplay);
 		}
-		
 		yPos = 252.f;
-		xPos = 85.f;
-		// addParam(createParam<cTTrim>(Vec(xPos, yPos ), module, XBender::DISPLAYMODE_PARAM));
-
 		/// View Center Zoom
 		xPos = 170.f;
 		addParam(createParam<cTTrim>(Vec(xPos,yPos), module, XBender::YCENTER_PARAM));
-		//, -120.f, 120.f, 0.f
 		xPos = 203;
 		addParam(createParam<zTTrim>(Vec(xPos,yPos), module, XBender::YZOOM_PARAM));
-		//, 1.f, 15.f, 1.f
-		
+
 		yPos += 1.5f;
 		xPos = 125.f;
 		addParam(createParam<autoZoom>(Vec(xPos, yPos ), module, XBender::AUTOZOOM_PARAM));
-		//, 0.0f, 1.0f, 1.0f
 		addChild(createLight<TinyLight<RedLight>>(Vec(xPos + 17.f, yPos + 4.f), module, XBender::AUTOZOOM_LIGHT));
 
-			
-			
-		
 		/// IN  - Axis select  - OUTS
 		xPos = 12.f;
 		yPos = 22.f;
@@ -635,7 +522,7 @@ struct XBenderWidget : ModuleWidget {
 		yPos += 25.f;
 		addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, XBender::AXISXFADE_INPUT));
 		addParam(createParam<moDllzKnob26>(Vec(35.f,280.f), module, XBender::AXISXFADE_PARAM));
-		//, -1.f, 1.f, 0.f
+	
 		yPos += 25.f;
 		addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, XBender::AXISEXT_INPUT));
 			
@@ -661,40 +548,21 @@ struct XBenderWidget : ModuleWidget {
 			axisTranspDisplay->module = module;
 			 addChild(axisTranspDisplay);
 		}
-		
-		 
-		/// Knobs
-		
 		//XBEND
 		xPos = 124.f;
 		yPos = 272.f;
 		
 		addParam(createParam<xbendKnob>(Vec(xPos, yPos), module, XBender::XBEND_PARAM));
-		//, -1.f, 1.f, 0.f
-		
-//			{   xbendKnob *xbendK = new xbendKnob();
-//				xbendK->box.pos = Vec(xPos, yPos);
-//				xbendK->box.size = {50.f, 50.f};
-//				xbendK->minValue = -1.f;
-//				xbendK->maxValue = 1.f;
-//				xbendK->defaultValue = 0.f;
-//				xbendK->module = module;
-//				xbendK->ptoKnobCV = &(module->XBenderKnobCV);
-//				xbendK->pxbend = &(module->xbend);
-//				addChild(xbendK);
-//			}
 
-			
 		xPos = 127.5f;
 		yPos = 328.f;
 		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, XBender::XBENDCV_INPUT));
 		addParam(createParam<TTrimSnap>(Vec(xPos + 26.5f,yPos + 7.f), module, XBender::XBENDCVTRIM_PARAM));
-		//, 0.f, 24.f, 24.f
 		//XBEND RANGE
 		xPos = 181.f;
 		yPos = 288.f;
 		addParam(createParam<RangeSelector>(Vec(xPos, yPos), module, XBender::XBENDRANGE_PARAM));
-		//, 1.f, 5.f, 1.f
+
 		xPos = 187.5f;
 		yPos = 328.f;
 		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, XBender::XBENDRANGE_INPUT));
@@ -702,26 +570,12 @@ struct XBenderWidget : ModuleWidget {
 		xPos = 219.f;
 		yPos = 288.f;
 		addParam(createParam<moDllzKnobM>(Vec(xPos, yPos), module, XBender::BEND_PARAM));
-		//, -1.f, 1.f, 0.f
+
 		xPos = 218.5f;
 		yPos = 328.f;
 		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, XBender::BENDCV_INPUT));
 		addParam(createParam<TTrimSnap>(Vec(xPos + 26.5f,yPos + 7.f), module, XBender::BENDCVTRIM_PARAM));
-		//, 0.f, 60.f, 12.f
-//		{
-//			testDisplay *mDisplay = new testDisplay();
-//			mDisplay->box.pos = Vec(0.0f, 360.0f);
-//			mDisplay->box.size = {165.0f, 20.0f};
-//			mDisplay->valP = &(module->testVal);
-//			addChild(mDisplay);
-//		}
-			
 	}
 };
-
-// Specify the Module and ModuleWidget subclass, human-readable
-// manufacturer name for categorization, module slug (should never
-// change), human-readable module name, and any number of tags
-// (found in `include/tags.hpp`) separated by commas.
 
 Model *modelXBender = createModel<XBender, XBenderWidget>("XBender");

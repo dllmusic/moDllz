@@ -1,11 +1,8 @@
 #include "moDllz.hpp"
-#include <list>
-
 /*
  * MIDIpoly16 converts midi note on/off events, velocity , pitch wheel and mod wheel to CV
  * with 16 Midi Note Buttons with individual vel & gate
  */
-
 struct MidiNoteData {
 	uint8_t velocity = 0;
 	uint8_t aftertouch = 0;
@@ -168,7 +165,6 @@ struct MIDIpoly16 : Module {
 	
 	std::list<int> noteBuffer; //buffered notes over polyphony
 	
-
 	int polyIndex = 0;
 	int polyTopIndex = numPads-1;
 	int polymode = 0;
@@ -294,7 +290,6 @@ struct MIDIpoly16 : Module {
 	bool firstBPM = true; ///to hold if no clock ...and skip first BPM calc...
 	bool extBPM = false;
 	
-
 	///////////////
 	MIDIpoly16() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -354,13 +349,14 @@ struct MIDIpoly16 : Module {
 
 	~MIDIpoly16() {
 	};
-	
 	void doSequencer();
 	
 	void process(const ProcessArgs &args) override;
-
+	
 	void processMessage(midi::Message msg);
+	
 	void processCC(midi::Message msg);
+	
 	void processSystem(midi::Message msg);
 	
 	void pressNote(int note, int vel);
@@ -411,8 +407,7 @@ struct MIDIpoly16 : Module {
 	
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
-		
-		 json_object_set_new(rootJ, "midi", midiInput.toJson());
+		json_object_set_new(rootJ, "midi", midiInput.toJson());
 		for (int i = 0; i < numPads; i++) {
 			json_object_set_new(rootJ, ("key" + std::to_string(i)).c_str(), json_integer(noteButtons[i].key));
 			json_object_set_new(rootJ, ("mode" + std::to_string(i)).c_str(), json_integer(noteButtons[i].mode));
@@ -425,7 +420,6 @@ struct MIDIpoly16 : Module {
 	}
 	
 	void dataFromJson(json_t *rootJ) override {
-		
 		json_t *midiJ = json_object_get(rootJ, "midi");
 		if (midiJ)
 			midiInput.fromJson(midiJ);
@@ -453,12 +447,11 @@ struct MIDIpoly16 : Module {
 		
 		padSetMode = POLY_MODE;
 		padSetLearn = false;
-		///midiInput.rtMidiIn->ignoreTypes(true,false,false);
+		/// midiInput.rtMidiIn->ignoreTypes(true,false,false);
 		MidiPanic();
 		initPolyIndex();
 	}
 };
-
 
 void MIDIpoly16::initPolyIndex(){
 	polyTopIndex = -1;
@@ -495,19 +488,15 @@ void MIDIpoly16::pressNote(int note, int vel) {
 				noteButtons[i].vel = vel;
 				noteButtons[i].velseq = vel;
 				noteButtons[i].stamp = stampIx;
-				//
 				if (noteButtons[i].mode == XLOCK_MODE) Xlockedmatch = true;
 			}
 	}
 
 	//if (params[PLAYXLOCKED_PARAM].getValue() < 0.5f)
 		if (Xlockedmatch) return;
-	
 	///////////////////////
 	if (polyIndex > -1){ //polyIndex -1 if all notes are locked or seq
 		setPolyIndex(note);
-
-		////////////////////////////////////////
 		/// if gate is on set retrigg
 		noteButtons[polyIndex].polyretrig = noteButtons[polyIndex].gate;
 		noteButtons[polyIndex].stamp = stampIx;
@@ -521,7 +510,7 @@ void MIDIpoly16::pressNote(int note, int vel) {
 }
 
 void MIDIpoly16::releaseNote(int note) {
-   // auto it = std::find(noteBuffer.begin(), noteBuffer.end(), note);
+	// auto it = std::find(noteBuffer.begin(), noteBuffer.end(), note);
 	//if (it != noteBuffer.end()) noteBuffer.erase(it);
 	noteBuffer.remove(note);
 	if ((params[MONORETRIG_PARAM].getValue() > 0.5f) && (params[MONOPITCH_PARAM].getValue() != 1.f)) monoPulse.trigger(1e-3);
@@ -531,7 +520,6 @@ void MIDIpoly16::releaseNote(int note) {
 		if ((note == noteButtons[i].key) && (noteButtons[i].vel > 0)){
 			// polyIndex = i;
 			if (!noteButtons[i].button) noteButtons[i].vel = 0;
-			
 			noteButtons[i].gate = pedal && sustainhold;
 			if ((noteButtons[i].mode == POLY_MODE) && (!noteButtons[i].gate) && (!noteBuffer.empty())){
 				//recover if buffered over number of voices
@@ -549,7 +537,6 @@ void MIDIpoly16::releasePedalNotes() {
 	for (int i = 0; i < numPads; i++)
 	{
 		if (noteButtons[i].vel == 0){
-			
 			if (!noteBuffer.empty()){//recover if buffered over number of voices
 			noteButtons[i].key = noteBuffer.front();
 			noteButtons[i].vel = noteButtons[i].velseq;
@@ -564,20 +551,21 @@ void MIDIpoly16::releasePedalNotes() {
 
 /////////////////////////////////////////////   SET POLY INDEX  /////////////////////////////////////////////
 void MIDIpoly16::setPolyIndex(int note){
-
 	 polymode = static_cast<int>(params[POLYMODE_PARAM].getValue());
-	 if (polymode < 1) polyIndex ++;
-	 else if (pedal && sustainhold){///check if note is held to recycle it....
-			for (int i = 0; i < numPads; i ++){
-						 if ((noteButtons[i].mode == POLY_MODE) && (noteButtons[i].gate) && (noteButtons[i].key == note)){
-			//				///note is already on....
-							lastpolyIndex = i;
-							polyIndex = i;
-							return;
-						}
-					}
-			}else if (polymode > 1) polyIndex = 0;
- 
+	if (polymode < 1) {
+		polyIndex ++;
+	}else if (pedal && sustainhold){///check if note is held to recycle it....
+		for (int i = 0; i < numPads; i ++){
+				 if ((noteButtons[i].mode == POLY_MODE) && (noteButtons[i].gate) && (noteButtons[i].key == note)){
+					///note is already on....
+					lastpolyIndex = i;
+					polyIndex = i;
+					return;
+				}
+			}
+	}else if (polymode > 1) {
+		polyIndex = 0;
+	}
 	int ii = polyIndex;
 	for (int i = 0; i < (polyTopIndex + 1); i ++){
 		if (ii > polyTopIndex) ii = 0;
@@ -591,22 +579,14 @@ void MIDIpoly16::setPolyIndex(int note){
 		}
 		ii ++;
 	}
-	
 	//////////scan to steal oldest note.......
 	lastpolyIndex ++;
 	ii = lastpolyIndex;
 	for (int i = 0; i < (polyTopIndex + 1); i ++){
 		if (ii > polyTopIndex) ii = 0;
-	  //if (!(noteButtons[ii].locked)){
 		if (noteButtons[ii].mode == POLY_MODE){
 			lastpolyIndex = ii;
 			polyIndex = ii;
-			/// pulse for reTrigger
-			//noteButtons[ii].polyretrig = false;
-			///// save to Buffer /////
-
-		   // int notebffr;
-		   // notebffr = noteButtons[ii].key;
 		  if (noteButtons[ii].vel > 0) noteBuffer.push_front(noteButtons[ii].key);		  ///////////////
 			return;
 		}
@@ -630,9 +610,6 @@ void MIDIpoly16::processMessage(midi::Message msg) {
 		processSystem(msg);
 		return;
 	}
-	
-	
-	//if ((midiInput.channel < 0) || (midiInput.channel == msg.getChannel())){
 		switch (msg.getStatus()) {
 			 case 0x8: {
 						releaseNote(msg.getNote() & 0x7f);
@@ -660,7 +637,6 @@ void MIDIpoly16::processMessage(midi::Message msg) {
 				 pressure = msg.getNote();
 			 }
 			  break;
-
 			 default: break;
 		 }
 	//}
@@ -750,7 +726,6 @@ float MIDIpoly16::minmaxFit(float val, float minv, float maxv){
 	return val;
 }
 
-
 ///////////////////         ////           ////          ////        //////////////////////
 /////////////////   ///////////////  /////////  ////////////  //////  ////////////////////
 /////////////////         ////////  /////////      ////////         /////////////////////
@@ -780,10 +755,8 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 		displayedBPM = static_cast<int>(BPMrate * 100.f + 0.5f);
 	}
 
-
 ////////// MIDI MESSAGE ////////
-
-   
+	
 	midi::Message msg;
 	while (midiInput.shift(&msg)) {
 		processMessage(msg);
@@ -847,124 +820,108 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 		
 		bool thisgate = noteButtons[i].gate || noteButtons[i].button;
 		//// retrigger ...
-		
 		bool outgate = thisgate;
 		if (noteButtons[i].polyretrig) outgate = !keyPulse.process(args.sampleTime);
 		outputs[GATE_OUTPUT + i].setVoltage( !mutePoly && outgate ? 10.f : 0.f);
-		
 		if (thisgate){
-		
-		outputs[VEL_OUTPUT + i].setVoltage(noteButtons[i].velseq / 127.f * 10.f); //(velocity from seq 'cause it doesn't update to zero)
-		if (!padSetLearn) noteButtons[i].learn = false;
-		
-		// get mono values
-		if (noteButtons[i].mode == POLY_MODE){
-			playingVoices ++;
-			switch (liveMonoMode){
-				case 0:{
-					//// get lowest pressed note
-					if (noteButtons[i].key < liveIx) {
-						liveIx = noteButtons[i].key;
-						liveM = i;
-						monogate = true;
-					}
+			outputs[VEL_OUTPUT + i].setVoltage(noteButtons[i].velseq / 127.f * 10.f); //(velocity from seq 'cause it doesn't update to zero)
+			if (!padSetLearn) noteButtons[i].learn = false;
+			// get mono values
+			if (noteButtons[i].mode == POLY_MODE){
+				playingVoices ++;
+				switch (liveMonoMode){
+					case 0:{
+						//// get lowest pressed note
+						if (noteButtons[i].key < liveIx) {
+							liveIx = noteButtons[i].key;
+							liveM = i;
+							monogate = true;
+						}
 					}break;
-				case 1:{
-					if (noteButtons[i].stamp > liveMonoIx ) {
-						liveMonoIx = noteButtons[i].stamp;
-						liveM = i;
-						monogate = true;
-					}
+					case 1:{
+						if (noteButtons[i].stamp > liveMonoIx ) {
+							liveMonoIx = noteButtons[i].stamp;
+							liveM = i;
+							monogate = true;
+						}
 					}break;
-				default:{
-					//// get highest pressed note
-					if (noteButtons[i].key > liveIx) {
-						liveIx = noteButtons[i].key;
-						liveM = i;
-						monogate = true;
-					}
+					default:{
+						//// get highest pressed note
+						if (noteButtons[i].key > liveIx) {
+							liveIx = noteButtons[i].key;
+							liveM = i;
+							monogate = true;
+						}
 					}break;
-			}
-		}else if ((noteButtons[i].mode == LOCKED_MODE) || ((noteButtons[i].mode == XLOCK_MODE)&&(params[PLAYXLOCKED_PARAM].getValue()>0.5))){
-			switch (lockedMonoMode){
-				case 0:{
-					//// get lowest pressed note
-					if (noteButtons[i].key < lockedIx) {
-						lockedIx = noteButtons[i].key;
-						lockedM = i;
-						lockedgate = true;
-					}
-					}break;
-				case 1:{
-					if (noteButtons[i].stamp > lockedMonoIx ) {
-						lockedMonoIx = noteButtons[i].stamp;
-						lockedM= i;
-						lockedgate = true;
-					}
-					}break;
-				default:{
-					//// get highest pressed note
-					if (noteButtons[i].key > lockedIx) {
-						lockedIx = noteButtons[i].key;
-						lockedM = i;
-						lockedgate = true;
-					}
-					}break;
-			}
-		}
-
-	   ///////// POLY PITCH OUTPUT///////////////////////
-			if (analogdrift){
-				static int bounced[numPads] = {0};
-				 float dlimit = (0.1f + params[DRIFT_PARAM].getValue() )/ 26.4f;
-				const float driftfactor = 1e-9f;
-				if (newdrift) {
-					bounced[i] = 0;
-					int randrange = static_cast<int>(1.f + params[DRIFT_PARAM].getValue()) * 300;
-					drift[i] = (static_cast<float>(rand() % randrange * 2 - randrange)) * driftfactor * ( 0.5f + params[DRIFT_PARAM].getValue());
-				}	   //
-				noteButtons[i].drift += drift[i];
-				if ((bounced[i] < 1) && (noteButtons[i].drift > dlimit ))  {
-					drift[i] = -drift[i];
-					bounced[i] = 1;
-				}else if ((bounced[i] > -1) && (noteButtons[i].drift < - dlimit ))  {
-					drift[i] = -drift[i];
-					bounced[i] = -1;
 				}
+			}else if ((noteButtons[i].mode == LOCKED_MODE) || ((noteButtons[i].mode == XLOCK_MODE)&&(params[PLAYXLOCKED_PARAM].getValue()>0.5))){
+				switch (lockedMonoMode){
+					case 0:{
+						//// get lowest pressed note
+						if (noteButtons[i].key < lockedIx) {
+							lockedIx = noteButtons[i].key;
+							lockedM = i;
+							lockedgate = true;
+						}
+					}break;
+					case 1:{
+						if (noteButtons[i].stamp > lockedMonoIx ) {
+							lockedMonoIx = noteButtons[i].stamp;
+							lockedM= i;
+							lockedgate = true;
+						}
+					}break;
+					default:{
+						//// get highest pressed note
+						if (noteButtons[i].key > lockedIx) {
+							lockedIx = noteButtons[i].key;
+							lockedM = i;
+							lockedgate = true;
+						}
+					}break;
+				}
+			}
+		   ///////// POLY PITCH OUTPUT///////////////////////
+				if (analogdrift){
+					static int bounced[numPads] = {0};
+					 float dlimit = (0.1f + params[DRIFT_PARAM].getValue() )/ 26.4f;
+					const float driftfactor = 1e-9f;
+					if (newdrift) {
+						bounced[i] = 0;
+						int randrange = static_cast<int>(1.f + params[DRIFT_PARAM].getValue()) * 300;
+						drift[i] = (static_cast<float>(rand() % randrange * 2 - randrange)) * driftfactor * ( 0.5f + params[DRIFT_PARAM].getValue());
+					}	   //
+					noteButtons[i].drift += drift[i];
+					if ((bounced[i] < 1) && (noteButtons[i].drift > dlimit ))  {
+						drift[i] = -drift[i];
+						bounced[i] = 1;
+					}else if ((bounced[i] > -1) && (noteButtons[i].drift < - dlimit ))  {
+						drift[i] = -drift[i];
+						bounced[i] = -1;
+					}
+				}else noteButtons[i].drift = 0.f; // no analog drift
 			
-			}else noteButtons[i].drift = 0.f; // no analog drift
-	 
-			float noteUnison = 0.f;
-			
-			if (inputs[POLYUNISON_INPUT].isConnected())
-			noteUnison = (minmaxFit(inputs[POLYUNISON_INPUT].getVoltage() * 0.1f ,-10.f,10.f)) * params[POLYUNISON_PARAM].getValue() * (noteButtons[liveMono].key - noteButtons[i].key);
-			else  noteUnison = params[POLYUNISON_PARAM].getValue() * (noteButtons[liveMono].key - noteButtons[i].key);
-			
-			outputs[PITCH_OUTPUT + i].setVoltage(noteButtons[i].drift + (inputs[POLYSHIFT_INPUT].getVoltage()/48.f * params[TRIMPOLYSHIFT_PARAM].getValue()) + (polyTransParam + noteButtons[i].key + noteUnison - 60) / 12.f);	  //
-			//////////////////////////////////////////////////
+				float noteUnison = 0.f;
+				if (inputs[POLYUNISON_INPUT].isConnected())
+				noteUnison = (minmaxFit(inputs[POLYUNISON_INPUT].getVoltage() * 0.1f ,-10.f,10.f)) * params[POLYUNISON_PARAM].getValue() * (noteButtons[liveMono].key - noteButtons[i].key);
+				else  noteUnison = params[POLYUNISON_PARAM].getValue() * (noteButtons[liveMono].key - noteButtons[i].key);
+				
+				outputs[PITCH_OUTPUT + i].setVoltage(noteButtons[i].drift + (inputs[POLYSHIFT_INPUT].getVoltage()/48.f * params[TRIMPOLYSHIFT_PARAM].getValue()) + (polyTransParam + noteButtons[i].key + noteUnison - 60) / 12.f);	  //
+				//////////////////////////////////////////////////
 		}
 		if (seqrunning) lights[SEQ_LIGHT + i].value = (seqStep == i) ? 1.f : 0.f;
-
-		
-	   }  //// end for i to numPads
+	}//// end for i to numPads
 	lockedMono = lockedM;
 	liveMono = liveM;
-
 	sustainhold = params[HOLD_PARAM].getValue() > 0.5f;
-   
-
 	//  Output Live Mono note
-   // bool monogate = (noteButtons[liveMono].gate || noteButtons[liveMono].button);
 	if (outputs[MONOPITCH_OUTPUT].isConnected()) {
-		
-		//////////////////////////////////////
 		/////////////////////////////////  ///
 		/// A R C A D E // S C A N ///	  //
 		///////////////////////////////   ////
 		////////////////////////////// // ////
 		///// A R P E G G I A T O R //////////
 		if (arpegMode > 0) {
-			
 			int updArpClockRatio = 0;
 			if (inputs[ARPEGRATIO_INPUT].isConnected())
 			updArpClockRatio = static_cast<int>(minmaxFit(inputs[ARPEGRATIO_INPUT].getVoltage() + params[ARPEGRATIO_PARAM].getValue(), 0.f, 11.f));
@@ -985,82 +942,69 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 					syncArpPhase = seqrunning;///// SYNC with seq if running
 				   /////////////////////////////////
 				}
-				
-			   if (arpegMode > 1){/////// ARCADE / / / / / / /
-				   arpegFrame ++;
-				   if (arpegFrame > (args.sampleRate / 60.f)){
-					   arpegStep = true;
-					   arpegFrame = 0;
-				   }
-			   }else {//if (!seqrunning){ /// set clocks if sequence is not running.....
-				float arpswingPhase;
-				float  swingknob = params[SEQARPSWING_PARAM].getValue() / 40.f;
-				   bool swingThis ((params[ARPSWING_PARAM].getValue() > 0.5f) && ((swingTriplet[arpclockRatio]) || (params[SWINGTRI_PARAM].getValue() > 0.5f)));
-				   if (clockSource < 2) {
-					   if (clockSource == 1) ClockArpSamples = static_cast<int>(args.sampleRate * 60.f/BPMrate / ClockRatios[arpclockRatio] + 0.5f);
-						   arpPhase = static_cast<float>(arpSampleCount)/static_cast<float>(ClockArpSamples);
-						   arpSampleCount++;
-					   
-					   if (swingThis){
-							   if (arpSwingDwn) arpswingPhase = 1.f + swingknob;
-							   else arpswingPhase = 1.f - swingknob;
-						   } else arpswingPhase = 1.f;
-					   
-						   if (arpPhase >= arpswingPhase) {
-							   arpPhase = 0.f;
-							   arpSwingDwn = !arpSwingDwn;
-							   arpegStep = true;
-							   arpSampleCount = 0;
-						   }
-				   }else{
-					   int arpMidiPhase;
-					   int swingtick = static_cast<int>(swingknob * (24/ClockRatios[seqclockRatio]));
-					   
-					   if (arpMIDItick){
-						   arpMIDItick = false;
-						   arpTickCount ++; /// arpeggiator sync with sequencer
-						   if (swingThis){
-							   if (arpSwingDwn) arpMidiPhase = 24/ClockRatios[arpclockRatio] + swingtick;
-							   else arpMidiPhase = 24/ClockRatios[arpclockRatio] - swingtick;
-						   } else arpMidiPhase = 24/ClockRatios[arpclockRatio];
-						   
-						   if (arpTickCount >= arpMidiPhase) {
-							   arpTickCount = 0;
-							   arpSwingDwn = !arpSwingDwn;
-							   arpegStep = true;
-						   }
-					   }
-				   }
-			}// END IF MODE ARP
-			  /// first gate --> set up indexes
- 
+				if (arpegMode > 1){/////// ARCADE / / / / / / /
+					arpegFrame ++;
+					if (arpegFrame > (args.sampleRate / 60.f)){
+						arpegStep = true;
+						arpegFrame = 0;
+					}
+				}else {//if (!seqrunning){ /// set clocks if sequence is not running.....
+					float arpswingPhase;
+					float swingknob = params[SEQARPSWING_PARAM].getValue() / 40.f;
+					bool swingThis ((params[ARPSWING_PARAM].getValue() > 0.5f) && ((swingTriplet[arpclockRatio]) || (params[SWINGTRI_PARAM].getValue() > 0.5f)));
+					if (clockSource < 2) {
+						if (clockSource == 1) ClockArpSamples = static_cast<int>(args.sampleRate * 60.f/BPMrate / ClockRatios[arpclockRatio] + 0.5f);
+							arpPhase = static_cast<float>(arpSampleCount)/static_cast<float>(ClockArpSamples);
+							arpSampleCount++;
+						if (swingThis){
+							if (arpSwingDwn) arpswingPhase = 1.f + swingknob;
+							else arpswingPhase = 1.f - swingknob;
+						} else arpswingPhase = 1.f;
+						if (arpPhase >= arpswingPhase) {
+							arpPhase = 0.f;
+							arpSwingDwn = !arpSwingDwn;
+							arpegStep = true;
+							arpSampleCount = 0;
+						}
+					}else{
+						int arpMidiPhase;
+						int swingtick = static_cast<int>(swingknob * (24/ClockRatios[seqclockRatio]));
+						if (arpMIDItick){
+							arpMIDItick = false;
+							arpTickCount ++; /// arpeggiator sync with sequencer
+							if (swingThis){
+								if (arpSwingDwn) arpMidiPhase = 24/ClockRatios[arpclockRatio] + swingtick;
+								else arpMidiPhase = 24/ClockRatios[arpclockRatio] - swingtick;
+							} else arpMidiPhase = 24/ClockRatios[arpclockRatio];
+							if (arpTickCount >= arpMidiPhase) {
+								arpTickCount = 0;
+								arpSwingDwn = !arpSwingDwn;
+								arpegStep = true;
+							}
+						}
+					}
+				}// END IF MODE ARP
 			}else{ //////////	GATE OFF //arpeg ON no gate (all notes off) reset..
 				arpegStarted = false;
-				//if (!seqrunning) {
-					arpSampleCount = 0;
-					arpPhase = 0.f;
-					arpSwingDwn = true;
-			   // }
-		}
-		bool notesFirst = (params[ARPEGOCTALT_PARAM].getValue() > 0.5f);
-		
-		if ((arpegStep) && (monogate)){
-			
-			if  (arpclockRatio != updArpClockRatio){
-				arpclockRatio = updArpClockRatio;
+				arpSampleCount = 0;
 				arpPhase = 0.f;
 				arpSwingDwn = true;
-				arpSampleCount = 0;
-			}///update ratio....
-			
-			int arpOctaveKnob = static_cast<int>(params[ARPEGOCT_PARAM].getValue());
-				 for (int i = 0 ; i < 5; i++){
-				   lights[ARPOCT_LIGHT + i].value = 0.f;
-				 }
-			arpegStep=false;
-
+			}
+			bool notesFirst = (params[ARPEGOCTALT_PARAM].getValue() > 0.5f);
+			if ((arpegStep) && (monogate)){
+				if  (arpclockRatio != updArpClockRatio){
+					arpclockRatio = updArpClockRatio;
+					arpPhase = 0.f;
+					arpSwingDwn = true;
+					arpSampleCount = 0;
+				}///update ratio....
+				int arpOctaveKnob = static_cast<int>(params[ARPEGOCT_PARAM].getValue());
+				for (int i = 0 ; i < 5; i++){
+					lights[ARPOCT_LIGHT + i].value = 0.f;
+				}
+				arpegStep=false;
 				if (notesFirst) {
-			   ////////// NOTE to arp and CYCLE FLAG
+				////////// NOTE to arp and CYCLE FLAG
 					arpegIx ++;
 					if (arpegIx > polyTopIndex) arpegIx = 0;
 					for (int i = 0; i <= polyTopIndex; i++){
@@ -1079,37 +1023,37 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 						}
 						arpegIx ++;
 						if (arpegIx > polyTopIndex) arpegIx = 0;
-						}
+					}
 				///////////
 				}else {
-				   arpOctValue = arpOctaveKnob;
+					arpOctValue = arpOctaveKnob;
 					if (octaveShift[arpOctValue][arpOctIx + 1] > 2) {
 						arpegIx ++;
 						arpOctIx= 0;
-					for (int i = 0; i <= polyTopIndex; i++){
-						if ((noteButtons[arpegIx].mode == POLY_MODE) && ((noteButtons[arpegIx].gate) || (noteButtons[arpegIx].button))) {
-							break;
+						for (int i = 0; i <= polyTopIndex; i++){
+							if ((noteButtons[arpegIx].mode == POLY_MODE) && ((noteButtons[arpegIx].gate) || (noteButtons[arpegIx].button))) {
+								break;
+							}
+							arpegIx ++;
+							if (arpegIx > polyTopIndex) arpegIx = 0;
 						}
-						arpegIx ++;
-						if (arpegIx > polyTopIndex) arpegIx = 0;
-						}
-					} else {
+					}else{
 						arpOctIx ++;
 					}
 				}
-			lights[ARPOCT_LIGHT + 2 + octaveShift[arpOctValue][arpOctIx]].value = 1.f;
-			arpDisplayIx = arpegIx;
-		}else if (!monogate){
+				lights[ARPOCT_LIGHT + 2 + octaveShift[arpOctValue][arpOctIx]].value = 1.f;
+				arpDisplayIx = arpegIx;
+			}else if (!monogate){
 			///keysUp...update arp ratio
-			arpclockRatio = updArpClockRatio;
-			arpDisplayIx = -1;
-			for (int i = 0 ; i < 5; i++){
-				lights[ARPOCT_LIGHT + i].value = 0.f;
+				arpclockRatio = updArpClockRatio;
+				arpDisplayIx = -1;
+				for (int i = 0 ; i < 5; i++){
+					lights[ARPOCT_LIGHT + i].value = 0.f;
+				}
 			}
-		}
-			 outputs[MONOPITCH_OUTPUT].setVoltage(octaveShift[arpOctValue][arpOctIx] + (noteButtons[arpegIx].key - 60) / 12.f);
+			outputs[MONOPITCH_OUTPUT].setVoltage(octaveShift[arpOctValue][arpOctIx] + (noteButtons[arpegIx].key - 60) / 12.f);
 		}else{
-			/// Normal Mono /////////////
+			///////// Normal Mono //////// NO ARPEGIATOR /////
 			outputs[MONOPITCH_OUTPUT].setVoltage(noteButtons[liveMono].drift + (noteButtons[liveMono].key - 60) / 12.f);
 		}
 	} /// end if output active
@@ -1120,9 +1064,7 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 		monoRtgGate = !monoPulse.process(args.sampleTime);
 		if (monoRtgGate) lastMono = noteButtons[liveMono].key;
 	}
-	
 	outputs[MONOGATE_OUTPUT].setVoltage(!muteMono && monoRtgGate ? 10.f : 0.f);
- //////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////
 	
@@ -1146,12 +1088,10 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 	outputs[SUSTAIN_OUTPUT].setVoltage(sustainFilter.process(1.f, rescale(sustain, 0, 127, 0.f, 10.f)));
 	outputs[PRESSURE_OUTPUT].setVoltage(pressureFilter.process(1.f, rescale(pressure, 0, 127, 0.f, 10.f)));
 	
-	
 //////////////////// S E Q U E N C E R ////////////////////////////
 	doSequencer(); /////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////
 //////////////////// S E Q U E N C E R ////////////////////////////
-	
-	
+
 	///// RESET MIDI LIGHT
 	if (resetMidiTrigger.process(params[RESETMIDI_PARAM].getValue())) {
 		lights[RESETMIDI_LIGHT].value= 1.f;
@@ -1212,7 +1152,6 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 		}
 	}
 
-	
 	if (inputs[ARPMODE_INPUT].isConnected()) {
 		arpegMode = static_cast<int>(minmaxFit(inputs[ARPMODE_INPUT].getVoltage() * 0.3, 0.f, 2.f));
 		arpegStatus = ((outputs[MONOPITCH_OUTPUT].isConnected())? 0 : 3 ) + arpegMode;
@@ -1270,13 +1209,9 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 			}
 		}else if (polyTransParam > -48) polyTransParam --;
 	}
-		if ((seqTransUpTrigger.process(params[SEQTRANUP_PARAM].getValue())) && (seqTransParam < 48)) seqTransParam ++;
-		if ((seqTransDwnTrigger.process(params[SEQTRANDWN_PARAM].getValue())) && (seqTransParam > -48)) seqTransParam --;
-	
-
-	//if	(dispNotenumber != (params[DISPLAYNOTENUM_PARAM].getValue() > 0.5f))
-		dispNotenumber = (params[DISPLAYNOTENUM_PARAM].getValue() > 0.5f);
-
+	if ((seqTransUpTrigger.process(params[SEQTRANUP_PARAM].getValue())) && (seqTransParam < 48)) seqTransParam ++;
+	if ((seqTransDwnTrigger.process(params[SEQTRANDWN_PARAM].getValue())) && (seqTransParam > -48)) seqTransParam --;
+	dispNotenumber = (params[DISPLAYNOTENUM_PARAM].getValue() > 0.5f);
 }
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
@@ -1284,11 +1219,9 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 
 void MIDIpoly16::doSequencer(){
 
-	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////
-	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////
-	
-	
-   //////// GET RATIO STEP OFFSET with CVs ....
+/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////
+/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////	/////// SEQ //////
+//////// GET RATIO STEP OFFSET with CVs ....
 	int updSeqClockRatio = 0;
 	if (inputs[SEQRATIO_INPUT].isConnected())
 		updSeqClockRatio = static_cast<int>(minmaxFit(inputs[SEQRATIO_INPUT].getVoltage() + params[SEQCLOCKRATIO_PARAM].getValue(), 0.f, 11.f));
@@ -1314,7 +1247,7 @@ void MIDIpoly16::doSequencer(){
 	}else{
 		seqSteps = static_cast <int> (params[SEQSTEPS_PARAM].getValue());
 	}
-   ///////////////////////////////////////////////
+///////////////////////////////////////////////
 	
 	bool seqResetNow = false;
 	
@@ -1349,7 +1282,7 @@ void MIDIpoly16::doSequencer(){
 				extBPM = false;
 				firstBPM = true;
 				displayedBPM = 0;
-			  //  MIDIframe = 0;
+			//  MIDIframe = 0;
 			}
 		if (clkMIDItick){
 			MIDIframe++;
@@ -1391,7 +1324,6 @@ void MIDIpoly16::doSequencer(){
 				firstBPM = true;
 				displayedBPM = 0;
 			}
-		
 		if (extClockTrigger.process(inputs[CLOCK_INPUT].getVoltage())) {
 			///// EXTERNAL CLOCK
 			extBPM = true;
@@ -1410,8 +1342,7 @@ void MIDIpoly16::doSequencer(){
 			seqResetNow = true;
 		}
 	}
-	
-	///
+	////////////
 	if (seqResetNow){
 		seqPhase = 0.f;
 		seqi = 0;
@@ -1428,7 +1359,6 @@ void MIDIpoly16::doSequencer(){
 	bool nextStep = false;
 
 	if (seqrunning) {
-		
 		int seqOctaveKnob = static_cast<int> (params[SEQOCT_PARAM].getValue());
 		if (stopped){
 			stopped = false;
@@ -1448,21 +1378,17 @@ void MIDIpoly16::doSequencer(){
 		float seqswingPhase;
 		int swingtick;
 		int swingMidiPhase;
-		
 		bool notesFirst = (params[SEQOCTALT_PARAM].getValue() > 0.5f);
 		bool DontSwing = true;
 		if ((params[SEQSWING_PARAM].getValue() > 0.5f) && ((swingTriplet[seqclockRatio]) || (params[SWINGTRI_PARAM].getValue() > 0.5f))){
 		int lastStepByOct = seqSteps * (1 + std::abs(seqOctValue-3));
 		///if steps is Odd Don't swing last step..if Octaves first last Step is seqSteps * Octave cycles....if notes first last step is seqSteps...
-		DontSwing = (((seqSteps % 2 == 1) && (notesFirst) && ((seqStep - seqOffset) == (seqSteps - 1))) ||
-							((lastStepByOct % 2 == 1) && (!notesFirst) && (seqiWoct == (lastStepByOct - 1))));
+		DontSwing = (((seqSteps % 2 == 1) && (notesFirst) && ((seqStep - seqOffset) == (seqSteps - 1))) || ((lastStepByOct % 2 == 1) && (!notesFirst) && (seqiWoct == (lastStepByOct - 1))));
 		}
 		if (clockSource < 2) {
 			if (clockSource == 1) ClockSeqSamples = static_cast<int>(APP->engine->getSampleRate() * 60.f/BPMrate / ClockRatios[seqclockRatio] + 0.5f);
- 
 				seqPhase = static_cast<float>(seqSampleCount)/static_cast<float>(ClockSeqSamples);
 				seqSampleCount++;
-			
 				if (DontSwing) {
 					seqswingPhase = 1.f;
 				}else{
@@ -1480,7 +1406,6 @@ void MIDIpoly16::doSequencer(){
 					if (DontSwing) seqSwingDwn = true;
 				}
 		}else{
-			
 			swingtick = static_cast<int>(swingknob * (24/ClockRatios[seqclockRatio]));
 			if (seqMIDItick){
 				seqMIDItick = false;
@@ -1501,9 +1426,7 @@ void MIDIpoly16::doSequencer(){
 					if (DontSwing) seqSwingDwn = true;
 				}
 			}
-			
 		}
-		
 		bool gateOut;
 		bool pulseTrig = gatePulse.process(1.f / APP->engine->getSampleRate());
 		gateOut = (noteButtons[seqStep].velseq > 0) && (!(pulseTrig && (params[SEQRETRIG_PARAM].getValue() > 0.5f)));
@@ -1515,22 +1438,21 @@ void MIDIpoly16::doSequencer(){
 			///if individual gate / vel
 			if (params[SEQSEND_PARAM + seqStep].getValue() > 1.5f){
 				noteButtons[seqStep].gateseq = true;
-			 //   outputs[PITCH_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].drift + octaveShift[seqOctValue][seqOctIx] + (seqTransParam + noteButtons[seqStep].key - 60) / 12.f);
+			// (already set) outputs[PITCH_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].drift + octaveShift[seqOctValue][seqOctIx] + (seqTransParam + noteButtons[seqStep].key - 60) / 12.f);
 				outputs[VEL_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].velseq / 127.f * 10.f);
 				outputs[GATE_OUTPUT + seqStep].setVoltage(!muteSeq && gateOut ? 10.f : 0.f);
 			}
 		}else{
 			outputs[SEQGATE_OUTPUT].setVoltage(0.f);
 		}
-		
-		  if (nextStep) {
+		if (nextStep) {
 		// restore gates and vel from individual outputs...
-		if (params[SEQSEND_PARAM + seqStep].getValue() > 1.5f){
-			noteButtons[seqStep].gateseq = false;
-		   // outputs[PITCH_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].drift + (noteButtons[seqStep].key - 60) / 12.f);
-			outputs[VEL_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].vel / 127.f * 10.f);
-			outputs[GATE_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].gate ? 10.f : 0.f);
-		}
+			if (params[SEQSEND_PARAM + seqStep].getValue() > 1.5f){
+				noteButtons[seqStep].gateseq = false;
+				// (already set) outputs[PITCH_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].drift + (noteButtons[seqStep].key - 60) / 12.f);
+				outputs[VEL_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].vel / 127.f * 10.f);
+				outputs[GATE_OUTPUT + seqStep].setVoltage(noteButtons[seqStep].gate ? 10.f : 0.f);
+			}
 			for (int i = 0 ; i < 5; i++){
 				lights[SEQOCT_LIGHT + i].value = 0.f;
 			}
@@ -1541,11 +1463,9 @@ void MIDIpoly16::doSequencer(){
 				syncArpPhase = false;
 				arpTickCount = 0;
 			}
-
 			clockPulse.trigger(1e-3);
 			gatePulse.trigger(1e-3);
 			////////////////////////
-			
 			if (seqResetNext){ ///if reset while running
 				seqResetNext = false;
 				seqPhase = 0.f;
@@ -1560,62 +1480,52 @@ void MIDIpoly16::doSequencer(){
 				arpTickCount = 0;
 				seqSampleCount = 0;
 				arpSampleCount = 0; /// SYNC THE ARPEGG
-  
 			}else{
-
-			seqiWoct ++;
-					if (notesFirst) {
-					////// ADVANCE STEP ///////
-					seqi ++;
-						if ( seqi > (seqSteps - 1)) { ///seq Cycle ... change octave ?
-								seqOctValue = seqOctaveKnob;
-										if (octaveShift[seqOctValue][seqOctIx + 1] > 2) {
-											seqOctIx= 0;
-											seqiWoct = 0;
-										}else{
-											seqOctIx ++;
-										}
-								seqi = 0;// next cycle
-							}
-				   }else{
-					   if (octaveShift[seqOctValue][seqOctIx + 1] > 2) {
-						   seqOctValue = seqOctaveKnob;
-						   seqOctIx = 0;
-						   seqi ++;
-						   if ( seqi > (seqSteps - 1)) {
-							   seqi = 0;// next cycle
-							   seqiWoct = 0;
-						   }
-						   
-					   }else{
-						   seqOctIx ++;
-					   }
-				  }
-				 seqStep = ((seqi % seqSteps) + seqOffset) % numPads;
+				seqiWoct ++;
+				if (notesFirst) {
+				////// ADVANCE STEP ///////
+				seqi ++;
+					if ( seqi > (seqSteps - 1)) { ///seq Cycle ... change octave ?
+							seqOctValue = seqOctaveKnob;
+									if (octaveShift[seqOctValue][seqOctIx + 1] > 2) {
+										seqOctIx= 0;
+										seqiWoct = 0;
+									}else{
+										seqOctIx ++;
+									}
+							seqi = 0;// next cycle
+						}
+				}else{
+					if (octaveShift[seqOctValue][seqOctIx + 1] > 2) {
+						seqOctValue = seqOctaveKnob;
+						seqOctIx = 0;
+						seqi ++;
+						if ( seqi > (seqSteps - 1)) {
+							seqi = 0;// next cycle
+							seqiWoct = 0;
+						}
+					}else{
+						seqOctIx ++;
+					}
+				}
+				seqStep = ((seqi % seqSteps) + seqOffset) % numPads;
 			}
-		lights[SEQOCT_LIGHT + 2 + octaveShift[seqOctValue][seqOctIx]].value = 1.f;
-		lights[SEQRUNNING_LIGHT].value = 1.f;
+			lights[SEQOCT_LIGHT + 2 + octaveShift[seqOctValue][seqOctIx]].value = 1.f;
+			lights[SEQRUNNING_LIGHT].value = 1.f;
 		}
-		
-	} else { ///stopped shut down gate....
+	}else{ ///stopped shut down gate....
 		if (!stopped){
 			lights[SEQRUNNING_LIGHT].value = 0.f;
 			noteButtons[seqStep].gateseq = false;
 			stopped = true;
 			stopPulse.trigger(1e-3);
-			//seqOctIx = 0;
-			//seqi = 0;
-			//seqiWoct = 0;
 			for (int i = 0 ; i < 5; i++){
 				lights[SEQOCT_LIGHT + i].value = 0.f;
 			}
 			outputs[SEQGATE_OUTPUT].setVoltage(0.f);
 		}
 	}
-	
-	if (lights[SEQRESET_LIGHT].value > 0.0001f)
-		lights[SEQRESET_LIGHT].value -= 0.0001f;
-	
+	if (lights[SEQRESET_LIGHT].value > 0.0001f) lights[SEQRESET_LIGHT].value -= 0.0001f;
 	/////// SEQ ////// ------- E N D  ---------  ------- E N D  ---------  ------- E N D  --------- /////// SEQ //////
 	return;
 }
@@ -1652,100 +1562,96 @@ void MIDIpoly16::doSequencer(){
 		if (module) {
 			nButton = &(module->noteButtons[id]);
 		
-		frame ++;
-		if (frame > 5){
-			frame = 0;
-			newkey = nButton->newkey;
-			key =  nButton->key;
-			vel = nButton->vel;
-			gate = nButton->gate;
-			gateseq = nButton->gateseq;
-			mode = nButton->mode;
-			learn = nButton->learn;
-		}
-		int rrr,ggg,bbb,aaa;
-		if (learn) {
-			rrr=0xff; ggg=0xff; bbb=0x00;
-			aaa=128;
-		} else { switch (mode)  {
-			case 0:{/// Poly
-				rrr=0xff; ggg=0xff; bbb=0xff;
-				aaa= vel;
-			}break;
-			case 1:{/// Seq
-				rrr=0x00; ggg=0x99; bbb=0xff;
-				aaa= 64 + vel * 1.5f;
-			}break;
-			case 2:{/// Lock
-				rrr=0xff; ggg=0x00; bbb=0x00;
-				aaa= 64 + vel * 1.5f;
-			}break;
-			default:{/// xLock
-				rrr=0xff; ggg=0x80; bbb=0x00;
-				aaa= 64 + vel * 1.5f;
-			}break;
+			frame ++;
+			if (frame > 5){
+				frame = 0;
+				newkey = nButton->newkey;
+				key =  nButton->key;
+				vel = nButton->vel;
+				gate = nButton->gate;
+				gateseq = nButton->gateseq;
+				mode = nButton->mode;
+				learn = nButton->learn;
 			}
-		}
-		NVGcolor backgroundColor = nvgRGBA(rrr*0.6f, ggg*0.6f, bbb*0.6f, aaa);
-		nvgBeginPath(args.vg);
-		nvgRoundedRect(args.vg, 0, 0, box.size.x, box.size.y, 6.f);
-		nvgFillColor(args.vg, backgroundColor);
-		nvgFill(args.vg);
-		if (newkey) {
-			showvel = true;
-			framevel = 0;
-			nButton->newkey = false;
-		}else{
-			to_display = displayNoteName(key, module->dispNotenumber);
-		}
-		if (learn) {
-			NVGcolor borderColor = nvgRGB(rrr, ggg, bbb);
-			nvgStrokeWidth(args.vg, 2.f);
-			nvgStrokeColor(args.vg, borderColor);
-			nvgStroke(args.vg);
-		} else if (gate || gateseq){
-			if (showvel) {
-					   if (++framevel <= 20) {
-						to_display = "v" + std::to_string(vel);
-					   } else {
-						   showvel = false;
-						   framevel = 0;
-					   }
+			int rrr,ggg,bbb,aaa;
+			if (learn) {
+				rrr=0xff; ggg=0xff; bbb=0x00;
+				aaa=128;
+			} else {
+				switch (mode){
+					case 0:{/// Poly
+						rrr=0xff; ggg=0xff; bbb=0xff;
+						aaa= vel;
+					}break;
+				case 1:{/// Seq
+						rrr=0x00; ggg=0x99; bbb=0xff;
+						aaa= 64 + vel * 1.5f;
+					}break;
+				case 2:{/// Lock
+						rrr=0xff; ggg=0x00; bbb=0x00;
+						aaa= 64 + vel * 1.5f;
+					}break;
+				default:{/// xLock
+						rrr=0xff; ggg=0x80; bbb=0x00;
+						aaa= 64 + vel * 1.5f;
+					}break;
 				}
-			NVGcolor borderColor = nvgRGB(rrr, ggg, bbb);
-			nvgStrokeWidth(args.vg, 2.f);
-			nvgStrokeColor(args.vg, borderColor);
-			nvgStroke(args.vg);
-		}
-		if (module->arpDisplayIx == id)
-		{ ///arp led
-			NVGcolor ledColor = nvgRGB(0xff, 0xff, 0xff);
+			}
+			NVGcolor backgroundColor = nvgRGBA(rrr*0.6f, ggg*0.6f, bbb*0.6f, aaa);
 			nvgBeginPath(args.vg);
-			nvgRect(args.vg, 4 , 8, 2, 2);
-			nvgFillColor(args.vg, ledColor);
+			nvgRoundedRect(args.vg, 0, 0, box.size.x, box.size.y, 6.f);
+			nvgFillColor(args.vg, backgroundColor);
 			nvgFill(args.vg);
-		   // nButton->arp = false;
+			if (newkey) {
+				showvel = true;
+				framevel = 0;
+				nButton->newkey = false;
+			}else{
+				to_display = displayNoteName(key, module->dispNotenumber);
+			}
+			if (learn) {
+				NVGcolor borderColor = nvgRGB(rrr, ggg, bbb);
+				nvgStrokeWidth(args.vg, 2.f);
+				nvgStrokeColor(args.vg, borderColor);
+				nvgStroke(args.vg);
+			} else if (gate || gateseq){
+				if (showvel) {
+					if (++framevel <= 20) {
+						to_display = "v" + std::to_string(vel);
+					}else{
+						showvel = false;
+						framevel = 0;
+					}
+				}
+				NVGcolor borderColor = nvgRGB(rrr, ggg, bbb);
+				nvgStrokeWidth(args.vg, 2.f);
+				nvgStrokeColor(args.vg, borderColor);
+				nvgStroke(args.vg);
+			}
+			if (module->arpDisplayIx == id)
+			{ ///arp led
+				NVGcolor ledColor = nvgRGB(0xff, 0xff, 0xff);
+				nvgBeginPath(args.vg);
+				nvgRect(args.vg, 4 , 8, 2, 2);
+				nvgFillColor(args.vg, ledColor);
+				nvgFill(args.vg);
+			   // nButton->arp = false;
+			}
+			if (module->polyIndex == id) { ///led
+				NVGcolor ledColor = nvgRGB(0xff, 0xff, 0xff);
+				nvgBeginPath(args.vg);
+				nvgRect(args.vg, 4 , 4, 2, 2);
+				nvgFillColor(args.vg, ledColor);
+				nvgFill(args.vg);
+			}
+			nvgFontSize(args.vg, dfontsize);
+			nvgFontFaceId(args.vg, font->handle);
+			NVGcolor textColor = nvgRGB(rrr, ggg, bbb);
+			nvgFillColor(args.vg, textColor);
+			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+			nvgTextBox(args.vg, 0.f, 19.f, 48.f ,to_display.c_str(), NULL);
 		}
-		if (module->polyIndex == id)
-		{ ///led
-			NVGcolor ledColor = nvgRGB(0xff, 0xff, 0xff);
-			nvgBeginPath(args.vg);
-			nvgRect(args.vg, 4 , 4, 2, 2);
-			nvgFillColor(args.vg, ledColor);
-			nvgFill(args.vg);
-		}
-		nvgFontSize(args.vg, dfontsize);
-		nvgFontFaceId(args.vg, font->handle);
-		//nvgTextLetterSpacing(args.vg, 2.f);
-		NVGcolor textColor = nvgRGB(rrr, ggg, bbb);
-		nvgFillColor(args.vg, textColor);
-	   // nvgTextLetterSpacing(args.vg, 3.f);
-		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		//Vec textPos = Vec(47 - 14 * to_display.length(), 18.f);
-		//Vec textPos = Vec(5.f, 20.f);
-		nvgTextBox(args.vg, 0.f, 19.f, 48.f ,to_display.c_str(), NULL);
 	}
- }
 };
 
 /////////// MIDI NOTES to Text
@@ -1755,13 +1661,12 @@ std::string NoteDisplay::displayNoteName(int value, bool notenumber)
 	if (notenumber){
 		return "n"+ std::to_string(value);
 	}else{
-	   int octaveint = (value / 12) - 2;
-	   return notename[value % 12] + std::to_string(octaveint);
+		int octaveint = (value / 12) - 2;
+		return notename[value % 12] + std::to_string(octaveint);
 	}
 }
 
 ///// MAIN DISPLAY //////
-
 
 struct digiDisplay : TransparentWidget {
 	digiDisplay() {
@@ -1769,11 +1674,9 @@ struct digiDisplay : TransparentWidget {
 	}
 	MIDIpoly16 *module;
 	
-	int initpointer = 0;
-	bool initpointerb = false;
 	float mdfontSize = 10.f;
 	std::shared_ptr<Font> font;
-
+	
 	const std::string stringClockRatios[13] ={"1/2", "1/4d","1/2t", "1/4", "1/8d", "1/4t","1/8","1/16d","1/8t","1/16","1/16t","1/32","1/32t"};
 	
 	std::string seqDisplayedTr = "";
@@ -1796,8 +1699,6 @@ struct digiDisplay : TransparentWidget {
 	int seqtransP = 0;
 	int polytransP = 0;
 	
-
-	
 	float thirdlineoff = 0.f;
 	bool thirdline = false;
 	int frame = 0;
@@ -1817,9 +1718,7 @@ struct digiDisplay : TransparentWidget {
 			seqtransP = module->seqTransParam;
 			polytransP = module->polyTransParam;
 		
-		if (frame ++ > 5 )
-		{
-			
+		if (frame ++ > 5 ){
 			switch (arpegStatusP){
 				case 0:{
 					arpegDisplay = "";
@@ -1842,7 +1741,6 @@ struct digiDisplay : TransparentWidget {
 					thirdline = true;
 				}break;
 			}
-
 			switch (clockSourceP){
 				case 0:{
 					int BPMint = static_cast<int>(displayedBPMP / 10.f);
@@ -1873,20 +1771,16 @@ struct digiDisplay : TransparentWidget {
 					}
 				}break;
 			}
-		
 			seqDisplay = "Steps: " + std::to_string(seqStepsP) + " First: " + std::to_string(seqOffsetP + 1);
 			voicesDisplay = std::to_string(playingVoicesP)+"/"+std::to_string(polyMaxVoicesP);
 			seqDisplayedTr = std::to_string(seqtransP);
 			polyDisplayedTr = std::to_string(polytransP);
-			
 			frame = 0;
 		}
-		
 		nvgFillColor(args.vg, nvgRGBA(0xFF,0xFF,0xFF,0xFF));
 		nvgFontSize(args.vg, mdfontSize);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		
 		if (thirdline) {
 			nvgTextBox(args.vg, 0.f, 9.f + mdfontSize * 3.f, box.size.x, arpegDisplay.c_str(), NULL);
 			thirdlineoff = 0.f;
@@ -1896,11 +1790,22 @@ struct digiDisplay : TransparentWidget {
 		nvgTextBox(args.vg, 87.f, -21.f, 48.f, voicesDisplay.c_str(), NULL);//PolyVoices Display
 		nvgTextBox(args.vg, 240.f, -21.f,30.f, polyDisplayedTr.c_str(), NULL);//VoicesTransp Display
 		nvgTextBox(args.vg, -7.f, 284.f,30.f, seqDisplayedTr.c_str(), NULL);//SeqTransp Display
-	}
+		}else{//PREVIEW
+			std::shared_ptr<Font> mfont;
+			std::string s1 = "MIDI to 16ch CV";
+			std::string s2 = "with Sequencer";
+			std::string s3 = "and Arpeggiator";
+			font = APP->window->loadFont(mFONT_FILE);
+			nvgFontSize(args.vg, 20.f);
+			nvgFontFaceId(args.vg, font->handle);
+			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+			nvgFillColor(args.vg, nvgRGB(0xDD,0xDD,0xDD));
+			nvgTextBox(args.vg, 0.f, 12.f,box.size.x, s1.c_str(), NULL);
+			nvgTextBox(args.vg, 0.f, 27.0f,box.size.x, s2.c_str(), NULL);
+			nvgTextBox(args.vg, 0.f, 42.0f,box.size.x, s3.c_str(), NULL);
+		}
 	}
 };
-
-
 
 struct SelectorKnob : moDllzSelector32 {
 	SelectorKnob() {
@@ -1917,8 +1822,6 @@ struct RatioKnob : moDllzSmSelector {
 		maxAngle = 1.0*M_PI;
 	}
 };
-
-
 struct SelectorOct : moDllzSelector32 {//Oct
 	SelectorOct() {
 	   // box.size ={32,32};
@@ -1948,7 +1851,6 @@ struct KnobSnap : moDllzKnobM {//BPM
 		maxAngle = 1.0*M_PI;
 	}
 };
-
 struct TangerineLight : GrayModuleLightWidget {
 	TangerineLight() {
 		addBaseColor(nvgRGB(0xff, 0x80, 0x00));
@@ -1959,12 +1861,8 @@ struct WhiteYLight : GrayModuleLightWidget {
 		addBaseColor(nvgRGB(0xee, 0xee, 0x88));
 	}
 };
-
-
 /////////////////////////////////////////////// WIDGET ///////////////////////////////////////////////
-
-struct MIDIpoly16Widget : ModuleWidget
-{
+struct MIDIpoly16Widget : ModuleWidget{
 	MIDIpoly16Widget(MIDIpoly16 *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/MIDIPoly.svg")));
@@ -1977,10 +1875,9 @@ struct MIDIpoly16Widget : ModuleWidget
 		addChild(createWidget<ScrewBlack>(Vec(135, 365)));
 		addChild(createWidget<ScrewBlack>(Vec(435, 365)));
 		addChild(createWidget<ScrewBlack>(Vec(585, 365)));
-	
-  
-	float xPos = 8.f;//61;
-	float yPos = 18.f;
+
+		float xPos = 8.f;//61;
+		float yPos = 18.f;
 		
 		MidiWidget *midiWidget = createWidget<MidiWidget>(Vec(xPos,yPos));
 		midiWidget->box.size = Vec(128.f,36.f);
@@ -2012,296 +1909,281 @@ struct MIDIpoly16Widget : ModuleWidget
 		
 		xPos = 98.f;
 		yPos = 42.f;
-	addParam(createParam<moDllzMidiPanic>(Vec(xPos, yPos), module, MIDIpoly16::RESETMIDI_PARAM));
-	addChild(createLight<SmallLight<RedLight>>(Vec(xPos + 3.f, yPos + 4.f), module, MIDIpoly16::RESETMIDI_LIGHT));
+		addParam(createParam<moDllzMidiPanic>(Vec(xPos, yPos), module, MIDIpoly16::RESETMIDI_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos + 3.f, yPos + 4.f), module, MIDIpoly16::RESETMIDI_LIGHT));
 
-	yPos = 20.f;
-	// PolyMode
-   
-	xPos = 205.f;
-	addParam(createParam<moDllzSwitchT>(Vec(xPos,yPos), module, MIDIpoly16::POLYMODE_PARAM));
-	//Shift
-	xPos = 252.f;
-	addInput(createInput<moDllzPort>(Vec(xPos,yPos - 0.5f),  module, MIDIpoly16::POLYSHIFT_INPUT));
-	xPos = 277.f;
-	addParam(createParam<TTrimSnap>(Vec(xPos,yPos + 4.f), module, MIDIpoly16::TRIMPOLYSHIFT_PARAM));
-	
-	
-	// Poly Transp ...
-	xPos = 333.f;
-	addParam(createParam<moDllzPulseUp>(Vec(xPos,yPos), module, MIDIpoly16::POLYTRANUP_PARAM));
-	addParam(createParam<moDllzPulseDwn>(Vec(xPos,yPos + 11.f), module, MIDIpoly16::POLYTRANDWN_PARAM));
-	addChild(createLight<TinyLight<YellowLight>>(Vec(xPos + 8.f, yPos + 25.f), module, MIDIpoly16::PLEARN_LIGHT));
+		yPos = 20.f;
+		// PolyMode
+		xPos = 205.f;
+		addParam(createParam<moDllzSwitchT>(Vec(xPos,yPos), module, MIDIpoly16::POLYMODE_PARAM));
+		//Shift
+		xPos = 252.f;
+		addInput(createInput<moDllzPort>(Vec(xPos,yPos - 0.5f),  module, MIDIpoly16::POLYSHIFT_INPUT));
+		xPos = 277.f;
+		addParam(createParam<TTrimSnap>(Vec(xPos,yPos + 4.f), module, MIDIpoly16::TRIMPOLYSHIFT_PARAM));
 
-	
-	//Unison Drift
-	xPos = 351.f;
-	addInput(createInput<moDllzPort>(Vec(xPos, yPos+7.5f),  module, MIDIpoly16::POLYUNISON_INPUT));
-	xPos = 379.f;
-	addParam(createParam<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIpoly16::POLYUNISON_PARAM) );
-	xPos = 433.f;
-	addParam(createParam<Knob26>(Vec(xPos-1,yPos-2), module, MIDIpoly16::DRIFT_PARAM));
-	
-	//Midi Numbers / notes
-	xPos = 472.f;
-	addParam(createParam<moDllzSwitch>(Vec(xPos,yPos+10), module, MIDIpoly16::DISPLAYNOTENUM_PARAM));
-	
-	xPos = 509;
-	// seq xLock
-	yPos = 21;
-	addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::SEQPAD_PARAM));
-	addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PSEQ_LIGHT));
-	yPos = 37;
-	addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::PADXLOCK_PARAM));
-	addChild(createLight<SmallLight<TangerineLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PXLOCK_LIGHT));
-	xPos = 550;
-	// Lock Learn
-	yPos = 21;
-	addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::LEARNPAD_PARAM));
-	addChild(createLight<SmallLight<YellowLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PLEARN_LIGHT));
-	yPos = 37;
-	addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::LOCKPAD_PARAM));
-	addChild(createLight<SmallLight<RedLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PLOCK_LIGHT));
-	
-	//////// Note Buttons X 16 ///////////
-	yPos = 66;
-	xPos = 272;
-	for (int i = 0; i < MIDIpoly16::numPads; i++)
-	{
-		addParam(createParam<moDllzMoButton>(Vec(xPos, yPos), module, MIDIpoly16::KEYBUTTON_PARAM + i));
-		{
-			NoteDisplay *notedisplay = new NoteDisplay();
-			notedisplay->box.pos = Vec(xPos,yPos);
-			notedisplay->box.size = Vec(48, 27);
-			notedisplay->module = module;
-			notedisplay->id = i;
-//			notedisplay->polyIndex = &(module->polyIndex);
-//			notedisplay->arpIx = &(module->arpDisplayIx);
-//			notedisplay->dispNotenumber = &(module->dispNotenumber);
-//			notedisplay->nButton = &(module->noteButtons[i]);
-			addChild(notedisplay);
-		}
-		addParam(createParam<moDllzSwitchLedHT>(Vec(xPos + 54 ,yPos + 11), module, MIDIpoly16::SEQSEND_PARAM + i));
-		addChild(createLight<TinyLight<BlueLight>>(Vec(xPos + 64.2, yPos + 4), module, MIDIpoly16::SEQ_LIGHT + i));
-		addOutput(createOutput<moDllzPortDark>(Vec(xPos + 81, yPos + 3.5f),  module, MIDIpoly16::PITCH_OUTPUT + i));
-		addOutput(createOutput<moDllzPortDark>(Vec(xPos + 105, yPos + 3.5f),  module, MIDIpoly16::VEL_OUTPUT + i));
-		addOutput(createOutput<moDllzPortDark>(Vec(xPos + 129, yPos + 3.5f),  module, MIDIpoly16::GATE_OUTPUT + i));
+		// Poly Transp ...
+		xPos = 333.f;
+		addParam(createParam<moDllzPulseUp>(Vec(xPos,yPos), module, MIDIpoly16::POLYTRANUP_PARAM));
+		addParam(createParam<moDllzPulseDwn>(Vec(xPos,yPos + 11.f), module, MIDIpoly16::POLYTRANDWN_PARAM));
+		addChild(createLight<TinyLight<YellowLight>>(Vec(xPos + 8.f, yPos + 25.f), module, MIDIpoly16::PLEARN_LIGHT));
 		
-		yPos += 31;
-		if (yPos > 300){
-			yPos = 66;
-			xPos += 165;
+		//Unison Drift
+		xPos = 351.f;
+		addInput(createInput<moDllzPort>(Vec(xPos, yPos+7.5f),  module, MIDIpoly16::POLYUNISON_INPUT));
+		xPos = 379.f;
+		addParam(createParam<moDllzKnob32>(Vec(xPos ,yPos), module, MIDIpoly16::POLYUNISON_PARAM) );
+		xPos = 433.f;
+		addParam(createParam<Knob26>(Vec(xPos-1,yPos-2), module, MIDIpoly16::DRIFT_PARAM));
+		
+		//Midi Numbers / notes
+		xPos = 472.f;
+		addParam(createParam<moDllzSwitch>(Vec(xPos,yPos+10), module, MIDIpoly16::DISPLAYNOTENUM_PARAM));
+		
+		xPos = 509;
+		// seq xLock
+		yPos = 21;
+		addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::SEQPAD_PARAM));
+		addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PSEQ_LIGHT));
+		yPos = 37;
+		addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::PADXLOCK_PARAM));
+		addChild(createLight<SmallLight<TangerineLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PXLOCK_LIGHT));
+		xPos = 550;
+		// Lock Learn
+		yPos = 21;
+		addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::LEARNPAD_PARAM));
+		addChild(createLight<SmallLight<YellowLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PLEARN_LIGHT));
+		yPos = 37;
+		addParam(createParam<moDllzClearButton>(Vec(xPos, yPos), module, MIDIpoly16::LOCKPAD_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos+28, yPos + 3), module, MIDIpoly16::PLOCK_LIGHT));
+		
+		//////// Note Buttons X 16 ///////////
+		yPos = 66;
+		xPos = 272;
+		for (int i = 0; i < MIDIpoly16::numPads; i++)
+		{
+			addParam(createParam<moDllzMoButton>(Vec(xPos, yPos), module, MIDIpoly16::KEYBUTTON_PARAM + i));
+			{
+				NoteDisplay *notedisplay = new NoteDisplay();
+				notedisplay->box.pos = Vec(xPos,yPos);
+				notedisplay->box.size = Vec(48, 27);
+				notedisplay->module = module;
+				notedisplay->id = i;
+				addChild(notedisplay);
+			}
+			addParam(createParam<moDllzSwitchLedHT>(Vec(xPos + 54 ,yPos + 11), module, MIDIpoly16::SEQSEND_PARAM + i));
+			addChild(createLight<TinyLight<BlueLight>>(Vec(xPos + 64.2, yPos + 4), module, MIDIpoly16::SEQ_LIGHT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos + 81, yPos + 3.5f),  module, MIDIpoly16::PITCH_OUTPUT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos + 105, yPos + 3.5f),  module, MIDIpoly16::VEL_OUTPUT + i));
+			addOutput(createOutput<moDllzPortDark>(Vec(xPos + 129, yPos + 3.5f),  module, MIDIpoly16::GATE_OUTPUT + i));
+			
+			yPos += 31;
+			if (yPos > 300){
+				yPos = 66;
+				xPos += 165;
+			}
 		}
-	}
-	////SEQ////
+		////SEQ////
 
+		yPos = 125;
+		//Seq SPEED and Ratio knobs
+		xPos = 79;
+		addParam(createParam<KnobSnap>(Vec(xPos,yPos), module, MIDIpoly16::SEQSPEED_PARAM));
+		xPos = 146;
+		addParam(createParam<RatioKnob>(Vec(xPos,yPos+2), module, MIDIpoly16::SEQCLOCKRATIO_PARAM));
+		
+		yPos = 167.5f;
+		//Seq SPEED and Ratio inputs
+		xPos = 71.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQSPEED_INPUT));
+		xPos = 134.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQRATIO_INPUT));
+		
+		xPos = 89;
+		// STEP FIRST KNOBS
+		yPos = 207;
+		addParam(createParam<SelectorKnob>(Vec(xPos,yPos), module, MIDIpoly16::SEQSTEPS_PARAM));
+		yPos = 266;
+		addParam(createParam<SelectorKnob>(Vec(xPos,yPos), module, MIDIpoly16::SEQFIRST_PARAM));
+		
+		xPos = 67.5f;
+		// STEP FIRST > > > > > > > >  INPUTS
+		yPos = 226.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQSTEPS_INPUT));
+		yPos = 285.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQFIRST_INPUT));
 
-	yPos = 125;
-	//Seq SPEED and Ratio knobs
-	xPos = 79;
-	addParam(createParam<KnobSnap>(Vec(xPos,yPos), module, MIDIpoly16::SEQSPEED_PARAM));
-	xPos = 146;
-	addParam(createParam<RatioKnob>(Vec(xPos,yPos+2), module, MIDIpoly16::SEQCLOCKRATIO_PARAM));
-	
-	yPos = 167.5f;
-	//Seq SPEED and Ratio inputs
-	xPos = 71.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQSPEED_INPUT));
-	xPos = 134.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQRATIO_INPUT));
-	
-	xPos = 89;
-	// STEP FIRST KNOBS
-	yPos = 207;
-	addParam(createParam<SelectorKnob>(Vec(xPos,yPos), module, MIDIpoly16::SEQSTEPS_PARAM));
-	yPos = 266;
-	addParam(createParam<SelectorKnob>(Vec(xPos,yPos), module, MIDIpoly16::SEQFIRST_PARAM));
-	
-	xPos = 67.5f;
-	// STEP FIRST > > > > > > > >  INPUTS
-	yPos = 226.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQSTEPS_INPUT));
-	yPos = 285.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SEQFIRST_INPUT));
+		yPos = 262;
+		// Swing..... swing Triplets
+		xPos = 134;
+		addParam(createParam<Knob26Snap>(Vec(xPos,yPos), module, MIDIpoly16::SEQARPSWING_PARAM));
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos+31,yPos+9), module, MIDIpoly16::SEQSWING_PARAM));
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos+48,yPos+9), module, MIDIpoly16::ARPSWING_PARAM));
+		addParam(createParam<moDllzSwitchLedH>(Vec(xPos+20,yPos+37), module, MIDIpoly16::SWINGTRI_PARAM));
+		
+		///SEQ OCT
+		yPos = 210;
+		xPos = 148;
+		addParam(createParam<moDllzSmSelector>(Vec(xPos,yPos), module, MIDIpoly16::SEQOCT_PARAM));
+		///ARPEG OCT
+		xPos = 213;
+		addParam(createParam<moDllzSmSelector>(Vec(xPos,yPos), module, MIDIpoly16::ARPEGOCT_PARAM));
+		
+		///// oct lights
+		yPos=248;
+		xPos=145;
+		for (int i = 0 ; i < 5 ; i++){
+			addChild(createLight<TinyLight<BlueLight>>(Vec(xPos + (10 * i), yPos), module, MIDIpoly16::SEQOCT_LIGHT + i));
+		}
+		
+		xPos=211;
+		for (int i = 0 ; i < 5 ; i++){
+		   addChild(createLight<TinyLight<WhiteYLight>>(Vec(xPos + (10 * i), yPos), module, MIDIpoly16::ARPOCT_LIGHT + i));
+		}
+		yPos = 197;
+		xPos = 156;
+		addParam(createParam<moDllzSwitchH>(Vec(xPos,yPos), module, MIDIpoly16::SEQOCTALT_PARAM));
 
-	yPos = 262;
-	// Swing..... swing Triplets
-	xPos = 134;
-	addParam(createParam<Knob26Snap>(Vec(xPos,yPos), module, MIDIpoly16::SEQARPSWING_PARAM));
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos+31,yPos+9), module, MIDIpoly16::SEQSWING_PARAM));
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos+48,yPos+9), module, MIDIpoly16::ARPSWING_PARAM));
-	addParam(createParam<moDllzSwitchLedH>(Vec(xPos+20,yPos+37), module, MIDIpoly16::SWINGTRI_PARAM));
-	
-	
-	///SEQ OCT
-	yPos = 210;
-	xPos = 148;
-	addParam(createParam<moDllzSmSelector>(Vec(xPos,yPos), module, MIDIpoly16::SEQOCT_PARAM));
-	///ARPEG OCT
-	xPos = 213;
-	addParam(createParam<moDllzSmSelector>(Vec(xPos,yPos), module, MIDIpoly16::ARPEGOCT_PARAM));
-	
-	///// oct lights
-	yPos=248;
-	xPos=145;
-	for (int i = 0 ; i < 5 ; i++){
-		addChild(createLight<TinyLight<BlueLight>>(Vec(xPos + (10 * i), yPos), module, MIDIpoly16::SEQOCT_LIGHT + i));
-	}
-	
-	xPos=211;
-	for (int i = 0 ; i < 5 ; i++){
-	   addChild(createLight<TinyLight<WhiteYLight>>(Vec(xPos + (10 * i), yPos), module, MIDIpoly16::ARPOCT_LIGHT + i));
-	}
-	yPos = 197;
-	xPos = 156;
-	addParam(createParam<moDllzSwitchH>(Vec(xPos,yPos), module, MIDIpoly16::SEQOCTALT_PARAM));
-	
-	xPos = 222;
-	addParam(createParam<moDllzSwitchH>(Vec(xPos,yPos), module, MIDIpoly16::ARPEGOCTALT_PARAM));
-	
-	//ARPEGG ............. RATIO . . . . . . .
-	xPos = 215;
-	yPos = 127;
-	addParam(createParam<RatioKnob>(Vec(xPos,yPos), module, MIDIpoly16::ARPEGRATIO_PARAM));
-	xPos = 203.5f;
-	yPos = 167.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::ARPEGRATIO_INPUT));
+		xPos = 222;
+		addParam(createParam<moDllzSwitchH>(Vec(xPos,yPos), module, MIDIpoly16::ARPEGOCTALT_PARAM));
+		
+		//ARPEGG ............. RATIO . . . . . . .
+		xPos = 215;
+		yPos = 127;
+		addParam(createParam<RatioKnob>(Vec(xPos,yPos), module, MIDIpoly16::ARPEGRATIO_PARAM));
+		xPos = 203.5f;
+		yPos = 167.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::ARPEGRATIO_INPUT));
+		
+		//// ARP ARC INPUT
+		xPos = 217.5f;
+		yPos = 288.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::ARPMODE_INPUT));
+		xPos = 240;
+		yPos = 259;
+		addParam(createParam<moDllzRoundButton>(Vec(xPos, yPos), module, MIDIpoly16::ARCADEON_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos+3.75f, yPos + 3.75f), module, MIDIpoly16::ARCADEON_LIGHT));
+		yPos += 18;
+		addParam(createParam<moDllzRoundButton>(Vec(xPos, yPos), module, MIDIpoly16::ARPEGON_PARAM));
+		addChild(createLight<SmallLight<YellowLight>>(Vec(xPos+3.75f, yPos + 3.75f), module, MIDIpoly16::ARPEGON_LIGHT));
+		
+		////// LEFT COL
+		/// Clock IN
+		xPos= 9.5f;
+		yPos = 58.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::CLOCK_INPUT));
+		xPos = 18;
+		yPos = 84;
+		addParam(createParam<moDllzSwitchTH>(Vec(xPos, yPos), module, MIDIpoly16:: SEQCLOCKSRC_PARAM));
+		addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+31.f, yPos+2.f), module, MIDIpoly16::MIDIBEAT_LIGHT));
+		// SEQ START gate
+		xPos = 21.5;
+		yPos = 118;
+		addParam(createParam<moDllzSwitchH>(Vec(xPos,yPos), module, MIDIpoly16::SEQGATERUN_PARAM));
+		xPos = 13;
+		yPos += 60;
+		//Link Run Reset
+		addParam(createParam<moDllzSwitchLedH>(Vec(xPos,yPos), module, MIDIpoly16::SEQRUNRESET_PARAM));
+		
+		///seq Run Reset Inputs
+		xPos = 9.5f;
+		yPos = 134.5;
+		addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQRUN_INPUT));
+		yPos += 60;
+		addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQRESET_INPUT));
+		///seq Run Reset BUTTONS
+		xPos += 30;
+		yPos = 140;
+		addParam(createParam<moDllzRoundButton>(Vec(xPos,yPos), module, MIDIpoly16::SEQRUN_PARAM));
+		addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+3.75f,yPos+3.75f), module, MIDIpoly16::SEQRUNNING_LIGHT));
+		yPos += 60;
+		addParam(createParam<moDllzRoundButton>(Vec(xPos,yPos), module, MIDIpoly16::SEQRESET_PARAM));
+		addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+3.75f,yPos+3.75f), module, MIDIpoly16::SEQRESET_LIGHT));
+		
+		xPos = 9.5f;
+		// START STOP CLOCK OUTS
+		yPos = 241.5f;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQSTART_OUTPUT));
+		addOutput(createOutput<moDllzPort>(Vec(xPos+23, yPos),  module, MIDIpoly16::SEQSTOP_OUTPUT));
+		yPos += 40;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQSTARTSTOP_OUTPUT));
+		addOutput(createOutput<moDllzPort>(Vec(xPos+23, yPos),  module, MIDIpoly16::SEQCLOCK_OUTPUT));
+		
+		// Transp ...
+		yPos = 328;
+		xPos = 8.5f;
+		addInput(createInput<moDllzPort>(Vec(xPos, yPos-4.5f),  module, MIDIpoly16::SEQSHIFT_INPUT));
+		xPos = 33;
+		addParam(createParam<TTrimSnap>(Vec(xPos,yPos), module, MIDIpoly16::TRIMSEQSHIFT_PARAM));
+		xPos = 87;
+		addParam(createParam<moDllzPulseUp>(Vec(xPos,yPos-3), module, MIDIpoly16::SEQTRANUP_PARAM));
+		addParam(createParam<moDllzPulseDwn>(Vec(xPos,yPos+8), module, MIDIpoly16::SEQTRANDWN_PARAM));
+		
+		yPos = 327.5;
+		// SEQ OUTS
+		xPos = 99.5f;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQPITCH_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQVEL_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQGATE_OUTPUT));
+		xPos += 27.5f;
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::SEQRETRIG_PARAM));
+		
+		//// MIDI OUTS
+		xPos = 202;
+		addParam(createParam<moDllzSwitchT>(Vec(xPos,yPos-2.5f), module, MIDIpoly16::MONOPITCH_PARAM));
+		xPos = 234.5f;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MONOPITCH_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MONOVEL_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MONOGATE_OUTPUT));
+		xPos += 27.5f;
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::MONORETRIG_PARAM));
+		xPos += 14.5;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::PBEND_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MOD_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::PRESSURE_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SUSTAIN_OUTPUT));
+		xPos += 27.5f;
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::HOLD_PARAM));
+		
+		///LOCKED OUTS
+		xPos= 451;
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::PLAYXLOCKED_PARAM));
+		xPos += 18;
+		addParam(createParam<moDllzSwitchT>(Vec(xPos,yPos-2.5f), module, MIDIpoly16::LOCKEDPITCH_PARAM));
+		xPos = 500.5f;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::LOCKEDPITCH_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::LOCKEDVEL_OUTPUT));
+		xPos += 24;
+		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::LOCKEDGATE_OUTPUT));
+		xPos += 27.5f;
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+10.5f), module, MIDIpoly16::LOCKEDRETRIG_PARAM));
 
-	
-	//// ARP ARC INPUT
-	xPos = 217.5f;
-	yPos = 288.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::ARPMODE_INPUT));
-	xPos = 240;
-	yPos = 259;
-	addParam(createParam<moDllzRoundButton>(Vec(xPos, yPos), module, MIDIpoly16::ARCADEON_PARAM));
-	addChild(createLight<SmallLight<RedLight>>(Vec(xPos+3.75f, yPos + 3.75f), module, MIDIpoly16::ARCADEON_LIGHT));
-	yPos += 18;
-	addParam(createParam<moDllzRoundButton>(Vec(xPos, yPos), module, MIDIpoly16::ARPEGON_PARAM));
-	addChild(createLight<SmallLight<YellowLight>>(Vec(xPos+3.75f, yPos + 3.75f), module, MIDIpoly16::ARPEGON_LIGHT));
-	
-	////// LEFT COL
-	
-	/// Clock IN
-	xPos= 9.5f;
-	yPos = 58.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::CLOCK_INPUT));
-	xPos = 18;
-	yPos = 84;
-	addParam(createParam<moDllzSwitchTH>(Vec(xPos, yPos), module, MIDIpoly16:: SEQCLOCKSRC_PARAM));
-	addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+31.f, yPos+2.f), module, MIDIpoly16::MIDIBEAT_LIGHT));
-	// SEQ START gate
-	xPos = 21.5;
-	yPos = 118;
-	addParam(createParam<moDllzSwitchH>(Vec(xPos,yPos), module, MIDIpoly16::SEQGATERUN_PARAM));
-	xPos = 13;
-	yPos += 60;
-	//Link Run Reset
-	addParam(createParam<moDllzSwitchLedH>(Vec(xPos,yPos), module, MIDIpoly16::SEQRUNRESET_PARAM));
-	
-	///seq Run Reset Inputs
-	xPos = 9.5f;
-	yPos = 134.5;
-	addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQRUN_INPUT));
-	yPos += 60;
-	addInput(createInput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQRESET_INPUT));
-	///seq Run Reset BUTTONS
-	xPos += 30;
-	yPos = 140;
-	addParam(createParam<moDllzRoundButton>(Vec(xPos,yPos), module, MIDIpoly16::SEQRUN_PARAM));
-	addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+3.75f,yPos+3.75f), module, MIDIpoly16::SEQRUNNING_LIGHT));
-	yPos += 60;
-	addParam(createParam<moDllzRoundButton>(Vec(xPos,yPos), module, MIDIpoly16::SEQRESET_PARAM));
-	addChild(createLight<SmallLight<BlueLight>>(Vec(xPos+3.75f,yPos+3.75f), module, MIDIpoly16::SEQRESET_LIGHT));
-	
-	xPos = 9.5f;
-	// START STOP CLOCK OUTS
-	yPos = 241.5f;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQSTART_OUTPUT));
-	addOutput(createOutput<moDllzPort>(Vec(xPos+23, yPos),  module, MIDIpoly16::SEQSTOP_OUTPUT));
-	yPos += 40;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQSTARTSTOP_OUTPUT));
-	addOutput(createOutput<moDllzPort>(Vec(xPos+23, yPos),  module, MIDIpoly16::SEQCLOCK_OUTPUT));
-	
-	// Transp ...
-	yPos = 328;
-	xPos = 8.5f;
-	addInput(createInput<moDllzPort>(Vec(xPos, yPos-4.5f),  module, MIDIpoly16::SEQSHIFT_INPUT));
-	xPos = 33;
-	addParam(createParam<TTrimSnap>(Vec(xPos,yPos), module, MIDIpoly16::TRIMSEQSHIFT_PARAM));
-	xPos = 87;
-	addParam(createParam<moDllzPulseUp>(Vec(xPos,yPos-3), module, MIDIpoly16::SEQTRANUP_PARAM));
-	addParam(createParam<moDllzPulseDwn>(Vec(xPos,yPos+8), module, MIDIpoly16::SEQTRANDWN_PARAM));
-	
-	
-	yPos = 327.5;
-	// SEQ OUTS
-	xPos = 99.5f;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQPITCH_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQVEL_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::SEQGATE_OUTPUT));
-	xPos += 27.5f;
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::SEQRETRIG_PARAM));
-	
-	//// MIDI OUTS
-	xPos = 202;
-	addParam(createParam<moDllzSwitchT>(Vec(xPos,yPos-2.5f), module, MIDIpoly16::MONOPITCH_PARAM));
-	xPos = 234.5f;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MONOPITCH_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MONOVEL_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MONOGATE_OUTPUT));
-	xPos += 27.5f;
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::MONORETRIG_PARAM));
-	xPos += 14.5;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::PBEND_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::MOD_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::PRESSURE_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos,yPos),  module, MIDIpoly16::SUSTAIN_OUTPUT));
-	xPos += 27.5f;
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::HOLD_PARAM));
-
- 
-	///LOCKED OUTS
-	xPos= 451;
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+8.5f), module, MIDIpoly16::PLAYXLOCKED_PARAM));
-	xPos += 18;
-	addParam(createParam<moDllzSwitchT>(Vec(xPos,yPos-2.5f), module, MIDIpoly16::LOCKEDPITCH_PARAM));
-	xPos = 500.5f;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::LOCKEDPITCH_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::LOCKEDVEL_OUTPUT));
-	xPos += 24;
-	addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpoly16::LOCKEDGATE_OUTPUT));
-	xPos += 27.5f;
-	addParam(createParam<moDllzSwitchLed>(Vec(xPos,yPos+10.5f), module, MIDIpoly16::LOCKEDRETRIG_PARAM));
-
-///mute buttons
-
-	yPos=318;
-	xPos=102;
-	addParam(createParam<moDllzMuteG>(Vec(xPos,yPos), module, MIDIpoly16::MUTESEQ_PARAM));
-	addChild(createLight<SmallLight<RedLight>>(Vec(xPos+57.5f, yPos+3), module, MIDIpoly16::MUTESEQ_LIGHT));
-	xPos=237;
-	addParam(createParam<moDllzMuteG>(Vec(xPos,yPos), module, MIDIpoly16::MUTEMONO_PARAM));
-	addChild(createLight<SmallLight<RedLight>>(Vec(xPos+57.5f, yPos+3), module, MIDIpoly16::MUTEMONO_LIGHT));
-	xPos=503;
-	addParam(createParam<moDllzMuteG>(Vec(xPos,yPos), module, MIDIpoly16::MUTELOCKED_PARAM));
-	addChild(createLight<SmallLight<RedLight>>(Vec(xPos+57.5f, yPos+3), module, MIDIpoly16::MUTELOCKED_LIGHT));
-	yPos=56;
-	xPos=401;
-	addParam(createParam<moDllzMuteGP>(Vec(xPos,yPos), module, MIDIpoly16::MUTEPOLYA_PARAM));
-	addChild(createLight<TinyLight<RedLight>>(Vec(xPos+20, yPos+4), module, MIDIpoly16::MUTEPOLY_LIGHT));
-	xPos=566;
-	addParam(createParam<moDllzMuteGP>(Vec(xPos,yPos), module, MIDIpoly16::MUTEPOLYB_PARAM));
-	addChild(createLight<TinyLight<RedLight>>(Vec(xPos+20, yPos+4), module, MIDIpoly16::MUTEPOLY_LIGHT));
-
+		///mute buttons
+		yPos=318;
+		xPos=102;
+		addParam(createParam<moDllzMuteG>(Vec(xPos,yPos), module, MIDIpoly16::MUTESEQ_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos+57.5f, yPos+3), module, MIDIpoly16::MUTESEQ_LIGHT));
+		xPos=237;
+		addParam(createParam<moDllzMuteG>(Vec(xPos,yPos), module, MIDIpoly16::MUTEMONO_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos+57.5f, yPos+3), module, MIDIpoly16::MUTEMONO_LIGHT));
+		xPos=503;
+		addParam(createParam<moDllzMuteG>(Vec(xPos,yPos), module, MIDIpoly16::MUTELOCKED_PARAM));
+		addChild(createLight<SmallLight<RedLight>>(Vec(xPos+57.5f, yPos+3), module, MIDIpoly16::MUTELOCKED_LIGHT));
+		yPos=56;
+		xPos=401;
+		addParam(createParam<moDllzMuteGP>(Vec(xPos,yPos), module, MIDIpoly16::MUTEPOLYA_PARAM));
+		addChild(createLight<TinyLight<RedLight>>(Vec(xPos+20, yPos+4), module, MIDIpoly16::MUTEPOLY_LIGHT));
+		xPos=566;
+		addParam(createParam<moDllzMuteGP>(Vec(xPos,yPos), module, MIDIpoly16::MUTEPOLYB_PARAM));
+		addChild(createLight<TinyLight<RedLight>>(Vec(xPos+20, yPos+4), module, MIDIpoly16::MUTEPOLY_LIGHT));
 		{
 			digiDisplay *mainDisplay = new digiDisplay();
 			mainDisplay->box.pos = Vec(63, 57);
@@ -2311,7 +2193,6 @@ struct MIDIpoly16Widget : ModuleWidget
 		}
 	}
 };
-
 
 Model *modelMIDIpoly16 = createModel<MIDIpoly16, MIDIpoly16Widget>("MIDIpoly16");
 

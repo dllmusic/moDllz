@@ -4,7 +4,6 @@ Plugin *pluginInstance;
 
 void init(rack::Plugin *p) {
 	pluginInstance = p;
-//#endif
 	p->addModel(modelTwinGlider);
 	p->addModel(modelXBender);
 	p->addModel(modelMIDIdualCV);

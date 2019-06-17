@@ -1,10 +1,7 @@
 #include "moDllz.hpp"
-//#include "midi.hpp"
-
 /*
  * MIDIdualCV converts upper/lower midi note on/off events, velocity , channel aftertouch, pitch wheel,  mod wheel breath cc and expression to CV
  */
-
 struct MidiNoteData {
 	uint8_t velocity = 0;
 	uint8_t aftertouch = 0;
@@ -269,7 +266,7 @@ struct MIDIdualCV :  Module {
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 
-void processMessage(midi::Message msg) {
+	void processMessage(midi::Message msg) {
 		switch (msg.getStatus()) {
 			case 0x8: { // note off
 				uint8_t note = msg.getNote();
@@ -301,28 +298,28 @@ void processMessage(midi::Message msg) {
 //			  break;
 			default: break;
 		}
-}
+	}
 
 	void processCC(midi::Message msg) {
-	switch (msg.getNote()) {
-		case 0x01: // mod
-			mod = msg.getValue();
-			break;
-		case 0x02: // breath
-			breath = msg.getValue();
-			break;
-		case 0x0B: // Expression
-			expression = msg.getValue();
-			break;
-		case 0x40: { // sustain
-			 sustain = msg.getValue();
-			 if ((params[SUSTAINHOLD_PARAM].getValue() > 0.5) && anynoteGate) sustpedal = (msg.getValue() >= 64);
-			 else sustpedal = false;
-			}
-			break;
-		default: break;
+		switch (msg.getNote()) {
+			case 0x01: // mod
+				mod = msg.getValue();
+				break;
+			case 0x02: // breath
+				breath = msg.getValue();
+				break;
+			case 0x0B: // Expression
+				expression = msg.getValue();
+				break;
+			case 0x40: { // sustain
+				 sustain = msg.getValue();
+				 if ((params[SUSTAINHOLD_PARAM].getValue() > 0.5) && anynoteGate) sustpedal = (msg.getValue() >= 64);
+				 else sustpedal = false;
+				}
+				break;
+			default: break;
+		}
 	}
-}
 
 	void MidiPanic() {
 		pitch = 8192;
@@ -340,22 +337,19 @@ void processMessage(midi::Message msg) {
 		sustpedal = false;
 	}
 	
-json_t *dataToJson() override {
-	json_t *rootJ = json_object();
-	json_object_set_new(rootJ, "midi", midiInput.toJson());
-	return rootJ;
-}
+	json_t *dataToJson() override {
+		json_t *rootJ = json_object();
+		json_object_set_new(rootJ, "midi", midiInput.toJson());
+		return rootJ;
+	}
 
-void dataFromJson(json_t *rootJ) override {
-	json_t *midiJ = json_object_get(rootJ, "midi");
-	midiInput.fromJson(midiJ);
-}
-
+	void dataFromJson(json_t *rootJ) override {
+		json_t *midiJ = json_object_get(rootJ, "midi");
+		midiInput.fromJson(midiJ);
+	}
 };
 
-
-///////////
-
+////////
 
 struct MIDIdualCVWidget : ModuleWidget {
 	
@@ -456,10 +450,8 @@ struct MIDIdualCVWidget : ModuleWidget {
 		addOutput(createOutput<moDllzPort>(Vec(71.f, yPos),  module, MIDIdualCV::SUSTAIN_OUTPUT));
 	///Sustain hold notes
 		addParam(createParam<moDllzSwitchLed>(Vec(104.5f, yPos+4.f), module, MIDIdualCV::SUSTAINHOLD_PARAM));
- 
 	}
 };
-
 
 Model *modelMIDIdualCV = createModel<MIDIdualCV, MIDIdualCVWidget>("MIDIdualCV");
 

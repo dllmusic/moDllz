@@ -1,7 +1,7 @@
 #include "moDllz.hpp"
-#include <algorithm>    // std::find
-#include <vector>       // std::vector
-
+/*
+ * MIDI8MPE Midi to 8ch CV with MPE and regular Polyphonic modes
+ */
 struct 		MIDI8MPE : Module {
 	enum ParamIds {
 		RESETMIDI_PARAM,
@@ -28,7 +28,6 @@ struct 		MIDI8MPE : Module {
 		ENUMS(Z_OUTPUT, 8),
 		ENUMS(VEL_OUTPUT, 8),
 		ENUMS(GATE_OUTPUT, 8),
-
 		MMA_OUTPUT,
 		MMB_OUTPUT,
 		MMC_OUTPUT,
@@ -956,153 +955,124 @@ struct PolyModeDisplay : TransparentWidget {
 	int cursorIxI = 0;
 	int flashFocus = 0;
 	void draw(const DrawArgs &args) override {
+		if (module) {
+			int p_polyMode = module->polyModeIx;
+			int p_MPEmode = module->MPEmode;
+			int p_numVo = module->numVo;
+			int p_pbMain = module->pbMain;
+			int p_pbMPE = module->pbMPE;
+			int p_MPEmasterCh = module->MPEmasterCh;
+			int p_MPEfirstCh = module->MPEfirstCh;
+			int p_YccNumber = module->displayYcc;
+			int p_ZccNumber = module->displayZcc;
+			int p_cursorIx = module->cursorIx;
 		
-		int p_polyMode = 0;
-		int p_MPEmode = 0;
-		int p_numVo = 0;
-		int p_pbMain = 0;
-		int p_pbMPE = 0;
-		int p_MPEmasterCh = 0;
-		int p_MPEfirstCh = 0;
-		int p_YccNumber = 0;
-		int p_ZccNumber = 0;
-		int p_cursorIx = 0;
-		
-	if (module) {
-				p_polyMode = module->polyModeIx;
-				p_MPEmode = module->MPEmode;
-				p_numVo = module->numVo;
-				p_pbMain = module->pbMain;
-				p_pbMPE = module->pbMPE;
-				p_MPEmasterCh = module->MPEmasterCh;
-				p_MPEfirstCh = module->MPEfirstCh;
-				p_YccNumber = module->displayYcc;
-				p_ZccNumber = module->displayZcc;
-				p_cursorIx = module->cursorIx;
-	
-	if (drawFrame ++ > 5){
-		drawFrame = 0;
-		
-			
-			//if (MPEmodeI != p_MPEmode){
-			//	MPEmodeI = p_MPEmode;
-				///
-				//if (p_MPEmode == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
-				//else sMode = polyModeStr[p_polyMode];
-			//}
-			
-			
-			//if (polyModeI !=  p_polyMode) {
-				//polyModeI = p_polyMode;
-				if (p_polyMode < 1) {
-					if (p_MPEmode == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
-					else if (p_MPEmode > 1) sMode = "M. P. E. w RelVel";
-					else sMode = polyModeStr[p_polyMode];
-				}else{
-					sMode = polyModeStr[p_polyMode];
-				}
-				sVo = "Poly "+ std::to_string(p_numVo) +" Vo outs";
-				sPBM = "PBend:" + std::to_string(p_pbMain);
-				sPBMPE = " CH PBend:" + std::to_string(p_pbMPE);
-			
-			
-			
-//			if  ((MPEmasterChI != *p_MPEmasterCh) || (MPEfirstChI != *p_MPEfirstCh)){
-//				MPEmasterChI = *p_MPEmasterCh;
-//				MPEfirstChI = *p_MPEfirstCh;
-				sMPEmidiCh = "channels M:" + std::to_string(p_MPEmasterCh + 1) + " Vo:" + std::to_string(p_MPEfirstCh + 1) + "++";
-			//}
-			//if  (YccNumber != *p_YccNumber){
-			//	YccNumber = *p_YccNumber;
-				switch (p_YccNumber) {
-					case 129 :{//(locked)  Rel Vel
-						yyDisplay = "rVel";
-					}break;
-					case 131 :{//HiRes MPE Y
-						yyDisplay = "cc74+";
-					}break;
-					default :{
-						yyDisplay = "cc" + std::to_string(p_YccNumber);
+		if (drawFrame ++ > 5){
+			drawFrame = 0;
+					if (p_polyMode < 1) {
+						if (p_MPEmode == 1) sMode = "M. P. E. Plus";/// Continuum Hi Res YZ
+						else if (p_MPEmode > 1) sMode = "M. P. E. w RelVel";
+						else sMode = polyModeStr[p_polyMode];
+					}else{
+						sMode = polyModeStr[p_polyMode];
 					}
-				}
-			//}
-			//if  (ZccNumber != *p_ZccNumber){
-			//	ZccNumber = *p_ZccNumber;
-				switch (p_ZccNumber) {
-					case 128 :{
-						zzDisplay = "chnAT";
-					}break;
-					case 130 :{//(locked)  note AfterT
-						zzDisplay = "nteAT";
-					}break;
-					case 132 :{//HiRes MPE Z
-						zzDisplay = "chAT+";
-					}break;
-					default :{
-						zzDisplay = "cc" + std::to_string(p_ZccNumber);
+					sVo = "Poly "+ std::to_string(p_numVo) +" Vo outs";
+					sPBM = "PBend:" + std::to_string(p_pbMain);
+					sPBMPE = " CH PBend:" + std::to_string(p_pbMPE);
+					sMPEmidiCh = "channels M:" + std::to_string(p_MPEmasterCh + 1) + " Vo:" + std::to_string(p_MPEfirstCh + 1) + "++";
+
+					switch (p_YccNumber) {
+						case 129 :{//(locked)  Rel Vel
+							yyDisplay = "rVel";
+						}break;
+						case 131 :{//HiRes MPE Y
+							yyDisplay = "cc74+";
+						}break;
+						default :{
+							yyDisplay = "cc" + std::to_string(p_YccNumber);
+						}
 					}
+					switch (p_ZccNumber) {
+						case 128 :{
+							zzDisplay = "chnAT";
+						}break;
+						case 130 :{//(locked)  note AfterT
+							zzDisplay = "nteAT";
+						}break;
+						case 132 :{//HiRes MPE Z
+							zzDisplay = "chAT+";
+						}break;
+						default :{
+							zzDisplay = "cc" + std::to_string(p_ZccNumber);
+						}
+					}
+				//}
+				if (cursorIxI != p_cursorIx){
+					cursorIxI = p_cursorIx;
+					flashFocus = 64;
 				}
-			//}
-			if (cursorIxI != p_cursorIx){
-				cursorIxI = p_cursorIx;
-				flashFocus = 64;
 			}
-		}
-		nvgFontSize(args.vg, mdfontSize);
-		nvgFontFaceId(args.vg, font->handle);
-		nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));//Text
-
-		//nvgGlobalCompositeOperation(args.vg, NVG_SOURCE_OUT);
-		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		nvgTextBox(args.vg, 4.f, 11.0f,124.f, sMode.c_str(), NULL);
-	
-		nvgTextBox(args.vg, 50.f, 52.f, 31.f, yyDisplay.c_str(), NULL);// YY
-		nvgTextBox(args.vg, 82.f, 52.f, 31.f, zzDisplay.c_str(), NULL);// ZZ
-		
-		if (p_polyMode < 1){
-			nvgTextBox(args.vg, 4.f, 24.f,124.f, sMPEmidiCh.c_str(), NULL);// MPE Channels
+			nvgFontSize(args.vg, mdfontSize);
+			nvgFontFaceId(args.vg, font->handle);
+			nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));//Text
+			//nvgGlobalCompositeOperation(args.vg, NVG_SOURCE_OUT);
+			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+			nvgTextBox(args.vg, 4.f, 11.0f,124.f, sMode.c_str(), NULL);
+			nvgTextBox(args.vg, 50.f, 52.f, 31.f, yyDisplay.c_str(), NULL);// YY
+			nvgTextBox(args.vg, 82.f, 52.f, 31.f, zzDisplay.c_str(), NULL);// ZZ
+			
+			if (p_polyMode < 1){
+				nvgTextBox(args.vg, 4.f, 24.f,124.f, sMPEmidiCh.c_str(), NULL);// MPE Channels
+				nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
+				nvgTextBox(args.vg, 58.f, 37.f,66.f, sPBMPE.c_str(), NULL);//MPE PitchBend
+			} else {
+				nvgTextBox(args.vg, 4.f, 24.f,124.f, sVo.c_str(), NULL);
+			}
+			
 			nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
-			nvgTextBox(args.vg, 58.f, 37.f,66.f, sPBMPE.c_str(), NULL);//MPE PitchBend
-		} else {
-			nvgTextBox(args.vg, 4.f, 24.f,124.f, sVo.c_str(), NULL);
+			nvgTextBox(args.vg, 4.f, 37.0f, 50.f, sPBM.c_str(), NULL);
+			nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+			nvgBeginPath(args.vg);
+			switch (cursorIxI){
+				case 0:{ // PolyMode
+					nvgRoundedRect(args.vg, 1.f, 1.f, 130.f, 12.f, 3.f);
+				}break;
+				case 1:{ //numVoices Poly
+					nvgRoundedRect(args.vg, 1.f, 14.f, 130.f, 12.f, 3.f);
+				}break;
+				case 2:{ //MPE channels
+					nvgRoundedRect(args.vg, 1.f, 14.f, 130.f, 12.f, 3.f);
+				}break;
+				case 3:{//mainPB
+					nvgRoundedRect(args.vg, 1.f, 27.f, 52.f, 12.f, 3.f);
+				}break;
+				case 4:{//mpePB
+					nvgRoundedRect(args.vg, 54.f, 27.f, 77.f, 12.f, 3.f);
+				}break;
+				case 5:{//YY
+					nvgRoundedRect(args.vg, 50.f, 42.f, 31, 13.f, 3.f);
+				}break;
+				case 6:{//ZZ
+					nvgRoundedRect(args.vg, 82.f, 42.f, 31, 13.f, 3.f);
+				}break;
+			}
+			if (flashFocus > 0)
+				flashFocus -= 2;
+			int rgbint = 0x55 + flashFocus;
+			nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
+			nvgFill(args.vg);
+		} else{///PREVIEW
+			std::shared_ptr<Font> mfont;
+			std::string s1 = "MIDI to 8ch";
+			std::string s2 = "CV with MPE";
+			font = APP->window->loadFont(mFONT_FILE);
+			nvgFontSize(args.vg, 20.f);
+			nvgFontFaceId(args.vg, font->handle);
+			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+			nvgFillColor(args.vg, nvgRGB(0xDD,0xDD,0xDD));
+			nvgTextBox(args.vg, 0.f, 16.f,box.size.x, s1.c_str(), NULL);
+			nvgTextBox(args.vg, 0.f, 36.f,box.size.x, s2.c_str(), NULL);
 		}
-		
-		nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
-		nvgTextBox(args.vg, 4.f, 37.0f, 50.f, sPBM.c_str(), NULL);
-		
-		nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
-		
-		nvgBeginPath(args.vg);
-		switch (cursorIxI){
-			case 0:{ // PolyMode
-				nvgRoundedRect(args.vg, 1.f, 1.f, 130.f, 12.f, 3.f);
-			}break;
-			case 1:{ //numVoices Poly
-				nvgRoundedRect(args.vg, 1.f, 14.f, 130.f, 12.f, 3.f);
-			}break;
-			case 2:{ //MPE channels
-				nvgRoundedRect(args.vg, 1.f, 14.f, 130.f, 12.f, 3.f);
-			}break;
-			case 3:{//mainPB
-				nvgRoundedRect(args.vg, 1.f, 27.f, 52.f, 12.f, 3.f);
-			}break;
-			case 4:{//mpePB
-				nvgRoundedRect(args.vg, 54.f, 27.f, 77.f, 12.f, 3.f);
-			}break;
-			case 5:{//YY
-				nvgRoundedRect(args.vg, 50.f, 42.f, 31, 13.f, 3.f);
-			}break;
-			case 6:{//ZZ
-				nvgRoundedRect(args.vg, 82.f, 42.f, 31, 13.f, 3.f);
-			}break;
-		}
-
-		if (flashFocus > 0)
-			flashFocus -= 2;
-		int rgbint = 0x55 + flashFocus;
-		nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
-		nvgFill(args.vg);
-	}
 	}
 };
 
@@ -1209,7 +1179,6 @@ struct MidiccDisplay : TransparentWidget {
 	}
 };
 
-
 struct BlockChannel : OpaqueWidget {
 	MIDI8MPE *module;
 	void draw(const DrawArgs &args) override {
@@ -1239,19 +1208,13 @@ struct learnMccButton : SvgSwitch {
 	}
 };
 
-
 struct springDataKnob : SvgKnob {
-//		int *p_frameData;
-
-	//MIDI8MPE *module;
-	
 	springDataKnob() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dataKnob.svg")));
 		shadow->opacity = 0.f;
 	}
-
 	void onButton(const event::Button &e) override{
 		math::Vec c = box.size.div(2);
 		float dist = e.pos.minus(c).norm();
@@ -1259,10 +1222,6 @@ struct springDataKnob : SvgKnob {
 			ParamWidget::onButton(e);
 		}
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_RELEASE) this->resetAction();
-	//resetAction();???
-		//this->setValue(0.f);
-			//this->value = 0.f;
-		//module->frameData = 100000; //reset frame Counter to start (over sampleRate counter)
 	}
 };
 
@@ -1340,23 +1299,10 @@ struct MIDI8MPEWidget : ModuleWidget {
 		xPos = 169.f;
 		addParam(createParam<plusButton>(Vec(xPos, yPos), module, MIDI8MPE::PLUSONE_PARAM));
 
-		
 		xPos = 147.f;
 		yPos = 40.f;
 ////DATA KNOB
-		
-//		{   springDataKnob *sDataKnob = new springDataKnob();
-//			sDataKnob->box.pos = Vec(xPos, yPos);
-//			sDataKnob->box.size = {36.f, 36.f};
-//			sDataKnob->minValue (-1.f);
-//			sDataKnob->maxValue (1.f);
-//			sDataKnob->defaultValue (0.f);
-//			sDataKnob->p_frameData = &(module->frameData);
-//			module->dataKnob = &(sDataKnob->value);
-//			addChild(sDataKnob);
-//		}
 		addParam(createParam<springDataKnob>(Vec(xPos, yPos), module, MIDI8MPE::DATAKNOB_PARAM));
-//
 		yPos = 85.f;
 		xPos = 145.5f;
 		addParam(createParam<moDllzcursorL>(Vec(xPos, yPos), module, MIDI8MPE::LCURSOR_PARAM));
@@ -1403,15 +1349,6 @@ struct MIDI8MPEWidget : ModuleWidget {
 		yPos = 338.f;
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_PARAM));
 		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_LIGHT));
-		
-		
-//		{
-//		        testDisplay *mDisplay = new testDisplay();
-//		        mDisplay->box.pos = Vec(0.0f, 360.0f);
-//		        mDisplay->box.size = {165.0f, 20.0f};
-//		        mDisplay->valP = module->dataKnob;
-//		        addChild(mDisplay);
-//		    }
 	}
 };
 
