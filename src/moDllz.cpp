@@ -1,18 +1,13 @@
 #include "moDllz.hpp"
-// The plugin-wide instance of the Plugin class
-Plugin *plugin;
+// The pluginInstance-wide instance of the Plugin class
+Plugin *pluginInstance;
 
 void init(rack::Plugin *p) {
-	plugin = p;
-	// This is the unique identifier for your plugin
-	p->slug = TOSTRING(SLUG);
-//#ifdef VERSION
-	p->version = TOSTRING(VERSION);
+	pluginInstance = p;
 //#endif
-
-	p->addModel(modelMIDIPoly);
 	p->addModel(modelTwinGlider);
-	p->addModel(modelMIDIdualCV);
 	p->addModel(modelXBender);
+	p->addModel(modelMIDIdualCV);
 	p->addModel(modelMIDI8MPE);
+	p->addModel(modelMIDIpoly16);
 }
