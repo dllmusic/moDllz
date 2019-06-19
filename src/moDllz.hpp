@@ -147,14 +147,12 @@ struct moDllzSwitchLedHT : SvgSwitch {
 };
 
 /// Transp Light over led switches
-struct TranspOffLight : ModuleLightWidget {
-	TranspOffLight() {
-		// box.size = Vec(10.f,10.f);
-		bgColor = SCHEME_BLACK_TRANSPARENT;
-		borderColor =SCHEME_BLACK_TRANSPARENT;
+struct TranspOffRedLight : ModuleLightWidget {
+	TranspOffRedLight() {
+		box.size = Vec(10.f,10.f);
+		addBaseColor(nvgRGBA(0xff, 0x00, 0x00, 0x88));//borderColor = nvgRGBA(0, 0, 0, 0x60);
 	}
 };
-
 ///switch TriState
 struct moDllzSwitchT : SvgSwitch {
 	moDllzSwitchT() {

@@ -2,7 +2,7 @@
 /*
  * MIDI8MPE Midi to 8ch CV with MPE and regular Polyphonic modes
  */
-struct 		MIDI8MPE : Module {
+struct MIDI8MPE : Module {
 	enum ParamIds {
 		RESETMIDI_PARAM,
 		LCURSOR_PARAM,
@@ -1225,13 +1225,6 @@ struct springDataKnob : SvgKnob {
 	}
 };
 
-struct TranspOffRedLight : TranspOffLight {
-	TranspOffRedLight() {
-		addBaseColor(nvgRGBA(0xff, 0x00, 0x00, 0x88));//borderColor = nvgRGBA(0, 0, 0, 0x60);
-	}
-};
-
-
 struct MIDI8MPEWidget : ModuleWidget {
 	MIDI8MPEWidget(MIDI8MPE *module) {
 		setModule(module);
@@ -1351,6 +1344,5 @@ struct MIDI8MPEWidget : ModuleWidget {
 		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_LIGHT));
 	}
 };
-
 
 Model *modelMIDI8MPE = createModel<MIDI8MPE, MIDI8MPEWidget>("MIDI8MPE");

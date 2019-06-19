@@ -46,6 +46,7 @@ struct MIDIdualCV :  Module {
 	};
 	enum LightIds {
 		RESETMIDI_LIGHT,
+		SUSTHOLD_LIGHT,
 		NUM_LIGHTS
 	};
  
@@ -86,6 +87,7 @@ struct MIDIdualCV :  Module {
 	noteLive upperNote;
 	bool anynoteGate = false;
 	bool sustpedal = false;
+	bool sustpedalgate = false;
 	bool firstNoGlideLwr = false;
 	bool firstNoGlideUpr = false;
 	uint8_t lastLwr = 128;
@@ -94,6 +96,11 @@ struct MIDIdualCV :  Module {
 	dsp::PulseGenerator gatePulseLwr;
 	dsp::PulseGenerator gatePulseUpr;
 	dsp::SchmittTrigger resetMidiTrigger;
+	
+	bool noteupdated = false;
+	int srFrametime = APP->engine->getSampleRate() / 500;
+	int processframe = 0;
+	float srSampleTime = APP->engine->getSampleTime() * 100.f;
 	
 	
 	MIDIdualCV() {
@@ -110,11 +117,25 @@ struct MIDIdualCV :  Module {
 		configParam(LWRRETRGGMODE_PARAM, 0.0, 1.0, 0.0);
 		configParam(UPRRETRGGMODE_PARAM, 0.0, 1.0, 0.0);
 		configParam(SUSTAINHOLD_PARAM, 0.0, 1.0, 1.0);
+		setLambdas();
 	}
-   
-	bool noteupdated = false;
 	
+	void onSampleRateChange() override {
+		setLambdas();
+		slewLwr = 0.f;//zero to refresh rate
+		slewUpr = 0.f;//zero to refresh rate
+	}
 	
+	void setLambdas(){
+		srFrametime = APP->engine->getSampleRate() / 500;
+		srSampleTime = APP->engine->getSampleTime() * 100.f;
+		modFilter.lambda = srSampleTime;
+		breathFilter.lambda = srSampleTime;
+		exprFilter.lambda = srSampleTime;
+		sustainFilter.lambda = srSampleTime;
+		pressureFilter.lambda = srSampleTime;
+		pitchFilter.lambda = srSampleTime;
+	}
 	///////////////////         ////           ////          ////         /////////////////////
 	/////////////////   ///////////////  /////////  ////////////  //////  ////////////////////
 	/////////////////         ////////  /////////       ///////         /////////////////////
@@ -122,12 +143,13 @@ struct MIDIdualCV :  Module {
 	//////////////          ////////  /////////         /////  ////////////////////////////
 	
 	void process(const ProcessArgs &args) override {
+		
 		midi::Message msg;
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
 		}
 		
-		pitchFilter.lambda = 100.f * args.sampleTime;
+		//pitchFilter.lambda = 100.f * args.sampleTime;
 		float pitchwheel;
 		float pitchtocvLWR = 0.f;
 		float pitchtocvUPR = 0.f;
@@ -147,6 +169,9 @@ struct MIDIdualCV :  Module {
 		outputs[PBEND_OUTPUT].setVoltage(pitchwheel);
 		
 		///////////////////////
+		if (processframe++ > srFrametime) {
+		
+			processframe = 0;
 		if (noteupdated){
 			anynoteGate = false;
 			noteupdated = false;
@@ -192,6 +217,7 @@ struct MIDIdualCV :  Module {
 				upperNote.note = -1;
 			}
 		}
+		}
 		if (slewLwr != params[SLEW_LOWER_PARAM].getValue()) {
 			slewLwr = params[SLEW_LOWER_PARAM].getValue();
 			float slewfloat = 1.0f/(5.0f + slewLwr * args.sampleRate);
@@ -230,26 +256,26 @@ struct MIDIdualCV :  Module {
 		
 		bool retriggLwr = gatePulseLwr.process(1.f / args.sampleRate);
 		bool retriggUpr = gatePulseUpr.process(1.f / args.sampleRate);
-		bool gateout = anynoteGate || sustpedal;
+		bool gateout = anynoteGate || sustpedalgate;
 		
 		outputs[RETRIGGATE_OUTPUT_Lwr].setVoltage(gateout && !(retriggLwr)? 10.f : 0.f );
 		outputs[RETRIGGATE_OUTPUT_Upr].setVoltage(gateout && !(retriggUpr)? 10.f : 0.f );
 		outputs[GATE_OUTPUT].setVoltage(gateout ? 10.f : 0.f );
 		
 			
-		modFilter.lambda = 100.f * args.sampleTime;
+		//modFilter.lambda = 100.f * args.sampleTime;
 		outputs[MOD_OUTPUT].setVoltage(modFilter.process(1.f, rescale(mod, 0, 127, 0.f, 10.f)));
 		
-		breathFilter.lambda = 100.f * args.sampleTime;
+		//breathFilter.lambda = 100.f * args.sampleTime;
 		outputs[BREATH_OUTPUT].setVoltage(breathFilter.process(1.f, rescale(breath, 0, 127, 0.f, 10.f)));
 		
-		exprFilter.lambda = 100.f * args.sampleTime;
+		//exprFilter.lambda = 100.f * args.sampleTime;
 		outputs[EXPRESSION_OUTPUT].setVoltage(exprFilter.process(1.f, rescale(expression, 0, 127, 0.f, 10.f)));
 		
-		sustainFilter.lambda = 100.f * args.sampleTime;
+		//sustainFilter.lambda = 100.f * args.sampleTime;
 		outputs[SUSTAIN_OUTPUT].setVoltage(sustainFilter.process(1.f, rescale(sustain, 0, 127, 0.f, 10.f)));
 		
-		pressureFilter.lambda = 100.f * args.sampleTime;
+		//pressureFilter.lambda = 100.f * args.sampleTime;
 		outputs[PRESSURE_OUTPUT].setVoltage(pressureFilter.process(1.f, rescale(pressure, 0, 127, 0.f, 10.f)));
 	
 		///// RESET MIDI LIGHT
@@ -261,6 +287,7 @@ struct MIDIdualCV :  Module {
 		if (lights[RESETMIDI_LIGHT].value > 0.0001f){
 			lights[RESETMIDI_LIGHT].value -= 0.0001f ; // fade out light
 		}
+		//}
 	}
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
@@ -273,15 +300,23 @@ struct MIDIdualCV :  Module {
 					noteData[note].velocity = 0;
 					noteData[note].aftertouch = 0;
 					noteupdated = true;
+				// Remove the note //(vector)
+				// auto it = std::find(cachedNotes.begin(), cachedNotes.end(), note);
+				// if (it != cachedNotes.end())
+				//	cachedNotes.erase(it);
+				//noteBuffer.remove(note); //(list)
 				}
 				break;
 			case 0x9: { // note on
+				//uint8_t velvalue = msg.getValue();
 				uint8_t note = msg.getNote();
 					noteData[note].velocity = msg.getValue();
 					noteData[note].aftertouch = 0;
 					noteupdated = true;
 				firstNoGlideLwr = (!anynoteGate && (params[SLEW_LOWER_MODE_PARAM].getValue() > 0.5));
 				firstNoGlideUpr = (!anynoteGate  && (params[SLEW_UPPER_MODE_PARAM].getValue() > 0.5));
+					sustpedalgate = sustpedal;
+				// cachedNotes.push_back(note);
 				}
 				break;
 			case 0xb: // cc
@@ -312,9 +347,10 @@ struct MIDIdualCV :  Module {
 				expression = msg.getValue();
 				break;
 			case 0x40: { // sustain
-				 sustain = msg.getValue();
-				 if ((params[SUSTAINHOLD_PARAM].getValue() > 0.5) && anynoteGate) sustpedal = (msg.getValue() >= 64);
-				 else sustpedal = false;
+				sustain = msg.getValue();
+				lights[SUSTHOLD_LIGHT].value = (static_cast<float>(sustain)/128.f) * params[SUSTAINHOLD_PARAM].getValue();
+				sustpedal = ((params[SUSTAINHOLD_PARAM].getValue() > 0.5) && (msg.getValue() > 63));
+				sustpedalgate = anynoteGate && sustpedal;
 				}
 				break;
 			default: break;
@@ -450,6 +486,7 @@ struct MIDIdualCVWidget : ModuleWidget {
 		addOutput(createOutput<moDllzPort>(Vec(71.f, yPos),  module, MIDIdualCV::SUSTAIN_OUTPUT));
 	///Sustain hold notes
 		addParam(createParam<moDllzSwitchLed>(Vec(104.5f, yPos+4.f), module, MIDIdualCV::SUSTAINHOLD_PARAM));
+		addChild(createLight<TranspOffRedLight>(Vec(104.5f, yPos+4.f), module, MIDIdualCV::SUSTHOLD_LIGHT));
 	}
 };
 
