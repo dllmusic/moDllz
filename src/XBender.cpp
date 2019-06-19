@@ -90,7 +90,7 @@ struct XBender : Module {
 			configParam(AXISSELECT_PARAM + i, 0.f, 1.f, 0.f);
 		}
 		configParam(SNAPAXIS_PARAM, 0.f, 1.f, 0.f);
-		configParam(AXISXFADE_PARAM, -1.f, 1.f, 0.f);
+		configParam(AXISXFADE_PARAM, -1.f, 1.f, 1.f);
 		configParam(AXISSLEW_PARAM, 0.f, 1.f, 0.f);
 		configParam(AXISMOD_PARAM, 0.f, 1.f, 0.f);
 		configParam(AXISTRNSUP_PARAM, 0.f, 1.f, 0.f);
@@ -100,8 +100,6 @@ struct XBender : Module {
 		configParam(XBENDRANGE_PARAM, 1.f, 5.f, 1.f);
 		configParam(BEND_PARAM, -1.f, 1.f, 0.f);
 		configParam(BENDCVTRIM_PARAM, 0.f, 60.f, 12.f);
-
-
 	}
 	void process(const ProcessArgs &args) override;
 	void onReset() override {
