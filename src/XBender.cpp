@@ -480,7 +480,7 @@ struct XBenderWidget : ModuleWidget {
 			BenderDisplay *benderDisplay = new BenderDisplay();
 			benderDisplay->box.pos = Vec(xPos, yPos);
 			benderDisplay->box.size = {152.f, 228.f};
-		 	benderDisplay->module = module;
+			benderDisplay->module = module ?  module : NULL;
 		 	addChild(benderDisplay);
 		}
 		yPos = 252.f;

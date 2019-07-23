@@ -7,6 +7,7 @@ void init(rack::Plugin *p) {
 	p->addModel(modelTwinGlider);
 	p->addModel(modelXBender);
 	p->addModel(modelMIDIdualCV);
-	p->addModel(modelMIDI8MPE);
+	//p->addModel(modelMIDI8MPE);
 	p->addModel(modelMIDIpoly16);
+	p->addModel(modelMIDIpolyMPE);
 }

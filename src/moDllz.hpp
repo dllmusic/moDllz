@@ -4,6 +4,7 @@
 #include <list> // std::list
 #include <algorithm> // std::find
 #include <vector> // std::vector
+#include "midiDllz.hpp"
 
 #define FONT_FILE asset::plugin(pluginInstance, "res/bold_led_board-7.ttf")
 #define mFONT_FILE asset::plugin(pluginInstance, "res/ShareTechMono-Regular.ttf")
@@ -16,8 +17,9 @@ extern Plugin *pluginInstance;
 extern Model *modelTwinGlider;
 extern Model *modelXBender;
 extern Model *modelMIDIdualCV;
-extern Model *modelMIDI8MPE;
+//extern Model *modelMIDI8MPE;
 extern Model *modelMIDIpoly16;
+extern Model *modelMIDIpolyMPE;
 
 ///////////////////////
 // custom components
@@ -273,6 +275,20 @@ struct plusButton : SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/plusButton_1.svg")));
 	}
 };
+struct minusButtonB : SvgSwitch {
+	minusButton() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrMinus_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrMinus_1.svg")));
+	}
+};
+struct plusButtonB : SvgSwitch {
+	plusButton() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrPlus_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrPlus_1.svg")));
+	}
+};
 
 ///Jacks
 struct moDllzPort : SvgPort {
@@ -287,3 +303,12 @@ struct moDllzPortDark : SvgPort {
 		shadow->opacity = 0.f;
 	}
 };
+
+struct moDllzPortPoly : SvgPort {
+	moDllzPortPoly() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzPort16.svg")));
+		shadow->opacity = 0.f;
+	}
+};
+
+

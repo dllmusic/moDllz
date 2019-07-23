@@ -406,30 +406,44 @@ struct MIDIdualCVWidget : ModuleWidget {
 		MidiWidget *midiWidget = createWidget<MidiWidget>(Vec(xPos,yPos));
 		midiWidget->box.size = Vec(119,36);
 		midiWidget->setMidiPort(module ? &module->midiInput : NULL);
-		
+
 		midiWidget->driverChoice->box.size.y = 12.f;
 		midiWidget->deviceChoice->box.size.y = 12.f;
 		midiWidget->channelChoice->box.size.y = 12.f;
-		
+
 		midiWidget->driverChoice->box.pos = Vec(0.f, 0.f);
 		midiWidget->deviceChoice->box.pos = Vec(0.f, 12.f);
 		midiWidget->channelChoice->box.pos = Vec(0.f, 24.f);
-		
+
 		midiWidget->driverSeparator->box.pos = Vec(0.f, 12.f);
 		midiWidget->deviceSeparator->box.pos = Vec(0.f, 24.f);
-		
+
 		//midiWidget->driverChoice->font = Font::load(mFONT_FILE);
 		//midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
 		//midiWidget->channelChoice->font = Font::load(mFONT_FILE);
-		
+
 		midiWidget->driverChoice->textOffset = Vec(2.f,10.f);
 		midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
 		midiWidget->channelChoice->textOffset = Vec(2.f,10.f);
-		
+
 		midiWidget->driverChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
 		midiWidget->deviceChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
 		midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
 		addChild(midiWidget);
+
+		
+//		{
+//			MidiBGK *midiBKG = createWidget<MidiBGK>(Vec(xPos,yPos));
+//			addChild(midiBKG);
+//
+//			MIDIdisplay *dDisplay = createWidget<MIDIdisplay>(Vec(xPos,yPos));
+//			dDisplay->box.size = {132.f, 40.f};
+//			dDisplay->setMidiPort (module ? &module->midiInput : NULL);
+////			dDisplay->mpeOff = (module ? &module->polyModeIx : 0);
+////			dDisplay->mpeChn = (module ? &module->MPEfirstCh : 0);
+////			dDisplay->midiActivity = (module ? &module->midiActivity : 0);
+//			addChild(dDisplay);
+//		}
 		
 //	//reset button
 		xPos = 89.f;
