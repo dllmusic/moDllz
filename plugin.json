@@ -1,7 +1,7 @@
 {
 	"slug": "moDllz",
 	"name": "moDllz",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "BSD-3-Clause",
 	"brand": "moDllz",
 	"author": "Pablo DeLaLoza",
@@ -63,6 +63,17 @@
 				"Arpeggiator",
 				"Clock generator",
 				"Clock modulator"
+			]
+		},
+		{
+			"slug": "MIDIpolyMPE",
+			"name": "MIDIpolyMPE",
+			"description": "Polyphonic MIDI with MPE mode",
+			"tags": [
+				"MIDI",
+				"External",
+				"Multiple",
+				"Polyphonic"
 			]
 		}
 	]
