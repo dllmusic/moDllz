@@ -279,7 +279,7 @@ struct MIDI8MPE : Module {
 		}
 		MpitFilter.lambda = lambdaf;
 	}
-
+	void onRandomize() override{};
 ////////////////////////////////////////////////////
 	int getPolyIndex(int nowIndex) {
 		for (int i = 0; i < numVo; i++) {
@@ -925,8 +925,8 @@ struct MIDI8MPE : Module {
 	}
 };
 // Main Display
-struct PolyModeDisplay : TransparentWidget {
-	PolyModeDisplay(){
+struct PolyModeDisplayB : TransparentWidget {
+	PolyModeDisplayB(){
 		// font = Font::load(mFONT_FILE);
 		font = APP->window->loadFont(mFONT_FILE);
 	}
@@ -1076,8 +1076,8 @@ struct PolyModeDisplay : TransparentWidget {
 	}
 };
 
-struct MidiccDisplay : TransparentWidget {
-	MidiccDisplay(){
+struct MidiccDisplayB : TransparentWidget {
+	MidiccDisplayB(){
 	font = APP->window->loadFont(mFONT_FILE);
 }
 	MIDI8MPE *module;
@@ -1253,10 +1253,6 @@ struct MIDI8MPEWidget : ModuleWidget {
 			midiWidget->driverSeparator->box.pos = Vec(0.f, 15.f);
 			midiWidget->deviceSeparator->box.pos = Vec(0.f, 28.f);
 
-			//midiWidget->driverChoice->font = Font::load(mFONT_FILE);
-			//midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
-			//midiWidget->channelChoice->font = Font::load(mFONT_FILE);
-
 			midiWidget->driverChoice->textOffset = Vec(2.f,10.f);
 			midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
 			midiWidget->channelChoice->textOffset = Vec(2.f,10.f);
@@ -1279,7 +1275,7 @@ struct MIDI8MPEWidget : ModuleWidget {
 		yPos = 62.f;
 		
 		{
-			PolyModeDisplay *polyModeDisplay = new PolyModeDisplay();
+			PolyModeDisplayB *polyModeDisplay = new PolyModeDisplayB();
 			polyModeDisplay->box.pos = Vec(xPos, yPos);
 			polyModeDisplay->box.size = {132.f, 54.f};
 			polyModeDisplay->module = module;
@@ -1328,7 +1324,7 @@ struct MIDI8MPEWidget : ModuleWidget {
 		yPos = 322.f;
 		xPos = 9.f;
 		for (int i = 0; i < 6; i++){
-				MidiccDisplay *MccDisplay = new MidiccDisplay();
+				MidiccDisplayB *MccDisplay = new MidiccDisplayB();
 				MccDisplay->box.pos = Vec(xPos, yPos);
 				MccDisplay->box.size = {26.f, 13.f};
 				MccDisplay->displayID = i;// + 7;

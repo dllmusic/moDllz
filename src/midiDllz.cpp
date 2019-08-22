@@ -1,25 +1,30 @@
 #include "moDllz.hpp"
-
 MIDIdisplay::MIDIdisplay(){
 	font = APP->window->loadFont(mFONT_FILE);
 }
-//MidiBGK::MidiBGK(){
-//	//setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/midiDllz.svg")));
-//}
+
 DispBttnL::DispBttnL(){
 	momentary = true;
 	addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/DispBttnL.svg")));
 }
 
 void DispBttnL::onButton(const event::Button &e) {
+	Widget::onButton(e);
+	e.stopPropagating();
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 		md->updateMidiSettings(id, false);
+		if (!e.isConsumed())
+			e.consume(this);
 	}
 }
 
 void DispBttnR::onButton(const event::Button &e) {
+	Widget::onButton(e);
+	e.stopPropagating();
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 		md->updateMidiSettings(id, true);
+		if (!e.isConsumed())
+			e.consume(this);
 	}
 }
 
@@ -104,7 +109,7 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 			break;
 		}
 	}
-	*flashDisplay = 64;
+	*midiActiv = 64;
 	reDisplay = true;
 	return;
 }
@@ -133,11 +138,17 @@ void MIDIdisplay::draw(const DrawArgs &args){
 					mchannel = "mpe master " + std::to_string(i_mpeChn + 1);
 					midiInput->channel = -1;
 				}
-			}else{
+			}else {
 				textColor = nvgRGB(0xFF,0x64,0x64);
-				mdevice = "(no device)";
+				if (*mdriverJ == midiInput->driverId){
+					mdevice = *mdeviceJ;
+					if (*mchannelJ < 0) mchannel = "ALLch";
+					else mchannel =  "ch " + std::to_string(*mchannelJ + 1);
+				}else{
+					mdevice = "(no device)";
+					mchannel = "";
+				}
 				bchannel = false;
-				mchannel = "";
 			}
 			if (mdriver.compare("Computer keyboard") == 0) {
 				bchannel = false;
@@ -145,11 +156,11 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			}
 			reDisplay = false;
 		}
-		if (*flashDisplay > 0) *flashDisplay -= 4;
+		if (*midiActiv > 0) *midiActiv -= 4;
 			//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 			nvgBeginPath(args.vg);
 			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y, 4.f);
-			nvgFillColor(args.vg, nvgRGB(*flashDisplay,*flashDisplay/2,0));
+			nvgFillColor(args.vg, nvgRGB(*midiActiv,*midiActiv/2,0));
 			nvgFill(args.vg);
 
 		nvgFontSize(args.vg, mdfontSize);
@@ -162,30 +173,40 @@ void MIDIdisplay::draw(const DrawArgs &args){
 		nvgText(args.vg, xcenter, 37.5f, mchannel.c_str(), NULL);
 	}
 }
-//void MIDIdisplay::onButton(const event::Button &e) {
-//
-//	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
-//		int dispLine = static_cast<int>((e.pos.y - 2.f)/ 13.f) ;
-//		bool valpress = (e.pos.x >  box.size.x / 2.f);
-//			cursorfx = valpress ? box.size.x - 13.f : 0.f;
-//			cursorfy = dispLine * 13.f;
-//			flashFocus = 128;
-//			updateMidiSettings(dispLine, valpress);
-////		else if (e.action == GLFW_RELEASE)
-//	}
-//}
+void MIDIdisplay::onButton(const event::Button &e) {
+	Widget::onButton(e);
+	e.stopPropagating();
+	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
+		if (midiInput->deviceId < 0) {// disconnected device
+			for (int deviceId : midiInput->getDeviceIds()) {
+				if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
+					midiInput->setDeviceId(deviceId);
+					midiInput->channel = *mchannelJ;
+					break;
+				}
+			}
+		}
+		*midiActiv = -1;
+		reDisplay = true;
+		if (!e.isConsumed())
+			e.consume(this);
+	}
+}
 
-void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *flashDisplay){
+void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel){
 	clearChildren();
 	//math::Vec pos;
 	MIDIdisplay *md = createWidget<MIDIdisplay>(Vec(0.f,0.f));
 	md->mpeOff = mpeOff;
 	md->mpeChn = mpeChn;
-	md->flashDisplay = flashDisplay;
+	md->midiActiv = midiActiv;
 	md->midiInput = port;
 	md->box.size = box.size;
 	md->reDisplay = true;
-	md->xcenter = box.size.x /2.f;
+	md->xcenter = md->box.size.x / 2.f;
+	md->mdriverJ = mdriver;
+	md->mdeviceJ = mdevice;
+	md->mchannelJ = mchannel;	
 	addChild(md);
 	
 	DispBttnL *drvBttnL = createWidget<DispBttnL>(Vec(1.f,0.f));
@@ -219,5 +240,4 @@ void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *flash
 }
 
 MIDIscreen::MIDIscreen(){
-
 }

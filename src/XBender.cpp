@@ -107,6 +107,7 @@ struct XBender : Module {
 		outputs[OUT_OUTPUT + ix].setVoltage(inputs[IN_INPUT + ix].getVoltage());
 		}
 	}
+	void onRandomize() override{};
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "selectedAxisI", json_integer(selectedAxisI));

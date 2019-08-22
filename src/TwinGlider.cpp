@@ -86,6 +86,7 @@ struct TwinGlider : Module {
 		outputs[GATEFALL_OUTPUT + ix].setVoltage(0);
 		}
 	}
+	void onRandomize() override{};
 };
 
 ///////////////////////////////////////////

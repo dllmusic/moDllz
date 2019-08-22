@@ -377,10 +377,11 @@ struct MIDIpoly16 : Module {
  
 	void MidiPanic();
 
-	void onSampleRateChange() override{
+	void onSampleRateChange() override {
 		onReset();
 	}
-	
+	void onRandomize() override {
+	}
 	void onReset() override {
 		// resetMidi();
 		for (int i = 0; i < numPads; i++)
@@ -1555,9 +1556,9 @@ void MIDIpoly16::doSequencer(){
 	int arpIx = 0;
 	bool arp = false;
 	std::shared_ptr<Font> font;
-	std::string to_display;
+	std::string to_display ="";
 	std::string displayNoteName(int key, bool notenumber);
-	 
+
 	void draw(const DrawArgs &args) {
 		if (module) {
 			nButton = &(module->noteButtons[id]);

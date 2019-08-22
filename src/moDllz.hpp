@@ -17,7 +17,7 @@ extern Plugin *pluginInstance;
 extern Model *modelTwinGlider;
 extern Model *modelXBender;
 extern Model *modelMIDIdualCV;
-//extern Model *modelMIDI8MPE;
+extern Model *modelMIDI8MPE;
 extern Model *modelMIDIpoly16;
 extern Model *modelMIDIpolyMPE;
 
@@ -276,14 +276,14 @@ struct plusButton : SvgSwitch {
 	}
 };
 struct minusButtonB : SvgSwitch {
-	minusButton() {
+	minusButtonB() {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrMinus_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrMinus_1.svg")));
 	}
 };
 struct plusButtonB : SvgSwitch {
-	plusButton() {
+	plusButtonB() {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrPlus_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrPlus_1.svg")));

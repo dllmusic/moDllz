@@ -102,7 +102,6 @@ struct MIDIdualCV :  Module {
 	int processframe = 0;
 	float srSampleTime = APP->engine->getSampleTime() * 100.f;
 	
-	
 	MIDIdualCV() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f);
@@ -124,6 +123,9 @@ struct MIDIdualCV :  Module {
 		setLambdas();
 		slewLwr = 0.f;//zero to refresh rate
 		slewUpr = 0.f;//zero to refresh rate
+	}
+
+	void onRandomize() override{
 	}
 	
 	void setLambdas(){
@@ -236,7 +238,6 @@ struct MIDIdualCV :  Module {
 		else
 			 outputs[PITCH_OUTPUT_Lwr].setVoltage(lowerNote.volt + pitchtocvLWR);
 		
-		
 		if (slewUpr != params[SLEW_UPPER_PARAM].getValue()) {
 			slewUpr = params[SLEW_UPPER_PARAM].getValue();
 			float slewfloat = 1.0f/(5.0f + slewUpr * args.sampleRate);
@@ -252,7 +253,6 @@ struct MIDIdualCV :  Module {
 			}
 		else
 			outputs[PITCH_OUTPUT_Upr].setVoltage(upperNote.volt + pitchtocvUPR);
-
 		
 		bool retriggLwr = gatePulseLwr.process(1.f / args.sampleRate);
 		bool retriggUpr = gatePulseUpr.process(1.f / args.sampleRate);
@@ -262,7 +262,6 @@ struct MIDIdualCV :  Module {
 		outputs[RETRIGGATE_OUTPUT_Upr].setVoltage(gateout && !(retriggUpr)? 10.f : 0.f );
 		outputs[GATE_OUTPUT].setVoltage(gateout ? 10.f : 0.f );
 		
-			
 		//modFilter.lambda = 100.f * args.sampleTime;
 		outputs[MOD_OUTPUT].setVoltage(modFilter.process(1.f, rescale(mod, 0, 127, 0.f, 10.f)));
 		
@@ -418,10 +417,6 @@ struct MIDIdualCVWidget : ModuleWidget {
 		midiWidget->driverSeparator->box.pos = Vec(0.f, 12.f);
 		midiWidget->deviceSeparator->box.pos = Vec(0.f, 24.f);
 
-		//midiWidget->driverChoice->font = Font::load(mFONT_FILE);
-		//midiWidget->deviceChoice->font = Font::load(mFONT_FILE);
-		//midiWidget->channelChoice->font = Font::load(mFONT_FILE);
-
 		midiWidget->driverChoice->textOffset = Vec(2.f,10.f);
 		midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
 		midiWidget->channelChoice->textOffset = Vec(2.f,10.f);
@@ -430,20 +425,6 @@ struct MIDIdualCVWidget : ModuleWidget {
 		midiWidget->deviceChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
 		midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
 		addChild(midiWidget);
-
-		
-//		{
-//			MidiBGK *midiBKG = createWidget<MidiBGK>(Vec(xPos,yPos));
-//			addChild(midiBKG);
-//
-//			MIDIdisplay *dDisplay = createWidget<MIDIdisplay>(Vec(xPos,yPos));
-//			dDisplay->box.size = {132.f, 40.f};
-//			dDisplay->setMidiPort (module ? &module->midiInput : NULL);
-////			dDisplay->mpeOff = (module ? &module->polyModeIx : 0);
-////			dDisplay->mpeChn = (module ? &module->MPEfirstCh : 0);
-////			dDisplay->midiActivity = (module ? &module->midiActivity : 0);
-//			addChild(dDisplay);
-//		}
 		
 //	//reset button
 		xPos = 89.f;
