@@ -279,7 +279,9 @@ struct MIDI8MPE : Module {
 		}
 		MpitFilter.lambda = lambdaf;
 	}
-	void onRandomize() override{};
+	void onRandomize() override{
+
+	}
 ////////////////////////////////////////////////////
 	int getPolyIndex(int nowIndex) {
 		for (int i = 0; i < numVo; i++) {

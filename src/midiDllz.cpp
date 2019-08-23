@@ -176,13 +176,23 @@ void MIDIdisplay::draw(const DrawArgs &args){
 void MIDIdisplay::onButton(const event::Button &e) {
 	Widget::onButton(e);
 	e.stopPropagating();
+	bool gotdevice = false;
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 		if (midiInput->deviceId < 0) {// disconnected device
 			for (int deviceId : midiInput->getDeviceIds()) {
 				if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
 					midiInput->setDeviceId(deviceId);
 					midiInput->channel = *mchannelJ;
+					gotdevice = true;
 					break;
+				}
+			}
+			if (!gotdevice) {
+				if (static_cast<int>(midiInput->getDriverIds().size()) > 0){
+					midiInput->setDeviceId(midiInput->getDeviceIds().at(0));
+					midiInput->channel = -1;
+				} else {// no devices go to next driver ??
+					updateMidiSettings (0, true);
 				}
 			}
 		}

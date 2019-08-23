@@ -381,6 +381,7 @@ struct MIDIpoly16 : Module {
 		onReset();
 	}
 	void onRandomize() override {
+		
 	}
 	void onReset() override {
 		// resetMidi();

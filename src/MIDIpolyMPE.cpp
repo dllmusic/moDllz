@@ -100,7 +100,7 @@ struct MIDIpolyMPE : Module {
 	int pbMainUp = 2;
 	int pbMPE = 96;
 	bool mpePbOut = true;
-	int dTune = 0;
+	int driftcents = 0;
 	int noteMin = 0;
 	int noteMax = 127;
 	int velMin = 1;
@@ -157,7 +157,7 @@ struct MIDIpolyMPE : Module {
 		json_object_set_new(rootJ, "midiHcc", json_integer(midiCCs[7]));
 		json_object_set_new(rootJ, "mpeYcc", json_integer(mpeYcc));
 		json_object_set_new(rootJ, "mpeZcc", json_integer(mpeZcc));
-		json_object_set_new(rootJ, "dTune", json_integer(dTune));
+		json_object_set_new(rootJ, "driftcents", json_integer(driftcents));
 		json_object_set_new(rootJ, "noteMin", json_integer(noteMin));
 		json_object_set_new(rootJ, "noteMax", json_integer(noteMax));
 		json_object_set_new(rootJ, "velMin", json_integer(velMin));
@@ -211,8 +211,8 @@ struct MIDIpolyMPE : Module {
 		if (mpeYccJ) mpeYcc = json_integer_value(mpeYccJ);
 		json_t *mpeZccJ = json_object_get(rootJ, "mpeZcc");
 		if (mpeZccJ) mpeZcc = json_integer_value(mpeZccJ);
-		json_t *dTuneJ = json_object_get(rootJ, "dTune");
-		if (dTuneJ) dTune = json_integer_value(dTuneJ);
+		json_t *driftcentsJ = json_object_get(rootJ, "driftcents");
+		if (driftcentsJ) driftcents = json_integer_value(driftcentsJ);
 		json_t *noteMinJ = json_object_get(rootJ, "noteMin");
 		if (noteMinJ) noteMin = json_integer_value(noteMinJ);
 		json_t *noteMaxJ = json_object_get(rootJ, "noteMax");
@@ -268,8 +268,9 @@ struct MIDIpolyMPE : Module {
 		}
 		MpitFilter.lambda = lambdaf;
 	}
-	
-	void onRandomize() override{};
+	void onRandomize() override{
+		
+	}
 ////////////////////////////////////////////////////
 	int getPolyIndex(int nowIndex) {
 		for (int i = 0; i < numVo; i++) {
@@ -334,7 +335,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % dTune  - dTune/2)) / 1200.f;
+					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
 					reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -348,7 +349,7 @@ struct MIDIpolyMPE : Module {
 		vels[rotateIndex] = vel;
 		gates[rotateIndex] = true;
 		pedalgates[rotateIndex] = pedal;
-		drift[rotateIndex] = static_cast<float>((rand() % 100  - 50) * dTune) * 0.00004f;
+		drift[rotateIndex] = static_cast<float>((rand() % 200 - 100) * driftcents) / 120000.f;
 	}
 	void releaseNote(uint8_t channel, uint8_t note, uint8_t vel) {
 		if (polyModeIx > MPEPLUS_MODE) {
@@ -714,7 +715,7 @@ struct MIDIpolyMPE : Module {
 				if (polyModeIx == MPE_MODE) {
 					if (mpeYcc <128) mpeYcc ++;
 					displayYcc = mpeYcc;
-				}else if (dTune < 99) dTune ++;
+				}else if (driftcents < 99) driftcents ++;
 			}break;
 			case 8: {
 				if (mpeZcc <128) mpeZcc ++;
@@ -770,7 +771,7 @@ struct MIDIpolyMPE : Module {
 				if (polyModeIx == MPE_MODE) {
 					if (mpeYcc > 0) mpeYcc --;
 					displayYcc = mpeYcc;
-				}else if (dTune > 0) dTune --;
+				}else if (driftcents > 0) driftcents --;
 			}break;
 			case 8: {
 				if (mpeZcc > 0) mpeZcc --;
@@ -911,7 +912,7 @@ struct MidiccDisplay : OpaqueWidget {
 	int ccNumber = -1;
 	int pbDwn = -1;
 	int pbUp = -1;
-	int dTune = -1;
+	int driftcents = -1;
 	bool learnOn = false;
 	int mymode = 0;
 	bool focusOn = false;
@@ -933,10 +934,10 @@ struct MidiccDisplay : OpaqueWidget {
 					}
 					canedit = (module->polyModeIx == MIDIpolyMPE::MPE_MODE);
 				}else{
-					if ((dTune != module->dTune) || (polychanged != module->polyModeIx)) {
-						dTune = module->dTune;
+					if ((driftcents != module->driftcents) || (polychanged != module->polyModeIx)) {
+						driftcents = module->driftcents;
 						polychanged = module->polyModeIx;
-						sDisplay = "dft " + std::to_string(module->dTune);
+						sDisplay = "dft " + std::to_string(module->driftcents);
 					}
 					canedit = true;
 				}
