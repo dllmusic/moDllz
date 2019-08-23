@@ -124,8 +124,6 @@ struct MIDIdualCV :  Module {
 		slewLwr = 0.f;//zero to refresh rate
 		slewUpr = 0.f;//zero to refresh rate
 	}
-
-	void onRandomize() override{}
 	
 	void setLambdas(){
 		srFrametime = APP->engine->getSampleRate() / 500;

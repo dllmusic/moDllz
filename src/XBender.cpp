@@ -428,6 +428,8 @@ struct xbendKnob : SvgKnob {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/xbendKnob.svg")));
 		shadow->opacity = 0.f;
 	}
+	void randomize() override{
+	}
 };
 
 struct zTTrim : SvgKnob {
@@ -436,6 +438,8 @@ struct zTTrim : SvgKnob {
 		maxAngle = 1.75*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/zTTrim.svg")));
 		shadow->opacity = 0.f;
+	}
+	void randomize() override{
 	}
 };
 
@@ -447,12 +451,16 @@ struct cTTrim : SvgKnob {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cTTrim.svg")));
 		shadow->opacity = 0.f;
 	}
+	void randomize() override{
+	}
 };
 
 struct autoZoom : SvgSwitch {
 	autoZoom() {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/autoButton.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/autoButton.svg")));
+	}
+	void randomize() override{
 	}
 };
 
@@ -461,6 +469,8 @@ struct snapAxisButton : SvgSwitch {
 	  addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/snapButton.svg")));
 	  addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/snapButton.svg")));
   }
+	void randomize() override{
+	}
 };
 
 struct XBenderWidget : ModuleWidget {

@@ -1124,6 +1124,8 @@ struct springDataKnobB : SvgKnob {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dataKnobB.svg")));
 		shadow->opacity = 0.f;
 	}
+	void randomize() override{
+	}
 	void onButton(const event::Button &e) override{
 		math::Vec c = box.size.div(2);
 		float dist = e.pos.minus(c).norm();

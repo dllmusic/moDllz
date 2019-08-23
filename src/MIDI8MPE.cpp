@@ -1208,6 +1208,8 @@ struct learnMccButton : SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/learnMcc_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/learnMcc_1.svg")));
 	}
+	void randomize() override{
+	}
 };
 
 struct springDataKnob : SvgKnob {
@@ -1216,6 +1218,8 @@ struct springDataKnob : SvgKnob {
 		maxAngle = 0.75*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dataKnob.svg")));
 		shadow->opacity = 0.f;
+	}
+	void randomize() override{
 	}
 	void onButton(const event::Button &e) override{
 		math::Vec c = box.size.div(2);

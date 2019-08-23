@@ -1814,14 +1814,16 @@ struct SelectorKnob : moDllzSelector32 {
 	minAngle = -0.88*M_PI;
 	maxAngle = 1.f*M_PI;
 	}
-//	void onAction(EventAction &e) override {
-//	}
+	void randomize() override{
+	}
 };
 struct RatioKnob : moDllzSmSelector {
 	RatioKnob() {
 	  //  box.size ={36,36};
 		minAngle = -0.871*M_PI;
 		maxAngle = 1.0*M_PI;
+	}
+	void randomize() override{
 	}
 };
 struct SelectorOct : moDllzSelector32 {//Oct
@@ -1830,12 +1832,16 @@ struct SelectorOct : moDllzSelector32 {//Oct
 		minAngle = -0.44f*M_PI;
 		maxAngle = 0.44f*M_PI;
 	}
+	void randomize() override{
+	}
 };
 struct Knob26 : moDllzKnob26 {///Unison
 	Knob26() {
 		//snap = true;
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
+	}
+	void randomize() override{
 	}
 };
 struct Knob26Snap : moDllzKnob26 {///swing
@@ -1851,6 +1857,8 @@ struct KnobSnap : moDllzKnobM {//BPM
 		snap = true;
 		minAngle = -0.836*M_PI;
 		maxAngle = 1.0*M_PI;
+	}
+	void randomize() override{
 	}
 };
 struct TangerineLight : GrayModuleLightWidget {

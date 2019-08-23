@@ -23,7 +23,6 @@ struct MIDIdisplay : OpaqueWidget {
 	std::string *mdeviceJ;
 	int *mchannelJ;
 	bool bchannel = true;
-	int missingdevice = 0;
 	std::shared_ptr<Font> font;
 	NVGcolor textColor = nvgRGB(0x80,0x80,0x80);
 
@@ -37,12 +36,16 @@ struct DispBttnL : SvgSwitch {
 	MIDIdisplay *md = NULL;
 	int id = 0;
 	void onButton(const event::Button &e) override;
+	void randomize() override{
+	}
 };
 struct DispBttnR : SvgSwitch {
 	DispBttnR();
 	MIDIdisplay *md = NULL;
 	int id = 0;
 	void onButton(const event::Button &e) override;
+	void randomize() override{
+	}
 };
 
 struct MIDIscreen : OpaqueWidget{

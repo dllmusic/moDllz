@@ -62,32 +62,38 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 			if (resetdr) midiInput->setDriverId(1);
 			midiInput->setDeviceId((midiInput->getDeviceIds().size() > 0)? 0 : -1);
 			midiInput->channel = -1;
-		}
-			break;
+		} break;
 		case 1: {
 			int deIx = 0;
+			bool devhere = false;
 			int midiDevs = static_cast<int>(midiInput->getDeviceIds().size());
-			for (int deviceId : midiInput->getDeviceIds()) {
-				if (deviceId == midiInput->deviceId){
-					if (valup){
-						if (deIx < midiDevs - 1){
-							midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx + 1));
-						}else{
-							midiInput->setDeviceId(midiInput->getDeviceIds().front());
+			if (midiDevs > 0){
+				for (int deviceId : midiInput->getDeviceIds()) {
+					if (deviceId == midiInput->deviceId){
+						if (valup){
+							if (deIx < midiDevs - 1){
+								midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx + 1));
+							}else{
+								midiInput->setDeviceId(midiInput->getDeviceIds().front());
+							}
+						}else{//val down
+							if (deIx > 0){
+								midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx - 1));
+							}else{
+								midiInput->setDeviceId(midiInput->getDeviceIds().back());
+							}
 						}
-					}else{//val down
-						if (deIx > 0){
-							midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx - 1));
-						}else{
-							midiInput->setDeviceId(midiInput->getDeviceIds().back());
-						}
+						devhere = true;
+						break;
 					}
-					break;
+					deIx ++;
 				}
-				deIx ++;
+				if (!devhere) {
+					midiInput->setDeviceId(midiInput->getDeviceIds().at(0));
+					midiInput->channel = -1;
+				}
 			}
-		}
-			break;
+		} break;
 		case 2:{
 			if (bchannel){
 					if (valup){
@@ -106,8 +112,7 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 					else *mpeChn = 15;
 				}
 			}
-			break;
-		}
+		} break;
 	}
 	*midiActiv = 64;
 	reDisplay = true;
@@ -124,7 +129,7 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			reDisplay = true;
 			i_mpeChn = *mpeChn;
 		}
-		if (reDisplay) {
+		//if (reDisplay) {
 			mdriver = midiInput->getDriverName(midiInput->driverId);
 			if (midiInput->deviceId > -1){
 				textColor = nvgRGB(0x90,0x90,0x90);
@@ -155,7 +160,7 @@ void MIDIdisplay::draw(const DrawArgs &args){
 				mchannel = "";
 			}
 			reDisplay = false;
-		}
+		//}
 		if (*midiActiv > 0) *midiActiv -= 4;
 			//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 			nvgBeginPath(args.vg);
