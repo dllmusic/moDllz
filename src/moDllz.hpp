@@ -369,4 +369,10 @@ struct moDllzPortPoly : SvgPort {
 	}
 };
 
+struct moDllzPortG : SvgPort {
+	moDllzPortG() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzPortG.svg")));
+		shadow->opacity = 0.f;
+	}
+};
 

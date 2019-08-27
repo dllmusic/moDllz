@@ -15,6 +15,7 @@ struct MIDIpolyMPE : Module {
 		LEARNCCG_PARAM,
 		LEARNCCH_PARAM,
 		SUSTHOLD_PARAM,
+		RETRIG_PARAM,
 		DATAKNOB_PARAM,
 		NUM_PARAMS
 	};
@@ -54,6 +55,8 @@ struct MIDIpolyMPE : Module {
 		RESET_MODE,
 		REASSIGN_MODE,
 		UNISON_MODE,
+		UNISONLWR_MODE,
+		UNISONUPR_MODE,
 		NUM_MODES
 	};
 	int polyModeIx = ROTATE_MODE;
@@ -133,6 +136,7 @@ struct MIDIpolyMPE : Module {
 		configParam(MINUSONE_PARAM, 0.f, 1.f, 0.f);
 		configParam(PLUSONE_PARAM, 0.f, 1.f, 0.f);
 		configParam(SUSTHOLD_PARAM, 0.f, 1.f, 1.f);
+		configParam(RETRIG_PARAM, 0.f, 1.f, 1.f);
 		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
 		onReset();
 	}
@@ -266,11 +270,17 @@ struct MIDIpolyMPE : Module {
 		for (int i=0; i < 8; i++){
 			MCCsFilter[i].lambda = lambdaf;
 		}
+//		midiCCsVal[0] = 128;
+//		midiCCsVal[1] = 1;
+//		midiCCsVal[2] = 2;
+//		midiCCsVal[3] = 7;
+//		midiCCsVal[4] = 10;
+//		midiCCsVal[5] = 11;
+//		midiCCsVal[6] = 12;
+//		midiCCsVal[7] = 64;
 		MpitFilter.lambda = lambdaf;
 	}
-	void onRandomize() override{
-		
-	}
+
 ////////////////////////////////////////////////////
 	int getPolyIndex(int nowIndex) {
 		for (int i = 0; i < numVo; i++) {
@@ -330,20 +340,49 @@ struct MIDIpolyMPE : Module {
 			} break;
 			case UNISON_MODE: {
 				cachedNotes.push_back(note);
+				bool retrignow = static_cast<bool>(params[RETRIG_PARAM].getValue());
 				for (int i = 0; i < numVo; i++) {
 					notes[i] = note;
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
 					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
-					reTrigger[i].trigger(1e-3);
+					if (retrignow) reTrigger[i].trigger(1e-3);
+				}
+				return;
+			} break;
+			case UNISONLWR_MODE: {
+				cachedNotes.push_back(note);
+				uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
+				bool retrignow = static_cast<bool>(params[RETRIG_PARAM].getValue()) && (lnote < notes[0]);
+				for (int i = 0; i < numVo; i++) {
+					notes[i] = lnote;
+					vels[i] = vel;
+					gates[i] = true;
+					pedalgates[i] = pedal;
+					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
+					if (retrignow) reTrigger[i].trigger(1e-3);
+				}
+				return;
+			} break;
+			case UNISONUPR_MODE:{
+				cachedNotes.push_back(note);
+				uint8_t unote = *max_element(cachedNotes.begin(),cachedNotes.end());
+				bool retrignow = static_cast<bool>(params[RETRIG_PARAM].getValue()) && (unote > notes[0]);
+				for (int i = 0; i < numVo; i++) {
+					notes[i] = unote;
+					vels[i] = vel;
+					gates[i] = true;
+					pedalgates[i] = pedal;
+					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
+					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
 			} break;
 			default: break;
 		}
 		// Set notes and gates
-		if (gates[rotateIndex] || pedalgates[rotateIndex])
+		if (static_cast<bool>(params[RETRIG_PARAM].getValue()) && ((gates[rotateIndex] || pedalgates[rotateIndex])))
 			reTrigger[rotateIndex].trigger(1e-3);
 		notes[rotateIndex] = note;
 		vels[rotateIndex] = vel;
@@ -397,9 +436,45 @@ struct MIDIpolyMPE : Module {
 			case UNISON_MODE: {
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
+					bool retrignow = static_cast<bool>(params[RETRIG_PARAM].getValue());
 					uint8_t backnote = cachedNotes.back();
 					for (int i = 0; i < numVo; i++) {
 						notes[i] = backnote;
+						gates[i] = true;
+						rvels[i] = vel;
+						if (retrignow) reTrigger[i].trigger(1e-3);
+					}
+				}
+				else {
+					for (int i = 0; i < numVo; i++) {
+						gates[i] = false;
+						rvels[i] = vel;
+					}
+				}
+			} break;
+			case UNISONLWR_MODE: {
+				if (vel > 128) vel = 64;
+				if (!cachedNotes.empty()) {
+					uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
+					for (int i = 0; i < numVo; i++) {
+						notes[i] = lnote;
+						gates[i] = true;
+						rvels[i] = vel;
+					}
+				}
+				else {
+					for (int i = 0; i < numVo; i++) {
+						gates[i] = false;
+						rvels[i] = vel;
+					}
+				}
+			} break;
+			case UNISONUPR_MODE: {
+				if (vel > 128) vel = 64;
+				if (!cachedNotes.empty()) {
+					uint8_t unote = *max_element(cachedNotes.begin(),cachedNotes.end());
+					for (int i = 0; i < numVo; i++) {
+						notes[i] = unote;
 						gates[i] = true;
 						rvels[i] = vel;
 					}
@@ -687,8 +762,13 @@ struct MIDIpolyMPE : Module {
 			case 0: {
 			}break;
 			case 1: {
-				if (polyModeIx < UNISON_MODE) polyModeIx ++;
-				else polyModeIx = MPE_MODE;
+				if (numVo == 1) {
+					if (polyModeIx < UNISONUPR_MODE) polyModeIx ++;
+					else polyModeIx = UNISON_MODE;
+				}else{
+					if (polyModeIx < UNISONUPR_MODE) polyModeIx ++;
+					else polyModeIx = MPE_MODE;
+				}
 				onReset();
 			}break;
 			case 2: {
@@ -731,8 +811,8 @@ struct MIDIpolyMPE : Module {
 				if (pbMainUp < 96) pbMainUp ++;
 			}break;
 			default: {
-				if (midiCCs[cursorIx - numPolycur - 5] < 128)
-					midiCCs[cursorIx - numPolycur - 5]  ++;
+				if (midiCCs[cursorIx - numPolycur - 6] < 128)
+					midiCCs[cursorIx - numPolycur - 6]  ++;
 			}break;
 		}
 		learnIx = 0;
@@ -743,8 +823,13 @@ struct MIDIpolyMPE : Module {
 			case 0: {
 			}break;
 			case 1: {
-				if (polyModeIx > MPE_MODE) polyModeIx --;
-				else polyModeIx = UNISON_MODE;
+				if (numVo == 1) {
+					if (polyModeIx > UNISON_MODE) polyModeIx --;
+					else polyModeIx = UNISONUPR_MODE;
+				}else{
+					if (polyModeIx > MPE_MODE) polyModeIx --;
+					else polyModeIx = UNISONUPR_MODE;
+				}
 				onReset();
 			}break;
 			case 2: {
@@ -752,6 +837,7 @@ struct MIDIpolyMPE : Module {
 					if (pbMPE > 0) pbMPE --;
 				} else {
 					if (numVo > 1) numVo --;
+					if (numVo == 1) polyModeIx = UNISON_MODE;
 					onReset();
 				}
 			}break;
@@ -787,8 +873,8 @@ struct MIDIpolyMPE : Module {
 				if (pbMainUp > -96) pbMainUp --;
 			}break;
 			default: {
-				if (midiCCs[cursorIx - numPolycur - 5] > 0)
-					midiCCs[cursorIx - numPolycur - 5] --;
+				if (midiCCs[cursorIx - numPolycur - 6] > 0)
+					midiCCs[cursorIx - numPolycur - 6] --;
 			}break;
 		}
 		learnIx = 0;
@@ -814,14 +900,16 @@ struct PolyModeDisplay : TransparentWidget {
 	std::string yyDisplay = "";
 	std::string zzDisplay = "";
 	std::shared_ptr<Font> font;
-	std::string polyModeStr[7] = {
+	std::string polyModeStr[9] = {
 		"M. P. E.",
 		"M. P. E. Plus",
-		"C Y C L E",
+		"R O T A T E",
 		"R E U S E",
 		"R E S E T",
 		"R E A S S I G N",
-		"U N I S O N",
+		"U N I S O N Last",
+		"U N I S O N Lower",
+		"U N I S O N Upper",
 	};
 	std::string noteName[12] = {
 		"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"
@@ -1127,12 +1215,8 @@ struct springDataKnobB : SvgKnob {
 	void randomize() override{
 	}
 	void onButton(const event::Button &e) override{
-		math::Vec c = box.size.div(2);
-		float dist = e.pos.minus(c).norm();
-		if (dist <= c.x) {
-			ParamWidget::onButton(e);
-		}
 		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_RELEASE) this->resetAction();
+		SvgKnob::onButton(e);
 	}
 };
 
@@ -1174,7 +1258,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				xPos += 44.f;
 			}
 			// RelVel / chPbend LCD
-			xPos = 19.f;
+			xPos = 14.f;
 			yPos = 201.f;
 			MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
 			MccDisplay->box.size = {34.f, 13.f};
@@ -1218,8 +1302,8 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			xPos += xOffset;
 			addOutput(createOutput<moDllzPortPoly>(Vec(xPos, yPos),  module, MIDIpolyMPE::Z_OUTPUT));
 		yPos = 217.f;
-		xPos = 24.5f;
-		xOffset = 35.f;
+		xPos = 19.5f;
+		xOffset = 31.f;
 		//Vel RVel Gate Outs
 		addOutput(createOutput<moDllzPortPoly>(Vec(xPos, yPos),  module, MIDIpolyMPE::RVEL_OUTPUT));
 		xPos += xOffset;
@@ -1228,12 +1312,14 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		addOutput(createOutput<moDllzPortPoly>(Vec(xPos, yPos),  module, MIDIpolyMPE::GATE_OUTPUT));
 		xPos += xOffset;
 		///Sustain hold notes switch
-		addParam(createParam<moDllzSwitchLed>(Vec(xPos - 3.f, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_PARAM));
-		addChild(createLight<TranspOffRedLight>(Vec(xPos - 3.f, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_LIGHT));
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_PARAM));
+		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_LIGHT));
+		//Retrig
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos + 16.f, yPos + 4.f), module, MIDIpolyMPE::RETRIG_PARAM));
 		// PBend Out
 		yPos = 251.5f;
 		xPos = 117.5f;
-		addOutput(createOutput<moDllzPort>(Vec(xPos, yPos),  module, MIDIpolyMPE::PBEND_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(xPos, yPos),  module, MIDIpolyMPE::PBEND_OUTPUT));
 		// CC's x 8
 		yPos = 282.f;
 		for ( int r = 0; r < 2; r++){
@@ -1246,7 +1332,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 					MccDisplay->module = module;
 					addChild(MccDisplay);
 				}
-				addOutput(createOutput<moDllzPort>(Vec(xPos + 3.5f, yPos + 13.f),  module, MIDIpolyMPE::MMA_OUTPUT + i + r * 4));
+				addOutput(createOutput<moDllzPortG>(Vec(xPos + 3.5f, yPos + 13.f),  module, MIDIpolyMPE::MMA_OUTPUT + i + r * 4));
 				xPos += 33.f;
 			}
 			yPos += 40.f;

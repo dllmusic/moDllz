@@ -129,7 +129,9 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			reDisplay = true;
 			i_mpeChn = *mpeChn;
 		}
-		//if (reDisplay) {
+		static int drawframe = 0;
+		if ((drawframe++ > 500)||(reDisplay)) {
+			drawframe = 0;
 			mdriver = midiInput->getDriverName(midiInput->driverId);
 			if (midiInput->deviceId > -1){
 				textColor = nvgRGB(0x90,0x90,0x90);
@@ -160,7 +162,7 @@ void MIDIdisplay::draw(const DrawArgs &args){
 				mchannel = "";
 			}
 			reDisplay = false;
-		//}
+		}
 		if (*midiActiv > 0) *midiActiv -= 4;
 			//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 			nvgBeginPath(args.vg);
@@ -179,7 +181,7 @@ void MIDIdisplay::draw(const DrawArgs &args){
 	}
 }
 void MIDIdisplay::onButton(const event::Button &e) {
-	Widget::onButton(e);
+	//Widget::onButton(e);
 	e.stopPropagating();
 	bool gotdevice = false;
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
@@ -210,7 +212,7 @@ void MIDIdisplay::onButton(const event::Button &e) {
 
 void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel){
 	clearChildren();
-	//math::Vec pos;
+	
 	MIDIdisplay *md = createWidget<MIDIdisplay>(Vec(0.f,0.f));
 	md->mpeOff = mpeOff;
 	md->mpeChn = mpeChn;

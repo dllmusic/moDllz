@@ -2,10 +2,6 @@
 /*
  * MIDIdualCV converts upper/lower midi note on/off events, velocity , channel aftertouch, pitch wheel,  mod wheel breath cc and expression to CV
  */
-struct MidiNoteData {
-	uint8_t velocity = 0;
-	uint8_t aftertouch = 0;
-};
 
 struct MIDIdualCV :  Module {
 	enum ParamIds {
@@ -72,6 +68,8 @@ struct MIDIdualCV :  Module {
 	
 	NoteData noteData[128];
 	
+	std::vector<int> pressedKeys;
+	
 	dsp::SlewLimiter slewlimiterLwr;
 	dsp::SlewLimiter slewlimiterUpr;
 	
@@ -85,11 +83,16 @@ struct MIDIdualCV :  Module {
 	};
 	noteLive lowerNote;
 	noteLive upperNote;
+	
 	bool anynoteGate = false;
 	bool sustpedal = false;
 	bool sustpedalgate = false;
 	bool firstNoGlideLwr = false;
 	bool firstNoGlideUpr = false;
+	
+	float pitchtocvLWR = 0.f;
+	float pitchtocvUPR = 0.f;
+	
 	uint8_t lastLwr = 128;
 	uint8_t lastUpr = -1;
 	
@@ -97,17 +100,15 @@ struct MIDIdualCV :  Module {
 	dsp::PulseGenerator gatePulseUpr;
 	dsp::SchmittTrigger resetMidiTrigger;
 	
-	bool noteupdated = false;
-	int srFrametime = APP->engine->getSampleRate() / 500;
-	int processframe = 0;
-	float srSampleTime = APP->engine->getSampleTime() * 100.f;
+	int srFrametime; // check midi notes every 256 samples
+
 	
 	MIDIdualCV() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configParam(RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f);
-		configParam(PBNEG_LOWER_PARAM, 24.f, -24.0f, 0.f);
+		configParam(PBNEG_LOWER_PARAM, -24.f, 24.0f, 0.f);
 		configParam(PBPOS_LOWER_PARAM, -24.f, 24.0f, 0.f);
-		configParam(PBNEG_UPPER_PARAM, 24.f, -24.0f, 0.f);
+		configParam(PBNEG_UPPER_PARAM, -24.f, 24.0f, 0.f);
 		configParam(PBPOS_UPPER_PARAM, -24.f, 24.0f, 0.f);
 		configParam(SLEW_LOWER_PARAM, 0.f, 1.f, 0.f);
 		configParam(SLEW_UPPER_PARAM, 0.f, 1.f, 0.f);
@@ -126,8 +127,8 @@ struct MIDIdualCV :  Module {
 	}
 	
 	void setLambdas(){
-		srFrametime = APP->engine->getSampleRate() / 500;
-		srSampleTime = APP->engine->getSampleTime() * 100.f;
+		srFrametime = APP->engine->getSampleRate() / 1000 ;
+		float srSampleTime = APP->engine->getSampleTime() * 100.f;
 		modFilter.lambda = srSampleTime;
 		breathFilter.lambda = srSampleTime;
 		exprFilter.lambda = srSampleTime;
@@ -148,16 +149,13 @@ struct MIDIdualCV :  Module {
 			processMessage(msg);
 		}
 		
-		//pitchFilter.lambda = 100.f * args.sampleTime;
 		float pitchwheel;
-		float pitchtocvLWR = 0.f;
-		float pitchtocvUPR = 0.f;
 		if (pitch < 8192){
 			pitchwheel = pitchFilter.process(1.f,rescale(pitch, 0, 8192, -5.f, 0.f));
 			outputs[PBENDNEG_OUTPUT].setVoltage(pitchwheel * 2.f);
 			outputs[PBENDPOS_OUTPUT].setVoltage(0.f);
-			pitchtocvLWR = pitchwheel * params[PBNEG_LOWER_PARAM].getValue() / 60.f;
-			pitchtocvUPR = pitchwheel * params[PBNEG_UPPER_PARAM].getValue() / 60.f;
+			pitchtocvLWR = pitchwheel * params[PBNEG_LOWER_PARAM].getValue() / -60.f;
+			pitchtocvUPR = pitchwheel * params[PBNEG_UPPER_PARAM].getValue() / -60.f;
 		} else {
 			pitchwheel = pitchFilter.process(1.f,rescale(pitch, 8192, 16383, 0.f, 5.f));
 			outputs[PBENDPOS_OUTPUT].setVoltage(pitchwheel * 2.f);
@@ -166,63 +164,45 @@ struct MIDIdualCV :  Module {
 			pitchtocvUPR = pitchwheel * params[PBPOS_UPPER_PARAM].getValue() / 60.f;
 		}
 		outputs[PBEND_OUTPUT].setVoltage(pitchwheel);
-		
+
 		///////////////////////
+		static int processframe = 0;
 		if (processframe++ > srFrametime) {
-		
 			processframe = 0;
-		if (noteupdated){
-			anynoteGate = false;
-			noteupdated = false;
-			///LOWER///
-			for (int i = 0; i < 128; i++){
-				if (noteData[i].velocity > 0){
-					anynoteGate = true;
-					/////////
-					if (i != lastLwr){
-						lastLwr = i;
+			
+			if (anynoteGate){
+				///LOWER///
+					if (lowerNote.note != lastLwr){
 						if (params[LWRRETRGGMODE_PARAM].getValue() > 0.5f)
 							gatePulseLwr.trigger(1e-3);
-						else if (i < lowerNote.note)
+						else if (lowerNote.note < lastLwr)
 							gatePulseLwr.trigger(1e-3);
+						lastLwr = lowerNote.note;
+						lowerNote.volt = static_cast<float>(lowerNote.note - 60) / 12.0f;
+						outputs[VELOCITY_OUTPUT_Lwr].setVoltage(static_cast<float>(lowerNote.vel) / 127.0f * 10.0f);
 					}
-					lowerNote.note = i;
-					lowerNote.vel = noteData[i].velocity;
-					break;
-				}
-			}
-			if (anynoteGate){
 					///UPPER///
-					for (int i = 127; i > -1; i--){
-						if (noteData[i].velocity > 0){
-							if (i != lastUpr){
-								lastUpr = i;
-								if (params[UPRRETRGGMODE_PARAM].getValue() > 0.5f)
-									gatePulseUpr.trigger(1e-3);
-								else if (i > upperNote.note)
-									gatePulseUpr.trigger(1e-3);
-							}
-							upperNote.note = i;
-							upperNote.vel = noteData[i].velocity;
-							break;
-						}
+					if (upperNote.note != lastUpr){
+						if (params[UPRRETRGGMODE_PARAM].getValue() > 0.5f)
+							gatePulseUpr.trigger(1e-3);
+						else if (upperNote.note > lastUpr)
+							gatePulseUpr.trigger(1e-3);
+						lastUpr = upperNote.note;
+						upperNote.volt =static_cast<float>(upperNote.note - 60) / 12.0f;
+						outputs[VELOCITY_OUTPUT_Upr].setVoltage(static_cast<float>(upperNote.vel) / 127.0 * 10.0);
 					}
-					lowerNote.volt = static_cast<float>(lowerNote.note - 60) / 12.0f;
-					upperNote.volt =static_cast<float>(upperNote.note - 60) / 12.0f;
-					outputs[VELOCITY_OUTPUT_Lwr].setVoltage(static_cast<float>(lowerNote.vel) / 127.0f * 10.0f);
-					outputs[VELOCITY_OUTPUT_Upr].setVoltage(static_cast<float>(upperNote.vel) / 127.0 * 10.0);
-			}else{
-				lowerNote.note = 128;
-				upperNote.note = -1;
+			}else{// no notes pressed reset upper lower
+				lastLwr = 128;
+				lastUpr = -1;
 			}
 		}
-		}
+////// do this when knob changed
 		if (slewLwr != params[SLEW_LOWER_PARAM].getValue()) {
 			slewLwr = params[SLEW_LOWER_PARAM].getValue();
 			float slewfloat = 1.0f/(5.0f + slewLwr * args.sampleRate);
 			slewlimiterLwr.setRiseFall(slewfloat,slewfloat);
 		}
-
+//////
 		if (slewLwr > 0.f)
 			if (firstNoGlideLwr){
 				slewlimiterLwr.setRiseFall(1.f,1.f);
@@ -231,9 +211,7 @@ struct MIDIdualCV :  Module {
 			}else{
 				outputs[PITCH_OUTPUT_Lwr].setVoltage(slewlimiterLwr.process(1.f, lowerNote.volt) + pitchtocvLWR);
 			}
-		
-		else
-			 outputs[PITCH_OUTPUT_Lwr].setVoltage(lowerNote.volt + pitchtocvLWR);
+		else outputs[PITCH_OUTPUT_Lwr].setVoltage(lowerNote.volt + pitchtocvLWR);
 		
 		if (slewUpr != params[SLEW_UPPER_PARAM].getValue()) {
 			slewUpr = params[SLEW_UPPER_PARAM].getValue();
@@ -259,19 +237,10 @@ struct MIDIdualCV :  Module {
 		outputs[RETRIGGATE_OUTPUT_Upr].setVoltage(gateout && !(retriggUpr)? 10.f : 0.f );
 		outputs[GATE_OUTPUT].setVoltage(gateout ? 10.f : 0.f );
 		
-		//modFilter.lambda = 100.f * args.sampleTime;
 		outputs[MOD_OUTPUT].setVoltage(modFilter.process(1.f, rescale(mod, 0, 127, 0.f, 10.f)));
-		
-		//breathFilter.lambda = 100.f * args.sampleTime;
 		outputs[BREATH_OUTPUT].setVoltage(breathFilter.process(1.f, rescale(breath, 0, 127, 0.f, 10.f)));
-		
-		//exprFilter.lambda = 100.f * args.sampleTime;
 		outputs[EXPRESSION_OUTPUT].setVoltage(exprFilter.process(1.f, rescale(expression, 0, 127, 0.f, 10.f)));
-		
-		//sustainFilter.lambda = 100.f * args.sampleTime;
 		outputs[SUSTAIN_OUTPUT].setVoltage(sustainFilter.process(1.f, rescale(sustain, 0, 127, 0.f, 10.f)));
-		
-		//pressureFilter.lambda = 100.f * args.sampleTime;
 		outputs[PRESSURE_OUTPUT].setVoltage(pressureFilter.process(1.f, rescale(pressure, 0, 127, 0.f, 10.f)));
 	
 		///// RESET MIDI LIGHT
@@ -288,33 +257,56 @@ struct MIDIdualCV :  Module {
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
-
+	void updateHiLo(){
+		if (pressedKeys.size() > 0) {
+			//pressedKeys.sort();
+			lowerNote.note = *min_element(pressedKeys.begin(),pressedKeys.end());
+			//lowerNote.note =  pressedKeys.front();
+			lowerNote.vel = noteData[lowerNote.note].velocity;
+			upperNote.note = *max_element(pressedKeys.begin(),pressedKeys.end());
+			//upperNote.note = pressedKeys.back();
+			upperNote.vel = noteData[upperNote.note].velocity;
+			anynoteGate = true;
+		}else{
+			anynoteGate = false;
+		}
+	}
+	
+	void updateSlewLwr(){
+		//if (slewLwr != params[SLEW_LOWER_PARAM].getValue()) {
+			slewLwr = params[SLEW_LOWER_PARAM].getValue();
+			float slewfloat = 1.0f/(5.0f + slewLwr * APP->engine->getSampleRate());
+			slewlimiterLwr.setRiseFall(slewfloat,slewfloat);
+		//}
+	}
+	
 	void processMessage(midi::Message msg) {
 		switch (msg.getStatus()) {
 			case 0x8: { // note off
 				uint8_t note = msg.getNote();
 					noteData[note].velocity = 0;
 					noteData[note].aftertouch = 0;
-					noteupdated = true;
-				// Remove the note //(vector)
-				// auto it = std::find(cachedNotes.begin(), cachedNotes.end(), note);
-				// if (it != cachedNotes.end())
-				//	cachedNotes.erase(it);
-				//noteBuffer.remove(note); //(list)
-				}
-				break;
+					//pressedKeys.remove(note);
+					auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
+					if (it != pressedKeys.end()) pressedKeys.erase(it);
+					updateHiLo();
+				} break;
 			case 0x9: { // note on
-				//uint8_t velvalue = msg.getValue();
-				uint8_t note = msg.getNote();
-					noteData[note].velocity = msg.getValue();
-					noteData[note].aftertouch = 0;
-					noteupdated = true;
-				firstNoGlideLwr = (!anynoteGate && (params[SLEW_LOWER_MODE_PARAM].getValue() > 0.5));
-				firstNoGlideUpr = (!anynoteGate  && (params[SLEW_UPPER_MODE_PARAM].getValue() > 0.5));
-					sustpedalgate = sustpedal;
-				// cachedNotes.push_back(note);
-				}
-				break;
+					uint8_t note = msg.getNote();
+					if (msg.getValue() > 0 ) {
+						noteData[note].velocity = msg.getValue();
+						noteData[note].aftertouch = 0;
+						firstNoGlideLwr = (!anynoteGate && (params[SLEW_LOWER_MODE_PARAM].getValue() > 0.5));
+						firstNoGlideUpr = (!anynoteGate  && (params[SLEW_UPPER_MODE_PARAM].getValue() > 0.5));
+						sustpedalgate = sustpedal;
+						pressedKeys.push_back(note);
+					}else {
+						//pressedKeys.remove(note);
+						auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
+						if (it != pressedKeys.end()) pressedKeys.erase(it);
+					}
+					updateHiLo();
+				} break;
 			case 0xb: // cc
 				processCC(msg);
 				break;
@@ -368,7 +360,7 @@ struct MIDIdualCV :  Module {
 		outputs[SUSTAIN_OUTPUT].setVoltage(0.0f);
 		sustpedal = false;
 	}
-	
+
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", midiInput.toJson());
@@ -379,12 +371,23 @@ struct MIDIdualCV :  Module {
 		json_t *midiJ = json_object_get(rootJ, "midi");
 		midiInput.fromJson(midiJ);
 	}
+	
 };
 
 ////////
+//struct SlewLwrKnob : moDllzKnob22{
+//	MIDIdualCV *module;
+//	slewLwrKnob (){
+//	}
+//	void onChange(const event::Change& e){
+//		module->updateSlewLwr();
+//		SvgKnob::onChange(e);
+//	}
+//};
+
+////
 
 struct MIDIdualCVWidget : ModuleWidget {
-	
 	MIDIdualCVWidget(MIDIdualCV *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/MIDIdualCV.svg")));
@@ -398,7 +401,6 @@ struct MIDIdualCVWidget : ModuleWidget {
 		float xPos = 8.0f;
 		float yPos = 19.0f;
 
-		
 		MidiWidget *midiWidget = createWidget<MidiWidget>(Vec(xPos,yPos));
 		midiWidget->box.size = Vec(119,36);
 		midiWidget->setMidiPort(module ? &module->midiInput : NULL);
