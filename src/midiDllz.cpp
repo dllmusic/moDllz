@@ -163,11 +163,12 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			}
 			reDisplay = false;
 		}
-		if (*midiActiv > 0) *midiActiv -= 4;
+		if (*midiActiv > 3) *midiActiv -= 4;
+		else	*midiActiv = 0;//clip to 0
 			//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 			nvgBeginPath(args.vg);
 			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y, 4.f);
-			nvgFillColor(args.vg, nvgRGB(*midiActiv,*midiActiv/2,0));
+			nvgFillColor(args.vg, nvgRGB(*midiActiv * .5, *midiActiv * .1 ,0));
 			nvgFill(args.vg);
 
 		nvgFontSize(args.vg, mdfontSize);

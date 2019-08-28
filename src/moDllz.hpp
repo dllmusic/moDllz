@@ -128,6 +128,7 @@ struct moDllzSwitch : SvgSwitch {
 		// box.size = Vec(10, 20);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitch_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitch_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -138,6 +139,7 @@ struct moDllzSwitchH : SvgSwitch {
 		// box.size = Vec(20, 10);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchH_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchH_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -148,6 +150,7 @@ struct moDllzSwitchLed : SvgSwitch {
 		// box.size = Vec(10, 18);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLed_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLed_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -158,6 +161,7 @@ struct moDllzSwitchLedH : SvgSwitch {
 		// box.size = Vec(18, 10);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedH_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedH_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -169,6 +173,7 @@ struct moDllzSwitchLedHT : SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedHT_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedHT_1.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedHT_2.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -188,6 +193,7 @@ struct moDllzSwitchT : SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchT_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchT_1.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchT_2.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -200,6 +206,7 @@ struct moDllzSwitchTH : SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchTH_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchTH_1.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchTH_2.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -212,6 +219,7 @@ struct moDllzMoButton : SvgSwitch {
 		// box.size = Vec(48, 27);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMoButton_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMoButton_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -223,6 +231,7 @@ struct moDllzClearButton : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(38, 13);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzClearButton.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -234,6 +243,7 @@ struct moDllzRoundButton : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(14, 14);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzRoundButton.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -245,6 +255,7 @@ struct moDllzPulseUp : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(12, 12);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzPulse2Up.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -255,6 +266,7 @@ struct moDllzPulseDwn : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(12, 12);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzPulse2Dwn.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -266,6 +278,7 @@ struct moDllzMuteG : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(67, 12);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMuteG.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -276,6 +289,7 @@ struct moDllzMuteGP : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(26, 11);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMuteGP.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -286,6 +300,7 @@ struct moDllzMidiPanic : SvgSwitch {
 		momentary = true;
 		// box.size = Vec(38, 12);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/midireset3812.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -297,6 +312,7 @@ struct moDllzcursorL : SvgSwitch {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorL_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorL_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -306,6 +322,7 @@ struct moDllzcursorR : SvgSwitch {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorR_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorR_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -316,6 +333,7 @@ struct minusButton : SvgSwitch {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/minusButton_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/minusButton_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -325,6 +343,7 @@ struct plusButton : SvgSwitch {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/plusButton_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/plusButton_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -334,6 +353,7 @@ struct minusButtonB : SvgSwitch {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrMinus_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrMinus_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}
@@ -343,6 +363,7 @@ struct plusButtonB : SvgSwitch {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrPlus_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/SqrPlus_1.svg")));
+		shadow->opacity = 0.f;
 	}
 	void randomize() override{
 	}

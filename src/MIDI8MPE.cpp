@@ -1235,16 +1235,31 @@ struct OutdatedAlert : SvgWidget {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/outdMIDI8MPE.svg")));
 	}
 	void onButton(const event::Button &e) override{
-		if (e.action == GLFW_RELEASE) this->box.size = {0.f, 0.f};
+		if (e.action == GLFW_RELEASE) {
+			e.stopPropagating();
+			if (this->box.size.y > 15.f) {
+				this->box.size = {15.f, 15.f};
+				this->box.pos = {180.f, 0.f};
+				this->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/outdMIDI8MPEx.svg")));
+			}else {
+				this->box.size = {195.f, 15.f};
+				this->box.pos = {0.f, 0.f};
+				this->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/outdMIDI8MPE.svg")));
+			}
+		}
 	}
 };
-
-
 
 struct MIDI8MPEWidget : ModuleWidget {
 	MIDI8MPEWidget(MIDI8MPE *module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance,"res/MIDI8MPE.svg")));
+		
+		//Screws
+		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
+		//addChild(createWidget<ScrewBlack>(Vec(180, 0)));
+		//addChild(createWidget<ScrewBlack>(Vec(0, 365)));
+		addChild(createWidget<ScrewBlack>(Vec(180, 365)));
 		
 		float xPos = 8.f;//61;
 		float yPos = 18.f;
@@ -1350,17 +1365,11 @@ struct MIDI8MPEWidget : ModuleWidget {
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_PARAM));
 		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDI8MPE::SUSTHOLD_LIGHT));
 		
-		OutdatedAlert *outdatedA = new OutdatedAlert;
-		outdatedA->box.pos = Vec(0.f, 0.f);
+		OutdatedAlert *outdatedA = new OutdatedAlert();
 		outdatedA->box.size = {195.f, 103.f};
-		//outdatedA->module = module;
 		addChild(outdatedA);
+		//addParam(createParam<OutdatedAlert>(Vec(0.f, 0.f), module, MIDI8MPE::OUTDATED_PARAM));
 		
-		//Screws
-		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
-		addChild(createWidget<ScrewBlack>(Vec(180, 0)));
-		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
-		addChild(createWidget<ScrewBlack>(Vec(180, 365)));
 	}
 };
 

@@ -5,7 +5,7 @@
 
 struct MIDIdualCV :  Module {
 	enum ParamIds {
-		RESETMIDI_PARAM,
+		//RESETMIDI_PARAM,
 		LWRRETRGGMODE_PARAM,
 		UPRRETRGGMODE_PARAM,
 		SUSTAINHOLD_PARAM,
@@ -41,12 +41,19 @@ struct MIDIdualCV :  Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		RESETMIDI_LIGHT,
+		//RESETMIDI_LIGHT,
 		SUSTHOLD_LIGHT,
 		NUM_LIGHTS
 	};
- 
+	
+	////MIDI
 	midi::InputQueue midiInput;
+	int MPEmasterCh = 0;// 0 ~ 15
+	int midiActivity = 0;
+	int mdriverJx = 0 , mchannelJx = 0;
+	std::string mdeviceJx = "-";
+	/////
+	int polyModeIx = 2;// 0 and 1 are MPE
 	
 	uint8_t mod = 0;
 	dsp::ExponentialFilter modFilter;
@@ -67,7 +74,6 @@ struct MIDIdualCV :  Module {
 	};
 	
 	NoteData noteData[128];
-	
 	std::vector<int> pressedKeys;
 	
 	dsp::SlewLimiter slewlimiterLwr;
@@ -98,14 +104,13 @@ struct MIDIdualCV :  Module {
 	
 	dsp::PulseGenerator gatePulseLwr;
 	dsp::PulseGenerator gatePulseUpr;
-	dsp::SchmittTrigger resetMidiTrigger;
+	//dsp::SchmittTrigger resetMidiTrigger;
 	
-	int srFrametime; // check midi notes every 256 samples
-
+	int srFrametime; // check midi notes every SR/1000
 	
 	MIDIdualCV() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f);
+		//configParam(RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f);
 		configParam(PBNEG_LOWER_PARAM, -24.f, 24.0f, 0.f);
 		configParam(PBPOS_LOWER_PARAM, -24.f, 24.0f, 0.f);
 		configParam(PBNEG_UPPER_PARAM, -24.f, 24.0f, 0.f);
@@ -196,13 +201,12 @@ struct MIDIdualCV :  Module {
 				lastUpr = -1;
 			}
 		}
-////// do this when knob changed
+		////// To do  >>>>  when knob changed
 		if (slewLwr != params[SLEW_LOWER_PARAM].getValue()) {
 			slewLwr = params[SLEW_LOWER_PARAM].getValue();
 			float slewfloat = 1.0f/(5.0f + slewLwr * args.sampleRate);
 			slewlimiterLwr.setRiseFall(slewfloat,slewfloat);
 		}
-//////
 		if (slewLwr > 0.f)
 			if (firstNoGlideLwr){
 				slewlimiterLwr.setRiseFall(1.f,1.f);
@@ -212,7 +216,7 @@ struct MIDIdualCV :  Module {
 				outputs[PITCH_OUTPUT_Lwr].setVoltage(slewlimiterLwr.process(1.f, lowerNote.volt) + pitchtocvLWR);
 			}
 		else outputs[PITCH_OUTPUT_Lwr].setVoltage(lowerNote.volt + pitchtocvLWR);
-		
+		////// To do  >>>>  when knob changed
 		if (slewUpr != params[SLEW_UPPER_PARAM].getValue()) {
 			slewUpr = params[SLEW_UPPER_PARAM].getValue();
 			float slewfloat = 1.0f/(5.0f + slewUpr * args.sampleRate);
@@ -244,27 +248,26 @@ struct MIDIdualCV :  Module {
 		outputs[PRESSURE_OUTPUT].setVoltage(pressureFilter.process(1.f, rescale(pressure, 0, 127, 0.f, 10.f)));
 	
 		///// RESET MIDI LIGHT
-		if (resetMidiTrigger.process(params[RESETMIDI_PARAM].getValue())) {
-			lights[RESETMIDI_LIGHT].value= 1.0f;
-			MidiPanic();
-			return;
-		}
-		if (lights[RESETMIDI_LIGHT].value > 0.0001f){
-			lights[RESETMIDI_LIGHT].value -= 0.0001f ; // fade out light
-		}
+//		if (resetMidiTrigger.process(params[RESETMIDI_PARAM].getValue())) {
+//			lights[RESETMIDI_LIGHT].value= 1.0f;
+//			MidiPanic();
+//			return;
+//		}
+//		if (lights[RESETMIDI_LIGHT].value > 0.0001f){
+//			lights[RESETMIDI_LIGHT].value -= 0.0001f ; // fade out light
+//		}
 		//}
+		if (midiActivity < 0) resetVoices();// resetMidi from MIDI widget;
 	}
+
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 	void updateHiLo(){
-		if (pressedKeys.size() > 0) {
-			//pressedKeys.sort();
+		if (!pressedKeys.empty()) {
 			lowerNote.note = *min_element(pressedKeys.begin(),pressedKeys.end());
-			//lowerNote.note =  pressedKeys.front();
 			lowerNote.vel = noteData[lowerNote.note].velocity;
 			upperNote.note = *max_element(pressedKeys.begin(),pressedKeys.end());
-			//upperNote.note = pressedKeys.back();
 			upperNote.vel = noteData[upperNote.note].velocity;
 			anynoteGate = true;
 		}else{
@@ -272,24 +275,17 @@ struct MIDIdualCV :  Module {
 		}
 	}
 	
-	void updateSlewLwr(){
-		//if (slewLwr != params[SLEW_LOWER_PARAM].getValue()) {
-			slewLwr = params[SLEW_LOWER_PARAM].getValue();
-			float slewfloat = 1.0f/(5.0f + slewLwr * APP->engine->getSampleRate());
-			slewlimiterLwr.setRiseFall(slewfloat,slewfloat);
-		//}
-	}
-	
 	void processMessage(midi::Message msg) {
 		switch (msg.getStatus()) {
 			case 0x8: { // note off
 				uint8_t note = msg.getNote();
-					noteData[note].velocity = 0;
+					noteData[note].velocity = msg.getValue();
 					noteData[note].aftertouch = 0;
 					//pressedKeys.remove(note);
 					auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
 					if (it != pressedKeys.end()) pressedKeys.erase(it);
 					updateHiLo();
+					midiActivity =  msg.getValue();
 				} break;
 			case 0x9: { // note on
 					uint8_t note = msg.getNote();
@@ -301,20 +297,25 @@ struct MIDIdualCV :  Module {
 						sustpedalgate = sustpedal;
 						pressedKeys.push_back(note);
 					}else {
+						noteData[note].velocity = 64; //if note off through note on vel 0
 						//pressedKeys.remove(note);
 						auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
 						if (it != pressedKeys.end()) pressedKeys.erase(it);
 					}
 					updateHiLo();
+					midiActivity =  msg.getValue();
 				} break;
 			case 0xb: // cc
 				processCC(msg);
+				midiActivity = msg.getValue();
 				break;
 			case 0xe: // pitch wheel
-				pitch = msg.getValue()  * 128 + msg.getNote() ;
+				pitch = msg.getValue()  * 128 + msg.getNote();
+				midiActivity = msg.getValue();;
 				break;
 			case 0xd: // channel aftertouch
 				pressure = msg.getValue();
+				midiActivity = pressure;
 				break;
 //		  case 0xf: ///realtime clock etc
 //			  processSystem(msg);
@@ -345,7 +346,14 @@ struct MIDIdualCV :  Module {
 		}
 	}
 
-	void MidiPanic() {
+	void resetVoices() {
+		midiActivity = 256;
+		for (int i = 0; i < 128; i++){
+			noteData[i].velocity = 0 ;
+			noteData[i].aftertouch = 0 ;
+		}
+		pressedKeys.clear();
+		
 		pitch = 8192;
 		outputs[PBEND_OUTPUT].setVoltage(0.0f);
 		mod = 0;
@@ -360,7 +368,10 @@ struct MIDIdualCV :  Module {
 		outputs[SUSTAIN_OUTPUT].setVoltage(0.0f);
 		sustpedal = false;
 	}
-
+	void onReset() override{
+		resetVoices();
+	}
+	
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", midiInput.toJson());
@@ -369,21 +380,17 @@ struct MIDIdualCV :  Module {
 
 	void dataFromJson(json_t *rootJ) override {
 		json_t *midiJ = json_object_get(rootJ, "midi");
-		midiInput.fromJson(midiJ);
+		if (midiJ)	{
+			json_t* driverJ = json_object_get(midiJ, "driver");
+			if (driverJ) mdriverJx = json_integer_value(driverJ);
+			json_t* deviceNameJ = json_object_get(midiJ, "deviceName");
+			if (deviceNameJ) mdeviceJx = json_string_value(deviceNameJ);
+			json_t* channelJ = json_object_get(midiJ, "channel");
+			if (channelJ) mchannelJx = json_integer_value(channelJ);
+			midiInput.fromJson(midiJ);
+		}
 	}
-	
 };
-
-////////
-//struct SlewLwrKnob : moDllzKnob22{
-//	MIDIdualCV *module;
-//	slewLwrKnob (){
-//	}
-//	void onChange(const event::Change& e){
-//		module->updateSlewLwr();
-//		SvgKnob::onChange(e);
-//	}
-//};
 
 ////
 
@@ -398,38 +405,15 @@ struct MIDIdualCVWidget : ModuleWidget {
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 365)));
 		
 ///MIDI
-		float xPos = 8.0f;
-		float yPos = 19.0f;
 
-		MidiWidget *midiWidget = createWidget<MidiWidget>(Vec(xPos,yPos));
-		midiWidget->box.size = Vec(119,36);
-		midiWidget->setMidiPort(module ? &module->midiInput : NULL);
-
-		midiWidget->driverChoice->box.size.y = 12.f;
-		midiWidget->deviceChoice->box.size.y = 12.f;
-		midiWidget->channelChoice->box.size.y = 12.f;
-
-		midiWidget->driverChoice->box.pos = Vec(0.f, 0.f);
-		midiWidget->deviceChoice->box.pos = Vec(0.f, 12.f);
-		midiWidget->channelChoice->box.pos = Vec(0.f, 24.f);
-
-		midiWidget->driverSeparator->box.pos = Vec(0.f, 12.f);
-		midiWidget->deviceSeparator->box.pos = Vec(0.f, 24.f);
-
-		midiWidget->driverChoice->textOffset = Vec(2.f,10.f);
-		midiWidget->deviceChoice->textOffset = Vec(2.f,10.f);
-		midiWidget->channelChoice->textOffset = Vec(2.f,10.f);
-
-		midiWidget->driverChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-		midiWidget->deviceChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-		midiWidget->channelChoice->color = nvgRGB(0xdd, 0xdd, 0xdd);
-		addChild(midiWidget);
-		
-//	//reset button
-		xPos = 89.f;
-		yPos = 43.f;
-		addParam(createParam<moDllzMidiPanic>(Vec(xPos, yPos), module, MIDIdualCV::RESETMIDI_PARAM));
-		addChild(createLight<SmallLight<RedLight>>(Vec(xPos + 4.f, yPos + 3.5f), module, MIDIdualCV::RESETMIDI_LIGHT));
+		float yPos = 18.f;
+		if (module) {
+			//MIDI
+			MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(3.5,yPos));
+			dDisplay->box.size = {128.f, 40.f};
+			dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx);
+			addChild(dDisplay);
+		}
 	
 	//Lower-Upper Mods
 		
@@ -449,14 +433,14 @@ struct MIDIdualCVWidget : ModuleWidget {
 
 	//Lower-Upper Outputs
 	yPos = 150.0f;
-		addOutput(createOutput<moDllzPort>(Vec(17.5f, yPos),  module, MIDIdualCV::PITCH_OUTPUT_Lwr));
-		addOutput(createOutput<moDllzPort>(Vec(94.5f, yPos),  module, MIDIdualCV::PITCH_OUTPUT_Upr));
+		addOutput(createOutput<moDllzPortG>(Vec(17.5f, yPos),  module, MIDIdualCV::PITCH_OUTPUT_Lwr));
+		addOutput(createOutput<moDllzPortG>(Vec(94.5f, yPos),  module, MIDIdualCV::PITCH_OUTPUT_Upr));
 	yPos = 177.f;
-		addOutput(createOutput<moDllzPort>(Vec(17.5f, yPos),  module, MIDIdualCV::VELOCITY_OUTPUT_Lwr));
-		addOutput(createOutput<moDllzPort>(Vec(94.5f, yPos),  module, MIDIdualCV::VELOCITY_OUTPUT_Upr));
+		addOutput(createOutput<moDllzPortG>(Vec(17.5f, yPos),  module, MIDIdualCV::VELOCITY_OUTPUT_Lwr));
+		addOutput(createOutput<moDllzPortG>(Vec(94.5f, yPos),  module, MIDIdualCV::VELOCITY_OUTPUT_Upr));
 	yPos = 204.f;
-		addOutput(createOutput<moDllzPort>(Vec(17.5f, yPos),  module, MIDIdualCV::RETRIGGATE_OUTPUT_Lwr));
-		addOutput(createOutput<moDllzPort>(Vec(94.5f, yPos),  module, MIDIdualCV::RETRIGGATE_OUTPUT_Upr));
+		addOutput(createOutput<moDllzPortG>(Vec(17.5f, yPos),  module, MIDIdualCV::RETRIGGATE_OUTPUT_Lwr));
+		addOutput(createOutput<moDllzPortG>(Vec(94.5f, yPos),  module, MIDIdualCV::RETRIGGATE_OUTPUT_Upr));
 		
 	//Retrig Switches
 		
@@ -466,18 +450,18 @@ struct MIDIdualCVWidget : ModuleWidget {
 	
 	yPos = 240.f;
 	//Common Outputs
-		addOutput(createOutput<moDllzPort>(Vec(56.f, yPos),  module, MIDIdualCV::GATE_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(56.f, yPos),  module, MIDIdualCV::GATE_OUTPUT));
 	yPos = 286.f;
-		addOutput(createOutput<moDllzPort>(Vec(17.f, yPos),  module, MIDIdualCV::PBEND_OUTPUT));
-		addOutput(createOutput<moDllzPort>(Vec(44.f, yPos),  module, MIDIdualCV::MOD_OUTPUT));
-		addOutput(createOutput<moDllzPort>(Vec(71.f, yPos),  module, MIDIdualCV::BREATH_OUTPUT));
-		addOutput(createOutput<moDllzPort>(Vec(98.f, yPos),  module, MIDIdualCV::PRESSURE_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(17.f, yPos),  module, MIDIdualCV::PBEND_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(44.f, yPos),  module, MIDIdualCV::MOD_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(71.f, yPos),  module, MIDIdualCV::BREATH_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(98.f, yPos),  module, MIDIdualCV::PRESSURE_OUTPUT));
 		
-		addOutput(createOutput<moDllzPort>(Vec(17.f, 310.f),  module, MIDIdualCV::PBENDPOS_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(17.f, 310.f),  module, MIDIdualCV::PBENDPOS_OUTPUT));
 	yPos = 334.f;
-		addOutput(createOutput<moDllzPort>(Vec(17.f, yPos),  module, MIDIdualCV::PBENDNEG_OUTPUT));
-		addOutput(createOutput<moDllzPort>(Vec(44.f, yPos),  module, MIDIdualCV::EXPRESSION_OUTPUT));
-		addOutput(createOutput<moDllzPort>(Vec(71.f, yPos),  module, MIDIdualCV::SUSTAIN_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(17.f, yPos),  module, MIDIdualCV::PBENDNEG_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(44.f, yPos),  module, MIDIdualCV::EXPRESSION_OUTPUT));
+		addOutput(createOutput<moDllzPortG>(Vec(71.f, yPos),  module, MIDIdualCV::SUSTAIN_OUTPUT));
 	///Sustain hold notes
 		addParam(createParam<moDllzSwitchLed>(Vec(104.5f, yPos+4.f), module, MIDIdualCV::SUSTAINHOLD_PARAM));
 		addChild(createLight<TranspOffRedLight>(Vec(104.5f, yPos+4.f), module, MIDIdualCV::SUSTHOLD_LIGHT));

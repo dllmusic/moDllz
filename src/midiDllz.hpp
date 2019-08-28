@@ -7,10 +7,9 @@ struct MIDIdisplay : OpaqueWidget {
 	midi::Port *midiInput = NULL;
 	int i_mpeOff = 1;
 	int i_mpeChn = 1;
-	int initpointer = 1;
+	int *mpeOff = &i_mpeOff;
+	int *mpeChn = &i_mpeChn;
 	int initpointer0 = 1;
-	int *mpeOff = &initpointer;
-	int *mpeChn = &initpointer;
 	int *midiActiv = &initpointer0;
 	float mdfontSize = 12.f;
 	int cursorId = 0;
