@@ -49,7 +49,7 @@ struct MIDIpolyMPE : Module {
 	int MPEmasterCh = 0;// 0 ~ 15
 	int midiActivity = 0;
 	int mdriverJx = 0 , mchannelJx = 0;
-	std::string mdeviceJx = "-";
+	std::string mdeviceJx = "";
 /////
 	enum PolyMode {
 		MPE_MODE,
@@ -370,7 +370,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
+					drift[i] = static_cast<float>((rand() % 1000  - 500) * driftcents) / 1200000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -384,7 +384,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
+					drift[i] = static_cast<float>((rand() % 1000  - 500) * driftcents) / 1200000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -398,7 +398,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 200  - 100) * driftcents) / 120000.f;
+					drift[i] = static_cast<float>((rand() % 1000  - 500) * driftcents) / 1200000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -412,7 +412,7 @@ struct MIDIpolyMPE : Module {
 		vels[rotateIndex] = vel;
 		gates[rotateIndex] = true;
 		pedalgates[rotateIndex] = pedal;
-		drift[rotateIndex] = static_cast<float>((rand() % 200 - 100) * driftcents) / 120000.f;
+		drift[rotateIndex] = static_cast<float>((rand() % 1000 - 500) * driftcents) / 1200000.f;
 		midiActivity = vel;
 	}
 	void releaseNote(uint8_t channel, uint8_t note, uint8_t vel) {
@@ -1078,7 +1078,7 @@ struct MidiccDisplay : OpaqueWidget {
 						if ((driftcents != module->driftcents) || (polychanged != module->polyModeIx)) {
 							driftcents = module->driftcents;
 							polychanged = module->polyModeIx;
-							sDisplay = "dft " + std::to_string(module->driftcents);
+							sDisplay = "rnd " + std::to_string(module->driftcents);
 						}
 						canedit = true;
 					}
@@ -1364,10 +1364,10 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		addOutput(createOutput<moDllzPortPoly>(Vec(xPos, yPos),  module, MIDIpolyMPE::GATE_OUTPUT));
 		xPos += xOffset;
 		///Sustain hold notes switch
-		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_PARAM));
-		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_LIGHT));
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos - 1.f, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_PARAM));
+		addChild(createLight<TranspOffRedLight>(Vec(xPos - 1.f, yPos + 4.f), module, MIDIpolyMPE::SUSTHOLD_LIGHT));
 		//Retrig
-		addParam(createParam<moDllzSwitchLed>(Vec(xPos + 16.f, yPos + 4.f), module, MIDIpolyMPE::RETRIG_PARAM));
+		addParam(createParam<moDllzSwitchLed>(Vec(xPos + 15.f, yPos + 4.f), module, MIDIpolyMPE::RETRIG_PARAM));
 		// PBend Out
 		yPos = 251.5f;
 		xPos = 117.5f;
