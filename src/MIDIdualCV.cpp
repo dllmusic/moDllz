@@ -111,10 +111,10 @@ struct MIDIdualCV :  Module {
 	MIDIdualCV() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		//configParam(RESETMIDI_PARAM, 0.0f, 1.0f, 0.0f);
-		configParam(PBNEG_LOWER_PARAM, -24.f, 24.0f, 0.f);
-		configParam(PBPOS_LOWER_PARAM, -24.f, 24.0f, 0.f);
-		configParam(PBNEG_UPPER_PARAM, -24.f, 24.0f, 0.f);
-		configParam(PBPOS_UPPER_PARAM, -24.f, 24.0f, 0.f);
+		configParam(PBNEG_LOWER_PARAM, -24.f, 24.0f, -12.f);
+		configParam(PBPOS_LOWER_PARAM, -24.f, 24.0f, 12.f);
+		configParam(PBNEG_UPPER_PARAM, -24.f, 24.0f, -12.f);
+		configParam(PBPOS_UPPER_PARAM, -24.f, 24.0f, 12.f);
 		configParam(SLEW_LOWER_PARAM, 0.f, 1.f, 0.f);
 		configParam(SLEW_UPPER_PARAM, 0.f, 1.f, 0.f);
 		configParam(SLEW_LOWER_MODE_PARAM, 0.f, 1.f, 0.f);
