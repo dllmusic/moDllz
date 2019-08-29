@@ -1,4 +1,5 @@
 .DS_Store
 build/*
 dep/*
+dist/*
 plugin.dylib
