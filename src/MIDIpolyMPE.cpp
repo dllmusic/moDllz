@@ -334,21 +334,25 @@ struct MIDIpolyMPE : Module {
 				noteMin = note;
 				if (noteMax < note) noteMax = note;
 				learnNote = 0;
+				cursorIx = 0;
 				}break;
 			case 2:{
 				noteMax = note;
 				if (noteMin > note) noteMin = note;
 				learnNote = 0;
+				cursorIx = 0;
 			}break;
 			case 3:{
 				velMin = vel;
 				if (velMax < vel) velMax = vel;
 				learnNote = 0;
+				cursorIx = 0;
 			}break;
 			case 4:{
 				velMax = vel;
 				if (velMin > vel) velMin = vel;
 				learnNote = 0;
+				cursorIx = 0;
 			}break;
 		}
 		if (note < noteMin) return;
@@ -776,15 +780,18 @@ struct MIDIpolyMPE : Module {
 				mpePbOut = !mpePbOut ;
 			}break;
 			case 10: {
-				if (pbMainDwn < 96) pbMainDwn ++;
+				
 			}break;
 			case 11: {
+				if (pbMainDwn < 96) pbMainDwn ++;
+			}break;
+			case 12: {
 				if (pbMainUp < 96) pbMainUp ++;
 			}break;
 			default: {
-				if (midiCCs[cursorIx - numPolycur - 6] < 128)
-					midiCCs[cursorIx - numPolycur - 6]  ++;
-				else midiCCs[cursorIx - numPolycur - 6] = 0;
+				if (midiCCs[cursorIx - numPolycur - 7] < 128)
+					midiCCs[cursorIx - numPolycur - 7]  ++;
+				else midiCCs[cursorIx - numPolycur - 7] = 0;
 			}break;
 		}
 		learnCC = 0;
@@ -849,15 +856,18 @@ struct MIDIpolyMPE : Module {
 				mpePbOut = !mpePbOut ;
 			}break;
 			case 10: {
-				if (pbMainDwn > -96) pbMainDwn --;
+				
 			}break;
 			case 11: {
+				if (pbMainDwn > -96) pbMainDwn --;
+			}break;
+			case 12: {
 				if (pbMainUp > -96) pbMainUp --;
 			}break;
 			default: {
-				if (midiCCs[cursorIx - numPolycur - 6] > 0)
-					midiCCs[cursorIx - numPolycur - 6] --;
-				else midiCCs[cursorIx - numPolycur - 6] = 128;
+				if (midiCCs[cursorIx - numPolycur - 7] > 0)
+					midiCCs[cursorIx - numPolycur - 7] --;
+				else midiCCs[cursorIx - numPolycur - 7] = 128;
 			}break;
 		}
 		learnCC = 0;
@@ -1022,7 +1032,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb2 = 0xcc;
 					gb3 = 0xcc;
 					gb4 = 0xcc;
-					snoteMin = "min";
+					snoteMin = "LRN";
 					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
 					svelMin = std::to_string(module->velMin);
 					svelMax = std::to_string(module->velMax);
@@ -1034,7 +1044,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb3 = 0xcc;
 					gb4 = 0xcc;
 					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
-					snoteMax = "max";
+					snoteMax = "LRN";
 					svelMin = std::to_string(module->velMin);
 					svelMax = std::to_string(module->velMax);
 				}break;
@@ -1046,7 +1056,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb4 = 0xcc;
 					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
 					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
-					svelMin = "min";
+					svelMin = "LRN";
 					svelMax = std::to_string(module->velMax);
 				}break;
 				case 4:{
@@ -1058,7 +1068,7 @@ struct PolyModeDisplay : TransparentWidget {
 					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
 					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
 					svelMin = std::to_string(module->velMin);
-					svelMax = "max";
+					svelMax = "LRN";
 				}break;
 			}
 
@@ -1174,7 +1184,7 @@ struct MidiccDisplay : OpaqueWidget {
 						if ((driftcents != module->driftcents) || (polychanged != module->polyModeIx)) {
 							driftcents = module->driftcents;
 							polychanged = module->polyModeIx;
-							sDisplay = "+-" + std::to_string(module->driftcents) + "ct";
+							sDisplay = "+-" + std::to_string(module->driftcents) + "cnt";
 						}
 						canedit = true;
 					}
@@ -1208,28 +1218,33 @@ struct MidiccDisplay : OpaqueWidget {
 					canlearn = false;
 				}break;
 				case 4:{
-					if (pbDwn != module->pbMainDwn){
-						pbDwn = module->pbMainDwn;
-						if (pbDwn > -1)
-							sDisplay = "+" + std::to_string(pbDwn);
-						else
-							sDisplay = std::to_string(pbDwn);
-					};
+					sDisplay = "t-96";
+					canedit = true;
 					canlearn = false;
 				}break;
 				case 5:{
+					if (pbDwn != module->pbMainDwn){
+						pbDwn = module->pbMainDwn;
+						if (pbDwn > -1)
+							sDisplay = "d+" + std::to_string(pbDwn);
+						else
+							sDisplay = "d" + std::to_string(pbDwn);
+					};
+					canlearn = false;
+				}break;
+				case 6:{
 					if (pbUp != module->pbMainUp){
 						pbUp = module->pbMainUp;
 						if (pbUp > -1)
-							sDisplay = "+" + std::to_string(pbUp);
+							sDisplay = "u+" + std::to_string(pbUp);
 						else
-							sDisplay = std::to_string(pbUp);
+							sDisplay = "u" + std::to_string(pbUp);
 					}
 					canlearn = false;
 				}break;
 				default:{
-					if (ccNumber !=  module->midiCCs[displayID - 6]) {
-						ccNumber =  module->midiCCs[displayID - 6];
+					if (ccNumber !=  module->midiCCs[displayID - 7]) {
+						ccNumber =  module->midiCCs[displayID - 7];
 						displayedCC();
 					}
 					canlearn = true;
@@ -1258,8 +1273,8 @@ struct MidiccDisplay : OpaqueWidget {
 					//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 					nvgBeginPath(args.vg);
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-					nvgStrokeColor(args.vg, nvgRGB(0x66, 0x66, 0x66));
-					nvgStroke(args.vg);
+					//nvgStrokeColor(args.vg, nvgRGB(0x66, 0x66, 0x66));
+					//nvgStroke(args.vg);
 					if (flashFocus > 0) flashFocus -= 2;
 					nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 					int rgbint = 0x55 + flashFocus;
@@ -1270,8 +1285,8 @@ struct MidiccDisplay : OpaqueWidget {
 				case 2:{
 					nvgBeginPath(args.vg);
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-					nvgStrokeColor(args.vg, nvgRGB(0xdd, 0x0, 0x0));
-					nvgStroke(args.vg);
+					//nvgStrokeColor(args.vg, nvgRGB(0xdd, 0x0, 0x0));
+					//nvgStroke(args.vg);
 					nvgFillColor(args.vg, nvgRGBA(0xcc, 0x0, 0x0,0x64));
 					nvgFill(args.vg);
 					nvgFillColor(args.vg, nvgRGB(0xff, 0x00, 0x00));//LEARN
@@ -1408,21 +1423,30 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			// RelVel / chPbend LCD
 			xPos = 14.f;
 			yPos = 201.f;
-			MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
-			MccDisplay->box.size = {34.f, 13.f};
-			MccDisplay->displayID =  dispID ++;;
-			MccDisplay->module = module;
-			addChild(MccDisplay);
-			// Pitch Bend LCD
+			MidiccDisplay *rvelDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
+			rvelDisplay->box.size = {34.f, 13.f};
+			rvelDisplay->displayID =  dispID ++;;
+			rvelDisplay->module = module;
+			addChild(rvelDisplay);
+			// Transpose LCD
 			xPos = 10.5f;
+			yPos = 256.5f;
+			MidiccDisplay *trpDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
+			trpDisplay->box.size = {24.f, 13.f};
+			trpDisplay->displayID =  dispID ++;;
+			trpDisplay->module = module;
+			addChild(trpDisplay);
+			xPos += 25.f;
+			// Pitch Bend LCD
+			xPos = 37.5f;
 			yPos = 256.5f;
 			for ( int i = 0; i < 2; i++){
 				MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
-				MccDisplay->box.size = {30.f, 13.f};
+				MccDisplay->box.size = {25.f, 13.f};
 				MccDisplay->displayID =  dispID ++;;
 				MccDisplay->module = module;
 				addChild(MccDisplay);
-				xPos += 33.f;
+				xPos += 25.f;
 			}
 		}
 		yPos = 150.5f;
@@ -1466,7 +1490,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos + 15.f, yPos + 4.f), module, MIDIpolyMPE::RETRIG_PARAM));
 		// PBend Out
 		yPos = 251.5f;
-		xPos = 117.5f;
+		xPos = 116.f;
 		addOutput(createOutput<moDllzPortG>(Vec(xPos, yPos),  module, MIDIpolyMPE::PBEND_OUTPUT));
 		// CC's x 8
 		yPos = 282.f;
