@@ -110,6 +110,7 @@ struct MIDIpolyMPE : Module {
 	int noteMax = 127;
 	int velMin = 1;
 	int velMax = 127;
+	int trnsps = 0;
 	int mpeYcc = 74; //cc74 (default MPE Y)
 	int mpeZcc = 128; //128 = ChannelAfterTouch (default MPE Z)
 	int displayYcc = 74;
@@ -163,6 +164,7 @@ struct MIDIpolyMPE : Module {
 		json_object_set_new(rootJ, "mpeYcc", json_integer(mpeYcc));
 		json_object_set_new(rootJ, "mpeZcc", json_integer(mpeZcc));
 		json_object_set_new(rootJ, "driftcents", json_integer(driftcents));
+		json_object_set_new(rootJ, "trnsps", json_integer(trnsps));
 		json_object_set_new(rootJ, "noteMin", json_integer(noteMin));
 		json_object_set_new(rootJ, "noteMax", json_integer(noteMax));
 		json_object_set_new(rootJ, "velMin", json_integer(velMin));
@@ -217,6 +219,8 @@ struct MIDIpolyMPE : Module {
 		if (mpeZccJ) mpeZcc = json_integer_value(mpeZccJ);
 		json_t *driftcentsJ = json_object_get(rootJ, "driftcents");
 		if (driftcentsJ) driftcents = json_integer_value(driftcentsJ);
+		json_t *trnspsJ = json_object_get(rootJ, "trnsps");
+		if (trnspsJ) trnsps = json_integer_value(trnspsJ);
 		json_t *noteMinJ = json_object_get(rootJ, "noteMin");
 		if (noteMinJ) noteMin = json_integer_value(noteMinJ);
 		json_t *noteMaxJ = json_object_get(rootJ, "noteMax");
@@ -287,8 +291,9 @@ struct MIDIpolyMPE : Module {
 		midiCCs[6] = 12;
 		midiCCs[7] = 64;
 		numVo = 8;
+		trnsps = 0;
 		pbMainDwn = -12;
-		pbMainUp = 2;
+		pbMainUp = 12;
 		pbMPE = 96;
 		mpePbOut = true;
 		driftcents = 10;
@@ -780,7 +785,7 @@ struct MIDIpolyMPE : Module {
 				mpePbOut = !mpePbOut ;
 			}break;
 			case 10: {
-				
+				if (trnsps < 48) trnsps ++;
 			}break;
 			case 11: {
 				if (pbMainDwn < 96) pbMainDwn ++;
@@ -856,7 +861,7 @@ struct MIDIpolyMPE : Module {
 				mpePbOut = !mpePbOut ;
 			}break;
 			case 10: {
-				
+				if (trnsps > -48) trnsps --;
 			}break;
 			case 11: {
 				if (pbMainDwn > -96) pbMainDwn --;
@@ -909,7 +914,7 @@ struct MIDIpolyMPE : Module {
 			for (int i = 0; i < numVo; i++) {
 				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
 				outputs[GATE_OUTPUT].setVoltage(lastGate, i);
-				float thispitch = ((notes[i] - 60) / 12.f) + pbVoice;
+				float thispitch = ((notes[i] - 60 + trnsps) / 12.f) + pbVoice;
 				outputs[X_OUTPUT].setVoltage(thispitch, i);
 				outputs[Y_OUTPUT].setVoltage(thispitch + drift[i] , i);	//drifted out
 				outputs[VEL_OUTPUT].setVoltage(rescale(vels[i], 0, 127, 0.f, 10.f), i);
@@ -1157,9 +1162,10 @@ struct MidiccDisplay : OpaqueWidget {
 	std::string sDisplay = "";
 	int displayID = 0;
 	int ccNumber = -1;
-	int pbDwn = -1;
-	int pbUp = -1;
-	int driftcents = -1;
+	int pbDwn = 222;
+	int pbUp = 222;
+	int trnsps = 222;
+	int driftcents = 0;
 	bool learnOn = false;
 	int mymode = 0;
 	bool focusOn = false;
@@ -1218,27 +1224,30 @@ struct MidiccDisplay : OpaqueWidget {
 					canlearn = false;
 				}break;
 				case 4:{
-					sDisplay = "t-96";
+					if (trnsps != module->trnsps){
+						trnsps = module->trnsps;
+						if (trnsps > 0) sDisplay = "t+" + std::to_string(trnsps);
+						else if (trnsps < 0) sDisplay = "t" + std::to_string(trnsps);
+						else sDisplay = "trns";
+					}
 					canedit = true;
 					canlearn = false;
 				}break;
 				case 5:{
 					if (pbDwn != module->pbMainDwn){
 						pbDwn = module->pbMainDwn;
-						if (pbDwn > -1)
-							sDisplay = "d+" + std::to_string(pbDwn);
-						else
-							sDisplay = "d" + std::to_string(pbDwn);
+						if (pbDwn > 0) sDisplay = "d+" + std::to_string(pbDwn);
+						else if (pbDwn < 0) sDisplay = "d" + std::to_string(pbDwn);
+						else sDisplay = "pbd";
 					};
 					canlearn = false;
 				}break;
 				case 6:{
 					if (pbUp != module->pbMainUp){
 						pbUp = module->pbMainUp;
-						if (pbUp > -1)
-							sDisplay = "u+" + std::to_string(pbUp);
-						else
-							sDisplay = "u" + std::to_string(pbUp);
+						if (pbUp > 0) sDisplay = "u+" + std::to_string(pbUp);
+						else if (pbUp > 0) sDisplay = "u" + std::to_string(pbUp);
+						else sDisplay = "pbu";
 					}
 					canlearn = false;
 				}break;
@@ -1266,9 +1275,10 @@ struct MidiccDisplay : OpaqueWidget {
 			nvgFontFaceId(args.vg, font->handle);
 			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
 			switch(mymode){
-				case 0:
-					nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));
-					break;
+				case 0:{
+					int strgb = (canedit)? 0xdd : 0x99;
+					nvgFillColor(args.vg, nvgRGB(strgb, strgb, strgb));
+				}break;
 				case 1:{
 					//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 					nvgBeginPath(args.vg);
@@ -1280,7 +1290,7 @@ struct MidiccDisplay : OpaqueWidget {
 					int rgbint = 0x55 + flashFocus;
 					nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
 					nvgFill(args.vg);
-					nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));
+					nvgFillColor(args.vg, nvgRGB(0xdd, 0xdd, 0xdd));
 				}break;
 				case 2:{
 					nvgBeginPath(args.vg);
@@ -1428,25 +1438,17 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			rvelDisplay->displayID =  dispID ++;;
 			rvelDisplay->module = module;
 			addChild(rvelDisplay);
-			// Transpose LCD
+
+			// trnsp Pitch Bend LCD
 			xPos = 10.5f;
 			yPos = 256.5f;
-			MidiccDisplay *trpDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
-			trpDisplay->box.size = {24.f, 13.f};
-			trpDisplay->displayID =  dispID ++;;
-			trpDisplay->module = module;
-			addChild(trpDisplay);
-			xPos += 25.f;
-			// Pitch Bend LCD
-			xPos = 37.5f;
-			yPos = 256.5f;
-			for ( int i = 0; i < 2; i++){
+			for ( int i = 0; i < 3; i++){
 				MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
 				MccDisplay->box.size = {25.f, 13.f};
 				MccDisplay->displayID =  dispID ++;;
 				MccDisplay->module = module;
 				addChild(MccDisplay);
-				xPos += 25.f;
+				xPos += 28.f - static_cast<float>(i * 3);
 			}
 		}
 		yPos = 150.5f;
