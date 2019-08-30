@@ -5,7 +5,6 @@
 
 struct MIDIdualCV :  Module {
 	enum ParamIds {
-		//RESETMIDI_PARAM,
 		LWRRETRGGMODE_PARAM,
 		UPRRETRGGMODE_PARAM,
 		SUSTAINHOLD_PARAM,
@@ -41,7 +40,6 @@ struct MIDIdualCV :  Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		//RESETMIDI_LIGHT,
 		SUSTHOLD_LIGHT,
 		NUM_LIGHTS
 	};
@@ -104,7 +102,6 @@ struct MIDIdualCV :  Module {
 	
 	dsp::PulseGenerator gatePulseLwr;
 	dsp::PulseGenerator gatePulseUpr;
-	//dsp::SchmittTrigger resetMidiTrigger;
 	
 	int srFrametime; // check midi notes every SR/1000
 	
@@ -127,8 +124,6 @@ struct MIDIdualCV :  Module {
 	
 	void onSampleRateChange() override {
 		setLambdas();
-		slewLwr = 0.f;//zero to refresh rate
-		slewUpr = 0.f;//zero to refresh rate
 	}
 	
 	void setLambdas(){
@@ -140,6 +135,135 @@ struct MIDIdualCV :  Module {
 		sustainFilter.lambda = srSampleTime;
 		pressureFilter.lambda = srSampleTime;
 		pitchFilter.lambda = srSampleTime;
+		slewLwr = 0.f;//zero to refresh rate
+		slewUpr = 0.f;//zero to refresh rate
+	}
+	
+	void resetVoices() {
+		midiActivity = 220;
+		for (int i = 0; i < 128; i++){
+			noteData[i].velocity = 0 ;
+			noteData[i].aftertouch = 0 ;
+		}
+		pressedKeys.clear();
+		
+		pitch = 8192;
+		outputs[PBEND_OUTPUT].setVoltage(0.0f);
+		mod = 0;
+		outputs[MOD_OUTPUT].setVoltage(0.0f);
+		breath = 0;
+		outputs[BREATH_OUTPUT].setVoltage(0.0f);
+		expression = 0;
+		outputs[EXPRESSION_OUTPUT].setVoltage(0.0f);
+		pressure = 0;
+		outputs[PRESSURE_OUTPUT].setVoltage(0.0f);
+		sustain = 0;
+		outputs[SUSTAIN_OUTPUT].setVoltage(0.0f);
+		sustpedal = false;
+	}
+	
+	void onReset() override{
+		resetVoices();
+	}
+	
+	json_t *dataToJson() override {
+		json_t *rootJ = json_object();
+		json_object_set_new(rootJ, "midi", midiInput.toJson());
+		return rootJ;
+	}
+	
+	void dataFromJson(json_t *rootJ) override {
+		json_t *midiJ = json_object_get(rootJ, "midi");
+		if (midiJ)	{
+			json_t* driverJ = json_object_get(midiJ, "driver");
+			if (driverJ) mdriverJx = json_integer_value(driverJ);
+			json_t* deviceNameJ = json_object_get(midiJ, "deviceName");
+			if (deviceNameJ) mdeviceJx = json_string_value(deviceNameJ);
+			json_t* channelJ = json_object_get(midiJ, "channel");
+			if (channelJ) mchannelJx = json_integer_value(channelJ);
+			midiInput.fromJson(midiJ);
+		}
+	}
+	void updateHiLo(){
+		if (!pressedKeys.empty()) {
+			lowerNote.note = *min_element(pressedKeys.begin(),pressedKeys.end());
+			lowerNote.vel = noteData[lowerNote.note].velocity;
+			upperNote.note = *max_element(pressedKeys.begin(),pressedKeys.end());
+			upperNote.vel = noteData[upperNote.note].velocity;
+			anynoteGate = true;
+		}else{
+			anynoteGate = false;
+		}
+	}
+	
+	void processMessage(midi::Message msg) {
+		switch (msg.getStatus()) {
+			case 0x8: { // note off
+				uint8_t note = msg.getNote();
+				noteData[note].velocity = msg.getValue();
+				noteData[note].aftertouch = 0;
+				//pressedKeys.remove(note);
+				auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
+				if (it != pressedKeys.end()) pressedKeys.erase(it);
+				updateHiLo();
+				midiActivity =  msg.getValue();
+			} break;
+			case 0x9: { // note on
+				uint8_t note = msg.getNote();
+				if (msg.getValue() > 0 ) {
+					noteData[note].velocity = msg.getValue();
+					noteData[note].aftertouch = 0;
+					firstNoGlideLwr = (!anynoteGate && (params[SLEW_LOWER_MODE_PARAM].getValue() > 0.5));
+					firstNoGlideUpr = (!anynoteGate  && (params[SLEW_UPPER_MODE_PARAM].getValue() > 0.5));
+					sustpedalgate = sustpedal;
+					pressedKeys.push_back(note);
+				}else {
+					noteData[note].velocity = 64; //if note off through note on vel 0
+					//pressedKeys.remove(note);
+					auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
+					if (it != pressedKeys.end()) pressedKeys.erase(it);
+				}
+				updateHiLo();
+				midiActivity =  msg.getValue();
+			} break;
+			case 0xb: // cc
+				processCC(msg);
+				midiActivity = msg.getValue();
+				break;
+			case 0xe: // pitch wheel
+				pitch = msg.getValue()  * 128 + msg.getNote();
+				midiActivity = msg.getValue();;
+				break;
+			case 0xd: // channel aftertouch
+				pressure = msg.getValue();
+				midiActivity = pressure;
+				break;
+				//case 0xf: ///realtime clock etc
+				//break;
+			default: break;
+		}
+	}
+	
+	void processCC(midi::Message msg) {
+		switch (msg.getNote()) {
+			case 0x01: // mod
+				mod = msg.getValue();
+				break;
+			case 0x02: // breath
+				breath = msg.getValue();
+				break;
+			case 0x0B: // Expression
+				expression = msg.getValue();
+				break;
+			case 0x40: { // sustain
+				sustain = msg.getValue();
+				lights[SUSTHOLD_LIGHT].value = (static_cast<float>(sustain)/128.f) * params[SUSTAINHOLD_PARAM].getValue();
+				sustpedal = ((params[SUSTAINHOLD_PARAM].getValue() > 0.5) && (msg.getValue() > 63));
+				sustpedalgate = anynoteGate && sustpedal;
+			}
+				break;
+			default: break;
+		}
 	}
 	///////////////////         ////           ////          ////         /////////////////////
 	/////////////////   ///////////////  /////////  ////////////  //////  ////////////////////
@@ -230,8 +354,7 @@ struct MIDIdualCV :  Module {
 			}else{
 				outputs[PITCH_OUTPUT_Upr].setVoltage(slewlimiterUpr.process(1.f, upperNote.volt) + pitchtocvUPR);
 			}
-		else
-			outputs[PITCH_OUTPUT_Upr].setVoltage(upperNote.volt + pitchtocvUPR);
+		else outputs[PITCH_OUTPUT_Upr].setVoltage(upperNote.volt + pitchtocvUPR);
 		
 		bool retriggLwr = gatePulseLwr.process(1.f / args.sampleRate);
 		bool retriggUpr = gatePulseUpr.process(1.f / args.sampleRate);
@@ -240,156 +363,18 @@ struct MIDIdualCV :  Module {
 		outputs[RETRIGGATE_OUTPUT_Lwr].setVoltage(gateout && !(retriggLwr)? 10.f : 0.f );
 		outputs[RETRIGGATE_OUTPUT_Upr].setVoltage(gateout && !(retriggUpr)? 10.f : 0.f );
 		outputs[GATE_OUTPUT].setVoltage(gateout ? 10.f : 0.f );
-		
 		outputs[MOD_OUTPUT].setVoltage(modFilter.process(1.f, rescale(mod, 0, 127, 0.f, 10.f)));
 		outputs[BREATH_OUTPUT].setVoltage(breathFilter.process(1.f, rescale(breath, 0, 127, 0.f, 10.f)));
 		outputs[EXPRESSION_OUTPUT].setVoltage(exprFilter.process(1.f, rescale(expression, 0, 127, 0.f, 10.f)));
 		outputs[SUSTAIN_OUTPUT].setVoltage(sustainFilter.process(1.f, rescale(sustain, 0, 127, 0.f, 10.f)));
 		outputs[PRESSURE_OUTPUT].setVoltage(pressureFilter.process(1.f, rescale(pressure, 0, 127, 0.f, 10.f)));
 	
-		///// RESET MIDI LIGHT
-//		if (resetMidiTrigger.process(params[RESETMIDI_PARAM].getValue())) {
-//			lights[RESETMIDI_LIGHT].value= 1.0f;
-//			MidiPanic();
-//			return;
-//		}
-//		if (lights[RESETMIDI_LIGHT].value > 0.0001f){
-//			lights[RESETMIDI_LIGHT].value -= 0.0001f ; // fade out light
-//		}
-		//}
 		if (midiActivity < 0) resetVoices();// resetMidi from MIDI widget;
 	}
 
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
-	void updateHiLo(){
-		if (!pressedKeys.empty()) {
-			lowerNote.note = *min_element(pressedKeys.begin(),pressedKeys.end());
-			lowerNote.vel = noteData[lowerNote.note].velocity;
-			upperNote.note = *max_element(pressedKeys.begin(),pressedKeys.end());
-			upperNote.vel = noteData[upperNote.note].velocity;
-			anynoteGate = true;
-		}else{
-			anynoteGate = false;
-		}
-	}
-	
-	void processMessage(midi::Message msg) {
-		switch (msg.getStatus()) {
-			case 0x8: { // note off
-				uint8_t note = msg.getNote();
-					noteData[note].velocity = msg.getValue();
-					noteData[note].aftertouch = 0;
-					//pressedKeys.remove(note);
-					auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
-					if (it != pressedKeys.end()) pressedKeys.erase(it);
-					updateHiLo();
-					midiActivity =  msg.getValue();
-				} break;
-			case 0x9: { // note on
-					uint8_t note = msg.getNote();
-					if (msg.getValue() > 0 ) {
-						noteData[note].velocity = msg.getValue();
-						noteData[note].aftertouch = 0;
-						firstNoGlideLwr = (!anynoteGate && (params[SLEW_LOWER_MODE_PARAM].getValue() > 0.5));
-						firstNoGlideUpr = (!anynoteGate  && (params[SLEW_UPPER_MODE_PARAM].getValue() > 0.5));
-						sustpedalgate = sustpedal;
-						pressedKeys.push_back(note);
-					}else {
-						noteData[note].velocity = 64; //if note off through note on vel 0
-						//pressedKeys.remove(note);
-						auto it = std::find(pressedKeys.begin(), pressedKeys.end(), note);
-						if (it != pressedKeys.end()) pressedKeys.erase(it);
-					}
-					updateHiLo();
-					midiActivity =  msg.getValue();
-				} break;
-			case 0xb: // cc
-				processCC(msg);
-				midiActivity = msg.getValue();
-				break;
-			case 0xe: // pitch wheel
-				pitch = msg.getValue()  * 128 + msg.getNote();
-				midiActivity = msg.getValue();;
-				break;
-			case 0xd: // channel aftertouch
-				pressure = msg.getValue();
-				midiActivity = pressure;
-				break;
-//		  case 0xf: ///realtime clock etc
-//			  processSystem(msg);
-//			  break;
-			default: break;
-		}
-	}
-
-	void processCC(midi::Message msg) {
-		switch (msg.getNote()) {
-			case 0x01: // mod
-				mod = msg.getValue();
-				break;
-			case 0x02: // breath
-				breath = msg.getValue();
-				break;
-			case 0x0B: // Expression
-				expression = msg.getValue();
-				break;
-			case 0x40: { // sustain
-				sustain = msg.getValue();
-				lights[SUSTHOLD_LIGHT].value = (static_cast<float>(sustain)/128.f) * params[SUSTAINHOLD_PARAM].getValue();
-				sustpedal = ((params[SUSTAINHOLD_PARAM].getValue() > 0.5) && (msg.getValue() > 63));
-				sustpedalgate = anynoteGate && sustpedal;
-				}
-				break;
-			default: break;
-		}
-	}
-
-	void resetVoices() {
-		midiActivity = 256;
-		for (int i = 0; i < 128; i++){
-			noteData[i].velocity = 0 ;
-			noteData[i].aftertouch = 0 ;
-		}
-		pressedKeys.clear();
-		
-		pitch = 8192;
-		outputs[PBEND_OUTPUT].setVoltage(0.0f);
-		mod = 0;
-		outputs[MOD_OUTPUT].setVoltage(0.0f);
-		breath = 0;
-		outputs[BREATH_OUTPUT].setVoltage(0.0f);
-		expression = 0;
-		outputs[EXPRESSION_OUTPUT].setVoltage(0.0f);
-		pressure = 0;
-		outputs[PRESSURE_OUTPUT].setVoltage(0.0f);
-		sustain = 0;
-		outputs[SUSTAIN_OUTPUT].setVoltage(0.0f);
-		sustpedal = false;
-	}
-	void onReset() override{
-		resetVoices();
-	}
-	
-	json_t *dataToJson() override {
-		json_t *rootJ = json_object();
-		json_object_set_new(rootJ, "midi", midiInput.toJson());
-		return rootJ;
-	}
-
-	void dataFromJson(json_t *rootJ) override {
-		json_t *midiJ = json_object_get(rootJ, "midi");
-		if (midiJ)	{
-			json_t* driverJ = json_object_get(midiJ, "driver");
-			if (driverJ) mdriverJx = json_integer_value(driverJ);
-			json_t* deviceNameJ = json_object_get(midiJ, "deviceName");
-			if (deviceNameJ) mdeviceJx = json_string_value(deviceNameJ);
-			json_t* channelJ = json_object_get(midiJ, "channel");
-			if (channelJ) mchannelJx = json_integer_value(channelJ);
-			midiInput.fromJson(midiJ);
-		}
-	}
 };
 
 ////

@@ -114,7 +114,8 @@ struct MIDIpolyMPE : Module {
 	int mpeZcc = 128; //128 = ChannelAfterTouch (default MPE Z)
 	int displayYcc = 74;
 	int displayZcc = 128;
-	int learnIx = 0;
+	int learnCC = 0;
+	int learnNote = 0;
 	int cursorIx = 0;
 	int const numPolycur = 6;
 	int selectedmidich = 0;
@@ -232,7 +233,7 @@ struct MIDIpolyMPE : Module {
 		float lambdaf = 100.f * APP->engine->getSampleTime();
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].value = 0.f;
-		midiActivity = 64;
+		midiActivity = 220;
 		for (int i = 0; i < 16; i++) {
 			notes[i] = 60;
 			gates[i] = false;
@@ -265,8 +266,8 @@ struct MIDIpolyMPE : Module {
 			displayYcc = 130;
 			displayZcc = 129;
 		}
-		learnIx = 0;
-		
+		learnCC = 0;
+		learnNote = 0;
 		for (int i=0; i < 8; i++){
 			MCCsFilter[i].lambda = lambdaf;
 			midiCCsVal[i] = 0;
@@ -300,7 +301,6 @@ struct MIDIpolyMPE : Module {
 		MPEmasterCh = 0;// 0 ~ 15
 		displayYcc = 74;
 		displayZcc = 128;
-		//learnIx = 0;
 		cursorIx = 0;
 		polyModeIx = ROTATE_MODE;
 	}
@@ -327,6 +327,30 @@ struct MIDIpolyMPE : Module {
 		return stealIndex;
 	}
 	void pressNote(uint8_t channel, uint8_t note, uint8_t vel) {
+		switch (learnNote){
+			case 0:
+				break;
+			case 1:{
+				noteMin = note;
+				if (noteMax < note) noteMax = note;
+				learnNote = 0;
+				}break;
+			case 2:{
+				noteMax = note;
+				if (noteMin > note) noteMin = note;
+				learnNote = 0;
+			}break;
+			case 3:{
+				velMin = vel;
+				if (velMax < vel) velMax = vel;
+				learnNote = 0;
+			}break;
+			case 4:{
+				velMax = vel;
+				if (velMin > vel) velMin = vel;
+				learnNote = 0;
+			}break;
+		}
 		if (note < noteMin) return;
 		if (note > noteMax) return;
 		if (vel < velMin) return;
@@ -370,7 +394,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 1000  - 500) * driftcents) / 1200000.f;
+					drift[i] = static_cast<float>(rand() % 200  - 100) * static_cast<float>(driftcents) / 120000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -384,7 +408,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 1000  - 500) * driftcents) / 1200000.f;
+					drift[i] = static_cast<float>(rand() % 200  - 100) * static_cast<float>(driftcents) / 120000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -398,7 +422,7 @@ struct MIDIpolyMPE : Module {
 					vels[i] = vel;
 					gates[i] = true;
 					pedalgates[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 1000  - 500) * driftcents) / 1200000.f;
+					drift[i] = static_cast<float>(rand() % 200  - 100) * static_cast<float>(driftcents) / 120000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				return;
@@ -548,7 +572,7 @@ struct MIDIpolyMPE : Module {
 	void releasePedal() {
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].value = 0.f;
-		// When pedal is off, recover notes for pressed keys (if any) after they were already being "cycled" out by pedal-sustained notes.
+		// When pedal is off, recover notes for pressed keys (if any) after they were already being shut by pedal-sustained notes.
 		if (polyModeIx < ROTATE_MODE) {
 			for (int i = 0; i < 16; i++) {
 				pedalgates[i] = false;
@@ -606,12 +630,11 @@ struct MIDIpolyMPE : Module {
 				noteData[msg.getNote()].aftertouch = msg.getValue();
 				midiActivity = msg.getValue();
 			} break;
-				
 				// channel aftertouch
 			case 0xd: {
-				if (learnIx > 0) {// learn enabled ???
-					midiCCs[learnIx - 1] = 129;
-					learnIx = 0;
+				if (learnCC > 0) {// learn enabled ???
+					midiCCs[learnCC - 1] = 129;
+					learnCC = 0;
 					return;
 				}////////////////////////////////////////
 				else if (polyModeIx < ROTATE_MODE){
@@ -633,9 +656,9 @@ struct MIDIpolyMPE : Module {
 			} break;
 				// pitch Bend
 			case 0xe:{
-				if (learnIx > 0) {// learn enabled ???
-					midiCCs[learnIx - 1] = 128;
-					learnIx = 0;
+				if (learnCC > 0) {// learn enabled ???
+					midiCCs[learnCC - 1] = 128;
+					learnCC = 0;
 					return;
 				}////////////////////////////////////////
 				else if (polyModeIx < ROTATE_MODE){
@@ -652,9 +675,9 @@ struct MIDIpolyMPE : Module {
 				// cc
 			case 0xb: {
 				///////// LEARN CC   ???
-				if (learnIx > 0) {
-					midiCCs[learnIx - 1] = msg.getNote();
-					learnIx = 0;
+				if (learnCC > 0) {
+					midiCCs[learnCC - 1] = msg.getNote();
+					learnCC = 0;
 					return;
 				}else if (polyModeIx < ROTATE_MODE){
 					if (msg.getChannel() == MPEmasterCh){
@@ -764,7 +787,7 @@ struct MIDIpolyMPE : Module {
 				else midiCCs[cursorIx - numPolycur - 6] = 0;
 			}break;
 		}
-		learnIx = 0;
+		learnCC = 0;
 		return;
 	}
 	void dataMinus(){
@@ -837,7 +860,7 @@ struct MIDIpolyMPE : Module {
 				else midiCCs[cursorIx - numPolycur - 6] = 128;
 			}break;
 		}
-		learnIx = 0;
+		learnCC = 0;
 		return;
 	}
 
@@ -948,8 +971,6 @@ struct PolyModeDisplay : TransparentWidget {
 	std::string snoteMax = "";
 	std::string svelMin = "";
 	std::string svelMax = "";
-	std::string notes = "N:";
-	std::string vels = "V:";
 	std::string yyDisplay = "";
 	std::string zzDisplay = "";
 	std::shared_ptr<Font> font;
@@ -970,7 +991,7 @@ struct PolyModeDisplay : TransparentWidget {
 	int drawFrame = 0;
 	int cursorIxI = 0;
 	int flashFocus = 0;
-
+	int rgblrn, gb1, gb2, gb3, gb4;
 	
 	void draw(const DrawArgs &args) override {
 		int *p_cursorIx = &module->cursorIx;
@@ -982,10 +1003,65 @@ struct PolyModeDisplay : TransparentWidget {
 			}else{
 				sVo = "Polyphony "+ std::to_string(module->numVo);
 			}
-			snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
-			snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
-			svelMin = std::to_string(module->velMin);
-			svelMax = std::to_string(module->velMax);
+			switch (module->learnNote) {
+				case 0:{
+					rgblrn = 0x55;
+					gb1 = 0xcc;
+					gb2 = 0xcc;
+					gb3 = 0xcc;
+					gb4 = 0xcc;
+					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
+					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
+					svelMin = std::to_string(module->velMin);
+					svelMax = std::to_string(module->velMax);
+					
+				} break;
+				case 1:{
+					rgblrn = 0;
+					gb1 = 0;
+					gb2 = 0xcc;
+					gb3 = 0xcc;
+					gb4 = 0xcc;
+					snoteMin = "min";
+					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
+					svelMin = std::to_string(module->velMin);
+					svelMax = std::to_string(module->velMax);
+				}break;
+				case 2:{
+					rgblrn = 0;
+					gb1 = 0xcc;
+					gb2 = 0;
+					gb3 = 0xcc;
+					gb4 = 0xcc;
+					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
+					snoteMax = "max";
+					svelMin = std::to_string(module->velMin);
+					svelMax = std::to_string(module->velMax);
+				}break;
+				case 3:{
+					rgblrn = 0;
+					gb1 = 0xcc;
+					gb2 = 0xcc;
+					gb3 = 0;
+					gb4 = 0xcc;
+					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
+					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
+					svelMin = "min";
+					svelMax = std::to_string(module->velMax);
+				}break;
+				case 4:{
+					rgblrn = 0;
+					gb1 = 0xcc;
+					gb2 = 0xcc;
+					gb3 = 0xcc;
+					gb4 = 0;
+					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
+					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
+					svelMin = std::to_string(module->velMin);
+					svelMax = "max";
+				}break;
+			}
+
 			if (cursorIxI != *p_cursorIx){
 				cursorIxI = *p_cursorIx;
 				flashFocus = 64;
@@ -995,16 +1071,23 @@ struct PolyModeDisplay : TransparentWidget {
 		nvgFontFaceId(args.vg, font->handle);
 		nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));//Text
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		nvgTextBox(args.vg, 1.f, 11.0f,134.f, sMode.c_str(), NULL);
-		nvgTextBox(args.vg, 1.f, 24.f,134.f, sVo.c_str(), NULL);
-		nvgTextBox(args.vg, 2.f, 37.f,12.f, "N:", NULL);
-		nvgTextBox(args.vg, 14.f, 37.f,30.f, snoteMin.c_str(), NULL);
-		nvgTextBox(args.vg, 44.f, 37.f,30.f, snoteMax.c_str(), NULL);
-		nvgTextBox(args.vg, 78.f, 37.f,12.f, "V:", NULL);
-		nvgTextBox(args.vg, 90.f, 37.f,22.f, svelMin.c_str(), NULL);
-		nvgTextBox(args.vg, 112.f, 37.f,22.f, svelMax.c_str(), NULL);
+		nvgTextBox(args.vg, 1.f, 11.0f, 134.f, sMode.c_str(), NULL);
+		nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(0xcc,gb1 & gb2, gb1 & gb2));
+		nvgTextBox(args.vg, 1.f, 37.f, 16.f, "nte:", NULL);
+		nvgFillColor(args.vg, nvgRGB(0xcc,gb1, gb1));
+		nvgTextBox(args.vg, 17.f, 37.f, 30.f, snoteMin.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(0xcc,gb2, gb2));
+		nvgTextBox(args.vg, 47.f, 37.f, 30.f, snoteMax.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(0xcc,gb3 & gb4, gb3 & gb4));
+		nvgTextBox(args.vg, 77.f, 37.f, 16.f, "vel:", NULL);
+		nvgFillColor(args.vg, nvgRGB(0xcc,gb3, gb3));
+		nvgTextBox(args.vg, 93.f, 37.f, 20.f, svelMin.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(0xcc,gb4, gb4));
+		nvgTextBox(args.vg, 113.f, 37.f, 20.f, svelMax.c_str(), NULL);
 		nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 		nvgBeginPath(args.vg);
+		int rgblrn = (module->learnNote)? 0 : 0x55;
 		switch (cursorIxI){
 			case 0:{
 			}break;
@@ -1015,29 +1098,42 @@ struct PolyModeDisplay : TransparentWidget {
 				nvgRoundedRect(args.vg, 1.f, 14.f, 134.f, 12.f, 3.f);
 			}break;
 			case 3:{ //minNote
-				nvgRoundedRect(args.vg, 15.f, 28.f, 28.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 18.f, 28.f, 29.f, 12.f, 3.f);
 			}break;
 			case 4:{ //maxNote
-				nvgRoundedRect(args.vg, 45.f, 28.f, 28.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 47.f, 28.f, 29.f, 12.f, 3.f);
 			}break;
 			case 5:{ //minVel
-				nvgRoundedRect(args.vg, 91.f, 28.f, 20.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 92.f, 28.f, 20.f, 12.f, 3.f);
 			}break;
 			case 6:{ //maxVel
-				nvgRoundedRect(args.vg, 113.f, 28.f, 20.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 112.f, 28.f, 20.f, 12.f, 3.f);
 			}break;
 		}
 		if (flashFocus > 0)	flashFocus -= 2;
 		int rgbint = 0x55 + flashFocus;
-		nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
+		rgblrn = rgblrn + flashFocus;
+		nvgFillColor(args.vg, nvgRGB(rgbint,rgblrn,rgblrn)); //SELECTED
 		nvgFill(args.vg);
 	}
 	void onButton(const event::Button &e) override {
 		if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 			int i = static_cast<int>(e.pos.y / 13.f) + 1;
-			if (i > 2) i += static_cast<int>(e.pos.x /34.f);
-			if (module->cursorIx == i) module->cursorIx = 0;
-			else module->cursorIx = i;
+			if (i > 2) {
+				i += static_cast<int>(e.pos.x / 34.f);
+				if (module->cursorIx != i){
+					module->cursorIx = i;
+					module->learnNote = 0;
+				} else if (module->learnNote != i - 2)	module->learnNote = i - 2;
+				else {
+					module->learnNote = 0;
+					module->cursorIx = 0;
+				}
+			} else {
+				module->learnNote = 0;
+				if (module->cursorIx != i)	module->cursorIx = i;
+				else module->cursorIx = 0;
+			}
 		}
 	}
 };
@@ -1078,7 +1174,7 @@ struct MidiccDisplay : OpaqueWidget {
 						if ((driftcents != module->driftcents) || (polychanged != module->polyModeIx)) {
 							driftcents = module->driftcents;
 							polychanged = module->polyModeIx;
-							sDisplay = "rnd " + std::to_string(module->driftcents);
+							sDisplay = "+-" + std::to_string(module->driftcents) + "ct";
 						}
 						canedit = true;
 					}
@@ -1137,7 +1233,7 @@ struct MidiccDisplay : OpaqueWidget {
 						displayedCC();
 					}
 					canlearn = true;
-					if ((mymode==2) && (module->learnIx == 0)) {
+					if ((mymode==2) && (module->learnCC == 0)) {
 						mymode = 0;
 						displayedCC();
 					}
@@ -1147,7 +1243,7 @@ struct MidiccDisplay : OpaqueWidget {
 				focusOn = false;
 				if (mymode == 2) {
 					displayedCC();
-					module->learnIx = 0;
+					module->learnCC = 0;
 				}
 				mymode = 0;
 			}
@@ -1189,17 +1285,17 @@ struct MidiccDisplay : OpaqueWidget {
 				focusOn = false;
 				if (canlearn) displayedCC();
 				module->cursorIx = 0;
-				module->learnIx = 0;
+				module->learnCC = 0;
 			}break;
 			case 1:{
 				module->cursorIx = displayID + module->numPolycur;
-				//module->learnIx = 0;
+				//module->learnCC = 0;
 				flashFocus = 64;
 				focusOn = true;
 			}break;
 			case 2:{
 				sDisplay = "LRN";
-				module->learnIx = displayID - 5;
+				module->learnCC = displayID - 5;
 			}break;
 		}
 	}

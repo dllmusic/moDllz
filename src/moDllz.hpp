@@ -7,7 +7,8 @@
 #include "midiDllz.hpp"
 
 #define FONT_FILE asset::plugin(pluginInstance, "res/bold_led_board-7.ttf")
-#define mFONT_FILE asset::plugin(pluginInstance, "res/ShareTechMono-Regular.ttf")
+//#define mFONT_FILE asset::plugin(pluginInstance, "res/ShareTechMono-Regular.ttf")
+#define mFONT_FILE asset::plugin(pluginInstance, "res/Gidolinya-Regular.ttf")
 
 using namespace rack;
 
