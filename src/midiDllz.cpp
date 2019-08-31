@@ -134,7 +134,7 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			drawframe = 0;
 			mdriver = midiInput->getDriverName(midiInput->driverId);
 			if (midiInput->deviceId > -1){
-				textColor = nvgRGB(0x90,0x90,0x90);
+				textColor = nvgRGB(0xbb,0xbb,0xbb);
 				mdevice = midiInput->getDeviceName(midiInput->deviceId);
 				if (i_mpeOff > 1) {
 					if (midiInput->channel < 0) mchannel = "ALLch";

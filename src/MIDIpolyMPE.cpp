@@ -1006,130 +1006,138 @@ struct PolyModeDisplay : TransparentWidget {
 	int drawFrame = 0;
 	int cursorIxI = 0;
 	int flashFocus = 0;
-	int rgblrn, gb1, gb2, gb3, gb4;
+	int lrnflash = 0x55;
+	const int rgbx = 0xdd;
+	int rgblrn, gb1, gb2, gb3, gb4, gb1f, gb2f, gb3f, gb4f;
+	int rgbf1 = 0xdd;
+	int rgbf2 = 0xdd;
+//	
+//	NVGcolor txtColor = nvgRGB(rgbx,rgbx,rgbx);
+//	NVGcolor fcsColor = nvgRGB(rgbx,rgbx,rgbx);
+//	NVGcolor lrnColor = nvgRGB(rgbx,rgbx,rgbx);
 	
 	void draw(const DrawArgs &args) override {
-		int *p_cursorIx = &module->cursorIx;
-		if (drawFrame ++ > 5){
-			drawFrame = 0;
-			sMode = polyModeStr[module->polyModeIx];
-			if (module->polyModeIx < 2){
-				sVo =  "channel PBend:" + std::to_string(module->pbMPE);
-			}else{
-				sVo = "Polyphony "+ std::to_string(module->numVo);
-			}
-			switch (module->learnNote) {
-				case 0:{
-					rgblrn = 0x55;
-					gb1 = 0xcc;
-					gb2 = 0xcc;
-					gb3 = 0xcc;
-					gb4 = 0xcc;
-					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
-					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
-					svelMin = std::to_string(module->velMin);
-					svelMax = std::to_string(module->velMax);
-					
-				} break;
-				case 1:{
-					rgblrn = 0;
-					gb1 = 0;
-					gb2 = 0xcc;
-					gb3 = 0xcc;
-					gb4 = 0xcc;
-					snoteMin = "LRN";
-					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
-					svelMin = std::to_string(module->velMin);
-					svelMax = std::to_string(module->velMax);
-				}break;
-				case 2:{
-					rgblrn = 0;
-					gb1 = 0xcc;
-					gb2 = 0;
-					gb3 = 0xcc;
-					gb4 = 0xcc;
-					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
-					snoteMax = "LRN";
-					svelMin = std::to_string(module->velMin);
-					svelMax = std::to_string(module->velMax);
-				}break;
-				case 3:{
-					rgblrn = 0;
-					gb1 = 0xcc;
-					gb2 = 0xcc;
-					gb3 = 0;
-					gb4 = 0xcc;
-					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
-					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
-					svelMin = "LRN";
-					svelMax = std::to_string(module->velMax);
-				}break;
-				case 4:{
-					rgblrn = 0;
-					gb1 = 0xcc;
-					gb2 = 0xcc;
-					gb3 = 0xcc;
-					gb4 = 0;
-					snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
-					snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
-					svelMin = std::to_string(module->velMin);
-					svelMax = "LRN";
-				}break;
-			}
-
-			if (cursorIxI != *p_cursorIx){
-				cursorIxI = *p_cursorIx;
-				flashFocus = 64;
-			}
+		if (cursorIxI != module->cursorIx){
+			cursorIxI = module->cursorIx;
+			flashFocus = 64;
 		}
-		nvgFontSize(args.vg, mdfontSize);
-		nvgFontFaceId(args.vg, font->handle);
-		nvgFillColor(args.vg, nvgRGB(0xcc, 0xcc, 0xcc));//Text
-		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		nvgTextBox(args.vg, 1.f, 11.0f, 134.f, sMode.c_str(), NULL);
-		nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
-		nvgFillColor(args.vg, nvgRGB(0xcc,gb1 & gb2, gb1 & gb2));
-		nvgTextBox(args.vg, 1.f, 37.f, 16.f, "nte:", NULL);
-		nvgFillColor(args.vg, nvgRGB(0xcc,gb1, gb1));
-		nvgTextBox(args.vg, 17.f, 37.f, 30.f, snoteMin.c_str(), NULL);
-		nvgFillColor(args.vg, nvgRGB(0xcc,gb2, gb2));
-		nvgTextBox(args.vg, 47.f, 37.f, 30.f, snoteMax.c_str(), NULL);
-		nvgFillColor(args.vg, nvgRGB(0xcc,gb3 & gb4, gb3 & gb4));
-		nvgTextBox(args.vg, 77.f, 37.f, 16.f, "vel:", NULL);
-		nvgFillColor(args.vg, nvgRGB(0xcc,gb3, gb3));
-		nvgTextBox(args.vg, 93.f, 37.f, 20.f, svelMin.c_str(), NULL);
-		nvgFillColor(args.vg, nvgRGB(0xcc,gb4, gb4));
-		nvgTextBox(args.vg, 113.f, 37.f, 20.f, svelMax.c_str(), NULL);
-		nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
-		nvgBeginPath(args.vg);
-		int rgblrn = (module->learnNote)? 0 : 0x55;
+		sMode = polyModeStr[module->polyModeIx];
+		if (module->polyModeIx < 2){
+			sVo =  "Vo chnl PBend :" + std::to_string(module->pbMPE);
+		}else{
+			sVo = "Voice channels :"+ std::to_string(module->numVo);
+		}
+		snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
+		snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
+		svelMin = std::to_string(module->velMin);
+		svelMax = std::to_string(module->velMax);
+		gb1 = rgbx;
+		gb2 = rgbx;
+		gb3 = rgbx;
+		gb4 = rgbx;
+		rgbf1 = rgbx;
+		rgbf2 = rgbx;
+		gb1f = rgbx;
+		gb2f = rgbx;
+		gb3f = rgbx;
+		gb4f = rgbx;
+		rgblrn =  0x55;
 		switch (cursorIxI){
 			case 0:{
+				goto noFocus;
 			}break;
 			case 1:{ // PolyMode
+				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 1.f, 1.f, 134.f, 12.f, 3.f);
+				lrnflash = 0x55;
+				rgbf1 = 0;
 			}break;
 			case 2:{ //numVoices/PB MPE
+				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 1.f, 14.f, 134.f, 12.f, 3.f);
+				lrnflash = 0x55;
+				rgbf2 = 0;
 			}break;
 			case 3:{ //minNote
+				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 18.f, 28.f, 29.f, 12.f, 3.f);
+				gb1f = 0;
+				if (module->learnNote == 1) {
+					snoteMin = "LRN";
+					if ((lrnflash += 16) > 255) lrnflash = 0;
+					gb1 = 0;
+					rgblrn = 0;
+				}else{
+					lrnflash = 0x55;
+				}
 			}break;
 			case 4:{ //maxNote
+				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 47.f, 28.f, 29.f, 12.f, 3.f);
+				gb2f = 0;
+				if (module->learnNote == 2) {
+					snoteMax = "LRN";
+					if ((lrnflash += 16) > 255) lrnflash = 0;
+					gb2 = 0;
+					rgblrn = 0;
+				}else{
+					lrnflash = 0x55;
+				}
 			}break;
 			case 5:{ //minVel
+				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 92.f, 28.f, 20.f, 12.f, 3.f);
+				gb3f = 0;
+				if (module->learnNote == 3) {
+					svelMin = "LRN";
+					if ((lrnflash += 16) > 255) lrnflash = 0;
+					gb3 = 0;
+					rgblrn = 0;
+				}else{
+					lrnflash = 0x55;
+				}
 			}break;
 			case 6:{ //maxVel
+				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 112.f, 28.f, 20.f, 12.f, 3.f);
+				gb4f = 0;
+				if (module->learnNote == 4) {
+					svelMax = "LRN";
+					if ((lrnflash += 16) > 255) lrnflash = 0;
+					gb4 = 0;
+					rgblrn = 0;
+				}else{
+					lrnflash = 0x55;
+				}
 			}break;
+			default:{
+				goto noFocus;
+			}
 		}
-		if (flashFocus > 0)	flashFocus -= 2;
-		int rgbint = 0x55 + flashFocus;
-		rgblrn = rgblrn + flashFocus;
-		nvgFillColor(args.vg, nvgRGB(rgbint,rgblrn,rgblrn)); //SELECTED
+		if (flashFocus > 0)	flashFocus --;
+		nvgFillColor(args.vg, nvgRGBA(lrnflash + flashFocus, rgblrn + flashFocus, 0, 0xc0)); //SELECTED
 		nvgFill(args.vg);
+//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+	noFocus:
+		nvgFontSize(args.vg, mdfontSize);
+		nvgFontFaceId(args.vg, font->handle);
+		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf1));//color1
+		nvgTextBox(args.vg, 1.f, 11.0f, 134.f, sMode.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf2));//color2
+		nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, gb1 & gb2, gb1f & gb2f));
+		nvgTextBox(args.vg, 1.f, 37.f, 16.f, "nte:", NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, gb1, gb1f));
+		nvgTextBox(args.vg, 17.f, 37.f, 30.f, snoteMin.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, gb2, gb2f));
+		nvgTextBox(args.vg, 47.f, 37.f, 30.f, snoteMax.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, gb3 & gb4, gb3f & gb4f));
+		nvgTextBox(args.vg, 77.f, 37.f, 16.f, "vel:", NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, gb3, gb3f));
+		nvgTextBox(args.vg, 93.f, 37.f, 20.f, svelMin.c_str(), NULL);
+		nvgFillColor(args.vg, nvgRGB(rgbx, gb4, gb4f));
+		nvgTextBox(args.vg, 113.f, 37.f, 20.f, svelMax.c_str(), NULL);
 	}
 	void onButton(const event::Button &e) override {
 		if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
@@ -1280,26 +1288,22 @@ struct MidiccDisplay : OpaqueWidget {
 					nvgFillColor(args.vg, nvgRGB(strgb, strgb, strgb));
 				}break;
 				case 1:{
-					//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 					nvgBeginPath(args.vg);
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-					//nvgStrokeColor(args.vg, nvgRGB(0x66, 0x66, 0x66));
-					//nvgStroke(args.vg);
 					if (flashFocus > 0) flashFocus -= 2;
 					nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
-					int rgbint = 0x55 + flashFocus;
-					nvgFillColor(args.vg, nvgRGB(rgbint,rgbint,rgbint)); //SELECTED
+					nvgFillColor(args.vg, nvgRGBA(0x64 + flashFocus, 0x64 + flashFocus , 0, 0xc0)); //SELECTED
 					nvgFill(args.vg);
-					nvgFillColor(args.vg, nvgRGB(0xdd, 0xdd, 0xdd));
+					nvgFillColor(args.vg, nvgRGB(0xff, 0xff, 0));
 				}break;
 				case 2:{
+					static int lrncol = 0;
+					if ((lrncol += 16) > 255) lrncol = 0;
 					nvgBeginPath(args.vg);
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
-					//nvgStrokeColor(args.vg, nvgRGB(0xdd, 0x0, 0x0));
-					//nvgStroke(args.vg);
-					nvgFillColor(args.vg, nvgRGBA(0xcc, 0x0, 0x0,0x64));
+					nvgFillColor(args.vg, nvgRGBA(lrncol, 0, 0, 0xc0));
 					nvgFill(args.vg);
-					nvgFillColor(args.vg, nvgRGB(0xff, 0x00, 0x00));//LEARN
+					nvgFillColor(args.vg, nvgRGB(0xff , 0, 0));//LEARN
 				}break;
 			}
 		nvgTextBox(args.vg, 0.f, 10.f,box.size.x, sDisplay.c_str(), NULL);
@@ -1458,7 +1462,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			addChild(createLight<TinyLight<RedLight>>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
 		}
 		xPos = 57.f;
-		yPos = 107.f;
+		yPos = 107.5f;
 		////DATA KNOB + -
 		addParam(createParam<springDataKnobB>(Vec(xPos, yPos), module, MIDIpolyMPE::DATAKNOB_PARAM));
 		yPos = 113.5f;
@@ -1495,7 +1499,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		xPos = 116.f;
 		addOutput(createOutput<moDllzPortG>(Vec(xPos, yPos),  module, MIDIpolyMPE::PBEND_OUTPUT));
 		// CC's x 8
-		yPos = 282.f;
+		yPos = 283.f;
 		for ( int r = 0; r < 2; r++){
 			xPos = 10.5f;
 			for ( int i = 0; i < 4; i++){
