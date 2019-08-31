@@ -13,16 +13,6 @@
 	"donateUrl": "",
 	"modules": [
 		{
-			"slug": "MIDIdualCV",
-			"name": "MIDIdualCV",
-			"description": "MIDI to Duophonic CV (Lower - Upper notes)",
-			"tags": [
-				"MIDI",
-				"External",
-				"Dual"
-			]
-		},
-		{
 			"slug": "MIDIpolyMPE",
 			"name": "MIDIpolyMPE",
 			"description": "Polyphonic MIDI with MPE mode",
@@ -31,6 +21,16 @@
 				"External",
 				"Multiple",
 				"Polyphonic"
+			]
+		},
+		{
+			"slug": "MIDIdualCV",
+			"name": "MIDIdualCV",
+			"description": "MIDI to Duophonic CV (Lower - Upper notes)",
+			"tags": [
+				"MIDI",
+				"External",
+				"Dual"
 			]
 		},
 		{
