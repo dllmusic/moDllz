@@ -1010,10 +1010,6 @@ struct PolyModeDisplay : TransparentWidget {
 	unsigned char rgblrn, gb1, gb2, gb3, gb4, gb1f, gb2f, gb3f, gb4f;
 	unsigned char rgbf1 = 0xdd;
 	unsigned char rgbf2 = 0xdd;
-//	
-//	NVGcolor txtColor = nvgRGB(rgbx,rgbx,rgbx);
-//	NVGcolor fcsColor = nvgRGB(0xff,0xff,0);
-//	NVGcolor lrnColor = nvgRGB(0xff,0,0);
 	
 	void draw(const DrawArgs &args) override {
 		if (cursorIxI != module->cursorIx){
@@ -1022,9 +1018,9 @@ struct PolyModeDisplay : TransparentWidget {
 		}
 		sMode = polyModeStr[module->polyModeIx];
 		if (module->polyModeIx < 2){
-			sVo =  "Vo chnl PBend :" + std::to_string(module->pbMPE);
+			sVo =  "Vo chnl PBend: " + std::to_string(module->pbMPE);
 		}else{
-			sVo = "Voice channels :"+ std::to_string(module->numVo);
+			sVo = "Voice channels: "+ std::to_string(module->numVo);
 		}
 		snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
 		snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
@@ -1059,7 +1055,7 @@ struct PolyModeDisplay : TransparentWidget {
 			}break;
 			case 3:{ //minNote
 				nvgBeginPath(args.vg);
-				nvgRoundedRect(args.vg, 18.f, 28.f, 29.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 19.f, 28.f, 29.f, 12.f, 3.f);
 				gb1f = 0;
 				if (module->learnNote == 1) {
 					snoteMin = "LRN";
@@ -1072,7 +1068,7 @@ struct PolyModeDisplay : TransparentWidget {
 			}break;
 			case 4:{ //maxNote
 				nvgBeginPath(args.vg);
-				nvgRoundedRect(args.vg, 47.f, 28.f, 29.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 48.f, 28.f, 29.f, 12.f, 3.f);
 				gb2f = 0;
 				if (module->learnNote == 2) {
 					snoteMax = "LRN";
@@ -1085,7 +1081,7 @@ struct PolyModeDisplay : TransparentWidget {
 			}break;
 			case 5:{ //minVel
 				nvgBeginPath(args.vg);
-				nvgRoundedRect(args.vg, 92.f, 28.f, 20.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 93.f, 28.f, 20.f, 12.f, 3.f);
 				gb3f = 0;
 				if (module->learnNote == 3) {
 					svelMin = "LRN";
@@ -1098,7 +1094,7 @@ struct PolyModeDisplay : TransparentWidget {
 			}break;
 			case 6:{ //maxVel
 				nvgBeginPath(args.vg);
-				nvgRoundedRect(args.vg, 112.f, 28.f, 20.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 113.f, 28.f, 20.f, 12.f, 3.f);
 				gb4f = 0;
 				if (module->learnNote == 4) {
 					svelMax = "LRN";
@@ -1126,11 +1122,11 @@ struct PolyModeDisplay : TransparentWidget {
 		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf2));
 		nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
 		nvgFillColor(args.vg, nvgRGB(rgbx, gb1 & gb2, gb1f & gb2f));
-		nvgTextBox(args.vg, 1.f, 37.f, 16.f, "nte:", NULL);
+		nvgTextBox(args.vg, 1.f, 37.f, 18.f, "nte:", NULL);
 		nvgFillColor(args.vg, nvgRGB(rgbx, gb1, gb1f));
-		nvgTextBox(args.vg, 17.f, 37.f, 30.f, snoteMin.c_str(), NULL);
+		nvgTextBox(args.vg, 19.f, 37.f, 29.f, snoteMin.c_str(), NULL);
 		nvgFillColor(args.vg, nvgRGB(rgbx, gb2, gb2f));
-		nvgTextBox(args.vg, 47.f, 37.f, 30.f, snoteMax.c_str(), NULL);
+		nvgTextBox(args.vg, 48.f, 37.f, 29.f, snoteMax.c_str(), NULL);
 		nvgFillColor(args.vg, nvgRGB(rgbx, gb3 & gb4, gb3f & gb4f));
 		nvgTextBox(args.vg, 77.f, 37.f, 16.f, "vel:", NULL);
 		nvgFillColor(args.vg, nvgRGB(rgbx, gb3, gb3f));
