@@ -50,6 +50,7 @@ struct MIDIdualCV :  Module {
 	int midiActivity = 0;
 	int mdriverJx = 0 , mchannelJx = 0;
 	std::string mdeviceJx = "-";
+	bool resetMidi = false;
 	/////
 	int polyModeIx = 2;// 0 and 1 are MPE
 	
@@ -121,11 +122,11 @@ struct MIDIdualCV :  Module {
 		configParam(SUSTAINHOLD_PARAM, 0.0, 1.0, 1.0);
 		setLambdas();
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void onSampleRateChange() override {
 		setLambdas();
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void setLambdas(){
 		srFrametime = APP->engine->getSampleRate() / 1000 ;
 		float srSampleTime = APP->engine->getSampleTime() * 100.f;
@@ -138,9 +139,8 @@ struct MIDIdualCV :  Module {
 		slewLwr = 0.f;//zero to refresh rate
 		slewUpr = 0.f;//zero to refresh rate
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void resetVoices() {
-		midiActivity = 220;
 		for (int i = 0; i < 128; i++){
 			noteData[i].velocity = 0 ;
 			noteData[i].aftertouch = 0 ;
@@ -160,18 +160,20 @@ struct MIDIdualCV :  Module {
 		sustain = 0;
 		outputs[SUSTAIN_OUTPUT].setVoltage(0.0f);
 		sustpedal = false;
+		midiActivity = 220;
+		resetMidi = false;
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void onReset() override{
 		resetVoices();
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", midiInput.toJson());
 		return rootJ;
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void dataFromJson(json_t *rootJ) override {
 		json_t *midiJ = json_object_get(rootJ, "midi");
 		if (midiJ)	{
@@ -184,6 +186,7 @@ struct MIDIdualCV :  Module {
 			midiInput.fromJson(midiJ);
 		}
 	}
+//////////////////////////////////////////////////////////////////////////////////////
 	void updateHiLo(){
 		if (!pressedKeys.empty()) {
 			lowerNote.note = *min_element(pressedKeys.begin(),pressedKeys.end());
@@ -195,7 +198,7 @@ struct MIDIdualCV :  Module {
 			anynoteGate = false;
 		}
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void processMessage(midi::Message msg) {
 		switch (msg.getStatus()) {
 			case 0x8: { // note off
@@ -243,7 +246,7 @@ struct MIDIdualCV :  Module {
 			default: break;
 		}
 	}
-	
+//////////////////////////////////////////////////////////////////////////////////////
 	void processCC(midi::Message msg) {
 		switch (msg.getNote()) {
 			case 0x01: // mod
@@ -265,19 +268,16 @@ struct MIDIdualCV :  Module {
 			default: break;
 		}
 	}
-	///////////////////         ////           ////          ////         /////////////////////
-	/////////////////   ///////////////  /////////  ////////////  //////  ////////////////////
-	/////////////////         ////////  /////////       ///////         /////////////////////
-	///////////////////////   ///////  /////////  ////////////  ////////////////////////////
-	//////////////          ////////  /////////         /////  ////////////////////////////
-	
+///////////////////         ////           ////          ////         /////////////////////
+/////////////////   ///////////////  /////////  ////////////  //////  ////////////////////
+/////////////////         ////////  /////////       ///////         /////////////////////
+///////////////////////   ///////  /////////  ////////////  ////////////////////////////
+//////////////          ////////  /////////         /////  ////////////////////////////
 	void process(const ProcessArgs &args) override {
-		
 		midi::Message msg;
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
 		}
-		
 		float pitchwheel;
 		if (pitch < 8192){
 			pitchwheel = pitchFilter.process(1.f,rescale(pitch, 0, 8192, -5.f, 0.f));
@@ -293,12 +293,9 @@ struct MIDIdualCV :  Module {
 			pitchtocvUPR = pitchwheel * params[PBPOS_UPPER_PARAM].getValue() / 60.f;
 		}
 		outputs[PBEND_OUTPUT].setVoltage(pitchwheel);
-
-		///////////////////////
 		static int processframe = 0;
 		if (processframe++ > srFrametime) {
 			processframe = 0;
-			
 			if (anynoteGate){
 				///LOWER///
 					if (lowerNote.note != lastLwr){
@@ -369,16 +366,15 @@ struct MIDIdualCV :  Module {
 		outputs[SUSTAIN_OUTPUT].setVoltage(sustainFilter.process(1.f, rescale(sustain, 0, 127, 0.f, 10.f)));
 		outputs[PRESSURE_OUTPUT].setVoltage(pressureFilter.process(1.f, rescale(pressure, 0, 127, 0.f, 10.f)));
 	
-		if (midiActivity < 0) resetVoices();// resetMidi from MIDI widget;
+		if (resetMidi) resetVoices();// resetMidi from MIDI widget;
 	}
-
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 //					  * * *		 E  N  D	  O  F	 S  T  E  P		  * * *
 /////////////////////// * * * ///////////////////////////////////////////////// * * *
 };
-
-////
-
+//////////////////////////////////////////////////////////////////////////////////////
+///// MODULE WIDGET
+///////////////////
 struct MIDIdualCVWidget : ModuleWidget {
 	MIDIdualCVWidget(MIDIdualCV *module){
 		setModule(module);
@@ -390,13 +386,12 @@ struct MIDIdualCVWidget : ModuleWidget {
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 365)));
 		
 ///MIDI
-
 		float yPos = 18.f;
 		if (module) {
 			//MIDI
 			MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(3.5,yPos));
 			dDisplay->box.size = {128.f, 40.f};
-			dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx);
+			dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
 			addChild(dDisplay);
 		}
 	

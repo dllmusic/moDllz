@@ -1,5 +1,3 @@
-//#pragma once
-//#include "rack.hpp"
 using namespace rack;
 
 struct MIDIdisplay : OpaqueWidget {
@@ -11,6 +9,7 @@ struct MIDIdisplay : OpaqueWidget {
 	int *mpeChn = &i_mpeChn;
 	int initpointer0 = 1;
 	int *midiActiv = &initpointer0;
+	bool *resetMidi = NULL;
 	float mdfontSize = 12.f;
 	int cursorId = 0;
 	bool reDisplay = false;
@@ -56,5 +55,5 @@ struct MIDIscreen : OpaqueWidget{
 	DispBttnR *devR;
 	DispBttnR *chnR;
 	MIDIdisplay *md;
-	void setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel);
+	void setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi);
 };

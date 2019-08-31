@@ -48,6 +48,7 @@ struct MIDIpolyMPE : Module {
 	midi::InputQueue midiInput;
 	int MPEmasterCh = 0;// 0 ~ 15
 	int midiActivity = 0;
+	bool resetMidi = false;
 	int mdriverJx = 0 , mchannelJx = 0;
 	std::string mdeviceJx = "";
 /////
@@ -65,18 +66,14 @@ struct MIDIpolyMPE : Module {
 	};
 	int polyModeIx = ROTATE_MODE;
 
-	bool holdGates = true;
 	struct NoteData {
 		uint8_t velocity = 0;
 		uint8_t aftertouch = 0;
 	};
-
 	NoteData noteData[128];
 	
-	// cachedNotes : UNISON_MODE and REASSIGN_MODE cache all played notes. The other polyModes cache stolen notes (after the 4th one).
-	std::vector<uint8_t> cachedNotes;
-	
-	std::vector<uint8_t> cachedMPE[16];
+	std::vector<uint8_t> cachedNotes;// Stolen notes (UNISON_MODE and REASSIGN_MODE cache all played)
+	std::vector<uint8_t> cachedMPE[16];// MPE stolen notes
 	
 	uint8_t notes[16] = {0};
 	uint8_t vels[16] = {0};
@@ -87,17 +84,16 @@ struct MIDIpolyMPE : Module {
 	uint8_t mpeyLB[16] = {0};
 	uint8_t mpezLB[16] = {0};
 	uint8_t mpePlusLB[16] = {0};
-
-	bool gates[16] = {false};
-	uint8_t Maft = 0;
-	// midi cc/at/pb
-	int midiCCs[8] = {128,1,2,7,10,11,12,64};
+	uint8_t chAfTch = 0;
+	int16_t mPBnd = 0;
 	uint8_t midiCCsVal[8] = {0};
-	int16_t Mpit = 0;
+
+	int midiCCs[8] = {128,1,2,7,10,11,12,64};
+	bool gates[16] = {false};
+
 	float xpitch[16] = {0.f};
 	float drift[16] = {0.f};
-	// gates set to TRUE by pedal and current gate. FALSE by pedal.
-	bool pedalgates[16] = {false};
+	bool pedalgates[16] = {false}; // gates set to TRUE by pedal if current gate. FALSE by pedal.
 	bool pedal = false;
 	int rotateIndex = 0;
 	int stealIndex = 0;
@@ -128,7 +124,7 @@ struct MIDIpolyMPE : Module {
 	dsp::ExponentialFilter MPEyFilter[16];
 	dsp::ExponentialFilter MPEzFilter[16];
 	dsp::ExponentialFilter MCCsFilter[8];
-	dsp::ExponentialFilter MpitFilter;
+	dsp::ExponentialFilter mPBndFilter;
 	dsp::PulseGenerator reTrigger[16];	// retrigger for stolen notes
 	dsp::SchmittTrigger PlusOneTrigger;
 	dsp::SchmittTrigger MinusOneTrigger;
@@ -142,7 +138,7 @@ struct MIDIpolyMPE : Module {
 		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
 		onReset();
 	}
-
+///////////////////////////////////////////////////////////////////////////////////////
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", midiInput.toJson());
@@ -171,7 +167,7 @@ struct MIDIpolyMPE : Module {
 		json_object_set_new(rootJ, "velMax", json_integer(velMax));
 		return rootJ;
 	}
-	
+///////////////////////////////////////////////////////////////////////////////////////
 	void dataFromJson(json_t *rootJ) override {
 		json_t *midiJ = json_object_get(rootJ, "midi");
 		if (midiJ)	{
@@ -231,13 +227,11 @@ struct MIDIpolyMPE : Module {
 		if (velMaxJ) velMax = json_integer_value(velMaxJ);
 		resetVoices();
 	}
-
-///////////////////////////ON RESET
+///////////////////////////////////////////////////////////////////////////////////////
 	void resetVoices(){
 		float lambdaf = 100.f * APP->engine->getSampleTime();
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].value = 0.f;
-		midiActivity = 220;
 		for (int i = 0; i < 16; i++) {
 			notes[i] = 60;
 			gates[i] = false;
@@ -276,9 +270,11 @@ struct MIDIpolyMPE : Module {
 			MCCsFilter[i].lambda = lambdaf;
 			midiCCsVal[i] = 0;
 		}
-		MpitFilter.lambda = lambdaf;
+		mPBndFilter.lambda = lambdaf;
+		midiActivity = 220;
+		resetMidi = false;
 	}
-
+///////////////////////////////////////////////////////////////////////////////////////
 	void onReset() override{
 		resetVoices();
 		//default midi CCs
@@ -309,8 +305,7 @@ struct MIDIpolyMPE : Module {
 		cursorIx = 0;
 		polyModeIx = ROTATE_MODE;
 	}
-	
-////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 	int getPolyIndex(int nowIndex) {
 		for (int i = 0; i < numVo; i++) {
 			nowIndex++;
@@ -331,6 +326,7 @@ struct MIDIpolyMPE : Module {
 			cachedNotes.push_back(notes[stealIndex]);
 		return stealIndex;
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void pressNote(uint8_t channel, uint8_t note, uint8_t vel) {
 		switch (learnNote){
 			case 0:
@@ -448,6 +444,7 @@ struct MIDIpolyMPE : Module {
 		drift[rotateIndex] = static_cast<float>((rand() % 1000 - 500) * driftcents) / 1200000.f;
 		midiActivity = vel;
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void releaseNote(uint8_t channel, uint8_t note, uint8_t vel) {
 		bool backnote = false;
 		if (polyModeIx > MPEPLUS_MODE) {
@@ -565,6 +562,7 @@ struct MIDIpolyMPE : Module {
 		}
 		midiActivity = vel;
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void pressPedal() {
 		pedal = true;
 		lights[SUSTHOLD_LIGHT].value = params[SUSTHOLD_PARAM].getValue();
@@ -578,6 +576,7 @@ struct MIDIpolyMPE : Module {
 			}
 		}
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void releasePedal() {
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].value = 0.f;
@@ -615,6 +614,7 @@ struct MIDIpolyMPE : Module {
 			}
 		}
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void processMessage(midi::Message msg) {
 		switch (msg.getStatus()) {
 				// note off
@@ -626,7 +626,6 @@ struct MIDIpolyMPE : Module {
 			case 0x9: {
 				if ((polyModeIx < ROTATE_MODE) && (msg.getChannel() == MPEmasterCh)) return;
 				if (msg.getValue() > 0) {
-					//noteData[msg.getNote()].velocity = msg.getValue();
 					pressNote(msg.getChannel(), msg.getNote(), msg.getValue());
 				}
 				else {
@@ -648,7 +647,7 @@ struct MIDIpolyMPE : Module {
 				}////////////////////////////////////////
 				else if (polyModeIx < ROTATE_MODE){
 					if (msg.getChannel() == MPEmasterCh){
-						Maft = msg.getNote();
+						chAfTch = msg.getNote();
 					}else if (polyModeIx > 0){
 						mpez[msg.getChannel()] =  msg.getNote() * 128 + mpePlusLB[msg.getChannel()];
 						mpePlusLB[msg.getChannel()] = 0;
@@ -659,7 +658,7 @@ struct MIDIpolyMPE : Module {
 							mpey[msg.getChannel()] = msg.getNote() * 128;
 					}
 				}else{
-					Maft = msg.getNote();
+					chAfTch = msg.getNote();
 				}
 				midiActivity = msg.getValue();
 			} break;
@@ -672,12 +671,12 @@ struct MIDIpolyMPE : Module {
 				}////////////////////////////////////////
 				else if (polyModeIx < ROTATE_MODE){
 					if (msg.getChannel() == MPEmasterCh){
-						Mpit = msg.getValue() * 128 + msg.getNote()  - 8192;
+						mPBnd = msg.getValue() * 128 + msg.getNote()  - 8192;
 					}else{
 						mpex[msg.getChannel()] = msg.getValue() * 128 + msg.getNote()  - 8192;
 					}
 				}else{
-					Mpit = msg.getValue() * 128 + msg.getNote() - 8192; //14bit Pitch Bend
+					mPBnd = msg.getValue() * 128 + msg.getNote() - 8192; //14bit Pitch Bend
 				}
 				midiActivity = msg.getValue();
 			} break;
@@ -698,7 +697,6 @@ struct MIDIpolyMPE : Module {
 							mpey[msg.getChannel()] =  msg.getValue() * 128 + mpePlusLB[msg.getChannel()];
 							mpePlusLB[msg.getChannel()] = 0;
 						}
-						
 					}else if (msg.getNote() == mpeYcc){
 						//cc74 0x4a default
 						mpey[msg.getChannel()] = msg.getValue() * 128;
@@ -713,6 +711,7 @@ struct MIDIpolyMPE : Module {
 			default: break;
 		}
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void processCC(midi::Message msg) {
 		if (msg.getNote() ==  0x40) { //internal sust pedal
 			if (msg.getValue() >= 64)
@@ -727,6 +726,7 @@ struct MIDIpolyMPE : Module {
 			}
 		}
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void dataPlus(){
 		switch (cursorIx){
 			case 0: {
@@ -802,6 +802,7 @@ struct MIDIpolyMPE : Module {
 		learnCC = 0;
 		return;
 	}
+///////////////////////////////////////////////////////////////////////////////////////
 	void dataMinus(){
 		switch (cursorIx){
 			case 0: {
@@ -878,7 +879,7 @@ struct MIDIpolyMPE : Module {
 		learnCC = 0;
 		return;
 	}
-
+///////////////////////////////////////////////////////////////////////////////////////
 	void onSampleRateChange() override {
 		resetVoices();
 	}
@@ -900,11 +901,11 @@ struct MIDIpolyMPE : Module {
 		outputs[GATE_OUTPUT].setChannels(numVo);
 		
 		float pbVo = 0.f, pbVoice = 0.f;
-		if (Mpit < 0){
-			pbVo = MpitFilter.process(1.f ,rescale(Mpit, -8192, 0, -5.f, 0.f));
+		if (mPBnd < 0){
+			pbVo = mPBndFilter.process(1.f ,rescale(mPBnd, -8192, 0, -5.f, 0.f));
 			pbVoice = -1.f * pbVo * pbMainDwn / 60.f;
 		} else {
-			pbVo = MpitFilter.process(1.f ,rescale(Mpit, 0, 8191, 0.f, 5.f));
+			pbVo = mPBndFilter.process(1.f ,rescale(mPBnd, 0, 8191, 0.f, 5.f));
 			pbVoice = pbVo * pbMainUp / 60.f;
 		}
 		outputs[PBEND_OUTPUT].setVoltage(pbVo);
@@ -939,7 +940,7 @@ struct MIDIpolyMPE : Module {
 		}
 		for (int i = 0; i < 8; i++){
 			if (midiCCs[i] == 128)
-				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(Maft, 0, 127, 0.f, 10.f)));
+				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(chAfTch, 0, 127, 0.f, 10.f)));
 			else
 				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
 		}
@@ -966,13 +967,13 @@ struct MIDIpolyMPE : Module {
 			dataMinus();
 			return;
 		}
-		if (midiActivity < 0) resetVoices();// resetMidi from MIDI widget;
+		if (resetMidi) resetVoices();// resetMidi from MIDI widget;
 	}
 ///////////////////////
 //////   STEP END
 ///////////////////////
 };
-// Main Display
+// Main Display///////////////////////////////////////////////////////////////////////////////////////
 struct PolyModeDisplay : TransparentWidget {
 	PolyModeDisplay(){
 		font = APP->window->loadFont(mFONT_FILE);
@@ -996,25 +997,23 @@ struct PolyModeDisplay : TransparentWidget {
 		"R E U S E",
 		"R E S E T",
 		"R E A S S I G N",
-		"U N I S O N Last",
+		"U N I S O N",
 		"U N I S O N Lower",
 		"U N I S O N Upper",
 	};
-	std::string noteName[12] = {
-		"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"
-	};
+	std::string noteName[12] = {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
 	int drawFrame = 0;
 	int cursorIxI = 0;
 	int flashFocus = 0;
-	int lrnflash = 0x55;
-	const int rgbx = 0xdd;
-	int rgblrn, gb1, gb2, gb3, gb4, gb1f, gb2f, gb3f, gb4f;
-	int rgbf1 = 0xdd;
-	int rgbf2 = 0xdd;
+	unsigned char lrnflash = 0x55;
+	const unsigned char rgbx = 0xdd;
+	unsigned char rgblrn, gb1, gb2, gb3, gb4, gb1f, gb2f, gb3f, gb4f;
+	unsigned char rgbf1 = 0xdd;
+	unsigned char rgbf2 = 0xdd;
 //	
 //	NVGcolor txtColor = nvgRGB(rgbx,rgbx,rgbx);
-//	NVGcolor fcsColor = nvgRGB(rgbx,rgbx,rgbx);
-//	NVGcolor lrnColor = nvgRGB(rgbx,rgbx,rgbx);
+//	NVGcolor fcsColor = nvgRGB(0xff,0xff,0);
+//	NVGcolor lrnColor = nvgRGB(0xff,0,0);
 	
 	void draw(const DrawArgs &args) override {
 		if (cursorIxI != module->cursorIx){
@@ -1041,7 +1040,7 @@ struct PolyModeDisplay : TransparentWidget {
 		gb2f = rgbx;
 		gb3f = rgbx;
 		gb4f = rgbx;
-		rgblrn =  0x55;
+		rgblrn =  0x64;
 		switch (cursorIxI){
 			case 0:{
 				goto noFocus;
@@ -1049,13 +1048,13 @@ struct PolyModeDisplay : TransparentWidget {
 			case 1:{ // PolyMode
 				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 1.f, 1.f, 134.f, 12.f, 3.f);
-				lrnflash = 0x55;
+				lrnflash = 0x64;
 				rgbf1 = 0;
 			}break;
 			case 2:{ //numVoices/PB MPE
 				nvgBeginPath(args.vg);
 				nvgRoundedRect(args.vg, 1.f, 14.f, 134.f, 12.f, 3.f);
-				lrnflash = 0x55;
+				lrnflash = 0x64;
 				rgbf2 = 0;
 			}break;
 			case 3:{ //minNote
@@ -1068,7 +1067,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb1 = 0;
 					rgblrn = 0;
 				}else{
-					lrnflash = 0x55;
+					lrnflash = 0x64;
 				}
 			}break;
 			case 4:{ //maxNote
@@ -1081,7 +1080,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb2 = 0;
 					rgblrn = 0;
 				}else{
-					lrnflash = 0x55;
+					lrnflash = 0x64;
 				}
 			}break;
 			case 5:{ //minVel
@@ -1094,7 +1093,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb3 = 0;
 					rgblrn = 0;
 				}else{
-					lrnflash = 0x55;
+					lrnflash = 0x64;
 				}
 			}break;
 			case 6:{ //maxVel
@@ -1107,7 +1106,7 @@ struct PolyModeDisplay : TransparentWidget {
 					gb4 = 0;
 					rgblrn = 0;
 				}else{
-					lrnflash = 0x55;
+					lrnflash = 0x64;
 				}
 			}break;
 			default:{
@@ -1115,16 +1114,16 @@ struct PolyModeDisplay : TransparentWidget {
 			}
 		}
 		if (flashFocus > 0)	flashFocus --;
-		nvgFillColor(args.vg, nvgRGBA(lrnflash + flashFocus, rgblrn + flashFocus, 0, 0xc0)); //SELECTED
+		nvgFillColor(args.vg, nvgRGBA(lrnflash, rgblrn, 0, 0xc0 + flashFocus)); //SELECTED
 		nvgFill(args.vg);
-//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+		//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 	noFocus:
 		nvgFontSize(args.vg, mdfontSize);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf1));//color1
+		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf1));
 		nvgTextBox(args.vg, 1.f, 11.0f, 134.f, sMode.c_str(), NULL);
-		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf2));//color2
+		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf2));
 		nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
 		nvgFillColor(args.vg, nvgRGB(rgbx, gb1 & gb2, gb1f & gb2f));
 		nvgTextBox(args.vg, 1.f, 37.f, 16.f, "nte:", NULL);
@@ -1160,7 +1159,7 @@ struct PolyModeDisplay : TransparentWidget {
 		}
 	}
 };
-
+///////////////////////////////////////////////////////////////////////////////////////
 struct MidiccDisplay : OpaqueWidget {
 	MidiccDisplay(){
 	font = APP->window->loadFont(mFONT_FILE);
@@ -1217,7 +1216,7 @@ struct MidiccDisplay : OpaqueWidget {
 					switch (module->polyModeIx) {
 						case MIDIpolyMPE::MPE_MODE: {
 							if (module->mpePbOut) sDisplay = "chnPB";
-							else sDisplay = "RlVel";
+							else sDisplay = "relVel";
 							canedit = true;
 						}break;
 						case MIDIpolyMPE::MPEPLUS_MODE: {
@@ -1225,7 +1224,7 @@ struct MidiccDisplay : OpaqueWidget {
 							canedit = false;
 						}break;
 						default: {
-							sDisplay = "RlVel";
+							sDisplay = "relVel";
 							canedit = false;
 						}break;
 					}
@@ -1236,7 +1235,7 @@ struct MidiccDisplay : OpaqueWidget {
 						trnsps = module->trnsps;
 						if (trnsps > 0) sDisplay = "t+" + std::to_string(trnsps);
 						else if (trnsps < 0) sDisplay = "t" + std::to_string(trnsps);
-						else sDisplay = "trns";
+						else sDisplay = "t 0";
 					}
 					canedit = true;
 					canlearn = false;
@@ -1246,7 +1245,7 @@ struct MidiccDisplay : OpaqueWidget {
 						pbDwn = module->pbMainDwn;
 						if (pbDwn > 0) sDisplay = "d+" + std::to_string(pbDwn);
 						else if (pbDwn < 0) sDisplay = "d" + std::to_string(pbDwn);
-						else sDisplay = "pbd";
+						else sDisplay = "d 0";
 					};
 					canlearn = false;
 				}break;
@@ -1255,7 +1254,7 @@ struct MidiccDisplay : OpaqueWidget {
 						pbUp = module->pbMainUp;
 						if (pbUp > 0) sDisplay = "u+" + std::to_string(pbUp);
 						else if (pbUp > 0) sDisplay = "u" + std::to_string(pbUp);
-						else sDisplay = "pbu";
+						else sDisplay = "u 0";
 					}
 					canlearn = false;
 				}break;
@@ -1284,17 +1283,17 @@ struct MidiccDisplay : OpaqueWidget {
 			nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
 			switch(mymode){
 				case 0:{
-					int strgb = (canedit)? 0xdd : 0x99;
+					unsigned char strgb = (canedit)? 0xdd : 0x99;
 					nvgFillColor(args.vg, nvgRGB(strgb, strgb, strgb));
 				}break;
 				case 1:{
 					nvgBeginPath(args.vg);
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
 					if (flashFocus > 0) flashFocus -= 2;
-					nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
-					nvgFillColor(args.vg, nvgRGBA(0x64 + flashFocus, 0x64 + flashFocus , 0, 0xc0)); //SELECTED
+					nvgFillColor(args.vg, nvgRGBA(0x64, 0x64, 0, 0xc0 + flashFocus)); //SELECTED
 					nvgFill(args.vg);
-					nvgFillColor(args.vg, nvgRGB(0xff, 0xff, 0));
+					nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+					nvgFillColor(args.vg, nvgRGB(0xdd, 0xdd, 0));
 				}break;
 				case 2:{
 					static int lrncol = 0;
@@ -1303,7 +1302,8 @@ struct MidiccDisplay : OpaqueWidget {
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
 					nvgFillColor(args.vg, nvgRGBA(lrncol, 0, 0, 0xc0));
 					nvgFill(args.vg);
-					nvgFillColor(args.vg, nvgRGB(0xff , 0, 0));//LEARN
+					nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+					nvgFillColor(args.vg, nvgRGB(0xdd , 0, 0));//LEARN
 				}break;
 			}
 		nvgTextBox(args.vg, 0.f, 10.f,box.size.x, sDisplay.c_str(), NULL);
@@ -1381,7 +1381,7 @@ struct MidiccDisplay : OpaqueWidget {
 		}
 	}
 };
-
+///////////////////////////////////////////////////////////////////////////////////////
 struct springDataKnobB : SvgKnob {
 	springDataKnobB() {
 		minAngle = -0.75*M_PI;
@@ -1396,7 +1396,9 @@ struct springDataKnobB : SvgKnob {
 		SvgKnob::onButton(e);
 	}
 };
-
+///////////////////////////////////////////////////////////////////////////////////////
+/////// MODULE WIDGET ////////
+//////////////////////////////
 struct MIDIpolyMPEWidget : ModuleWidget {
 	MIDIpolyMPEWidget(MIDIpolyMPE *module) {
 		setModule(module);
@@ -1414,7 +1416,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			//MIDI
 				MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(xPos,yPos));
 				dDisplay->box.size = {136.f, 40.f};
-				dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx);
+				dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
 				addChild(dDisplay);
 			//PolyModes LCD
 			xPos = 7.f;
@@ -1442,7 +1444,6 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			rvelDisplay->displayID =  dispID ++;;
 			rvelDisplay->module = module;
 			addChild(rvelDisplay);
-
 			// trnsp Pitch Bend LCD
 			xPos = 10.5f;
 			yPos = 256.5f;

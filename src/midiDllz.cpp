@@ -165,12 +165,11 @@ void MIDIdisplay::draw(const DrawArgs &args){
 		}
 		if (*midiActiv > 3) *midiActiv -= 4;
 		else	*midiActiv = 0;//clip to 0
-			//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
-			nvgBeginPath(args.vg);
-			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y, 4.f);
-			nvgFillColor(args.vg, nvgRGB(*midiActiv * .5, *midiActiv * .1 ,0));
-			nvgFill(args.vg);
-
+		//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
+		nvgBeginPath(args.vg);
+		nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y, 4.f);
+		nvgFillColor(args.vg, nvgRGB(static_cast<unsigned char>(*midiActiv * .5),static_cast<unsigned char>(*midiActiv * .5) ,0));
+		nvgFill(args.vg);
 		nvgFontSize(args.vg, mdfontSize);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -204,14 +203,14 @@ void MIDIdisplay::onButton(const event::Button &e) {
 				}
 			}
 		}
-		*midiActiv = -1;
+		*resetMidi = true;
 		reDisplay = true;
 		if (!e.isConsumed())
 			e.consume(this);
 	}
 }
 
-void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel){
+void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi){
 	clearChildren();
 	
 	MIDIdisplay *md = createWidget<MIDIdisplay>(Vec(0.f,0.f));
@@ -224,7 +223,8 @@ void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiA
 	md->xcenter = md->box.size.x / 2.f;
 	md->mdriverJ = mdriver;
 	md->mdeviceJ = mdevice;
-	md->mchannelJ = mchannel;	
+	md->mchannelJ = mchannel;
+	md->resetMidi = resetMidi;
 	addChild(md);
 	
 	DispBttnL *drvBttnL = createWidget<DispBttnL>(Vec(1.f,0.f));
