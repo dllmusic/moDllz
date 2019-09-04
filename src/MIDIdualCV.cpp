@@ -52,7 +52,7 @@ struct MIDIdualCV :  Module {
 	std::string mdeviceJx = "-";
 	bool resetMidi = false;
 	/////
-	int polyModeIx = 2;// 0 and 1 are MPE
+	bool MPEmode = false;
 	
 	uint8_t mod = 0;
 	dsp::ExponentialFilter modFilter;
@@ -391,7 +391,7 @@ struct MIDIdualCVWidget : ModuleWidget {
 			//MIDI
 			MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(3.5,yPos));
 			dDisplay->box.size = {128.f, 40.f};
-			dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
+			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
 			addChild(dDisplay);
 		}
 	

@@ -2,37 +2,35 @@
 MIDIdisplay::MIDIdisplay(){
 	font = APP->window->loadFont(mFONT_FILE);
 }
-
+///////////////////////////////////////////////////////////////////////////////////////
 DispBttnL::DispBttnL(){
 	momentary = true;
 	addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/DispBttnL.svg")));
 }
-
+///////////////////////////////////////////////////////////////////////////////////////
+DispBttnR::DispBttnR(){
+	momentary = true;
+	addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/DispBttnR.svg")));
+}
+///////////////////////////////////////////////////////////////////////////////////////
 void DispBttnL::onButton(const event::Button &e) {
 	Widget::onButton(e);
 	e.stopPropagating();
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 		md->updateMidiSettings(id, false);
-		if (!e.isConsumed())
-			e.consume(this);
+		if (!e.isConsumed()) e.consume(this);
 	}
 }
-
+///////////////////////////////////////////////////////////////////////////////////////
 void DispBttnR::onButton(const event::Button &e) {
 	Widget::onButton(e);
 	e.stopPropagating();
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 		md->updateMidiSettings(id, true);
-		if (!e.isConsumed())
-			e.consume(this);
+		if (!e.isConsumed()) e.consume(this);
 	}
 }
-
-DispBttnR::DispBttnR(){
-	momentary = true;
-	addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/DispBttnR.svg")));
-}
-
+///////////////////////////////////////////////////////////////////////////////////////
 void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 	switch (dRow) {
 		case 0: {
@@ -42,17 +40,11 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 			for (int driverId : midiInput->getDriverIds()) {
 				if (driverId == midiInput->driverId){
 					if (valup){
-						if (drIx < midiDrivers - 1){
-							midiInput->setDriverId(midiInput->getDriverIds().at(drIx + 1));
-						}else{
-							midiInput->setDriverId(midiInput->getDriverIds().front());
-						}
-					}else{//val down
-						if (drIx > 0){
-							midiInput->setDriverId(midiInput->getDriverIds().at(drIx - 1));
-						}else{
-							midiInput->setDriverId(midiInput->getDriverIds().back());
-						}
+						if (drIx < midiDrivers - 1) midiInput->setDriverId(midiInput->getDriverIds().at(drIx + 1));
+						else midiInput->setDriverId(midiInput->getDriverIds().front());
+					}else {//val down
+						if (drIx > 0) midiInput->setDriverId(midiInput->getDriverIds().at(drIx - 1));
+						else midiInput->setDriverId(midiInput->getDriverIds().back());
 					}
 					resetdr = false;
 					break;
@@ -60,10 +52,14 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 				drIx ++;
 			}
 			if (resetdr) midiInput->setDriverId(1);
-			midiInput->setDeviceId((midiInput->getDeviceIds().size() > 0)? 0 : -1);
+			if (midiInput->getDeviceIds().size() > 0){
+				midiInput->setDeviceId(0);
+				*mdeviceJ = midiInput->getDeviceName(midiInput->deviceId);
+			}else midiInput->setDeviceId(-1);
 			midiInput->channel = -1;
 		} break;
 		case 1: {
+			//if (valchange > 0) {
 			int deIx = 0;
 			bool devhere = false;
 			int midiDevs = static_cast<int>(midiInput->getDeviceIds().size());
@@ -71,17 +67,11 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 				for (int deviceId : midiInput->getDeviceIds()) {
 					if (deviceId == midiInput->deviceId){
 						if (valup){
-							if (deIx < midiDevs - 1){
-								midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx + 1));
-							}else{
-								midiInput->setDeviceId(midiInput->getDeviceIds().front());
-							}
-						}else{//val down
-							if (deIx > 0){
-								midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx - 1));
-							}else{
-								midiInput->setDeviceId(midiInput->getDeviceIds().back());
-							}
+							if (deIx < midiDevs - 1) midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx + 1));
+							else midiInput->setDeviceId(midiInput->getDeviceIds().front());
+						}else {//val down
+							if (deIx > 0) midiInput->setDeviceId(midiInput->getDeviceIds().at(deIx - 1));
+							else midiInput->setDeviceId(midiInput->getDeviceIds().back());
 						}
 						devhere = true;
 						break;
@@ -92,18 +82,11 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 					midiInput->setDeviceId(midiInput->getDeviceIds().at(0));
 					midiInput->channel = -1;
 				}
+				*mdeviceJ = midiInput->getDeviceName(midiInput->deviceId);
 			}
 		} break;
 		case 2:{
-			if (bchannel){
-					if (valup){
-						if (midiInput->channel < 15 ) midiInput->channel ++;
-						else midiInput->channel = -1;
-					}else{
-						if (midiInput->channel > -1 ) midiInput->channel --;
-						else midiInput->channel = 15;
-					}
-			}else{
+			if (i_mpeMode){
 				if (valup){
 					if (*mpeChn < 15 ) *mpeChn = *mpeChn + 1;
 					else *mpeChn = 0;
@@ -111,60 +94,89 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 					if (*mpeChn > 0 ) *mpeChn = *mpeChn - 1;
 					else *mpeChn = 15;
 				}
+			}else{
+				if (!showchannel) return;
+				if (valup){
+					if (midiInput->channel < 15 ) midiInput->channel ++;
+					else midiInput->channel = -1;
+				}else{
+					if (midiInput->channel > -1 ) midiInput->channel --;
+					else midiInput->channel = 15;
+				}
 			}
 		} break;
 	}
+	searchdev = false;
 	*midiActiv = 64;
-	reDisplay = true;
+	reDisplay();
 	return;
 }
-
-void MIDIdisplay::draw(const DrawArgs &args){
-	if (midiInput){
-		if (i_mpeOff != *mpeOff) {
-			reDisplay = true;
-			i_mpeOff = *mpeOff;
-		}
-		if (i_mpeChn != *mpeChn) {
-			reDisplay = true;
-			i_mpeChn = *mpeChn;
-		}
-		static int drawframe = 0;
-		if ((drawframe++ > 500)||(reDisplay)) {
-			drawframe = 0;
-			mdriver = midiInput->getDriverName(midiInput->driverId);
-			if (midiInput->deviceId > -1){
-				textColor = nvgRGB(0xbb,0xbb,0xbb);
-				mdevice = midiInput->getDeviceName(midiInput->deviceId);
-				if (i_mpeOff > 1) {
+///////////////////////////////////////////////////////////////////////////////////////
+void MIDIdisplay::reDisplay(){
+	mdriver = midiInput->getDriverName(midiInput->driverId);// driver name
+	if (midiInput->deviceId > -1){
+		textColor = nvgRGB(0xbb,0xbb,0xbb);
+		mdevice = midiInput->getDeviceName(midiInput->deviceId);// device
+		showchannel = (mdriver != "Computer keyboard");
+		if (i_mpeMode) { //channel MPE
+				mchannel = "mpe master " + std::to_string(i_mpeChn + 1);
+				midiInput->channel = -1;
+			}else { // channel
+				if (showchannel){
 					if (midiInput->channel < 0) mchannel = "ALLch";
 					else mchannel =  "ch " + std::to_string(midiInput->channel + 1);
-					bchannel = true;
-				}else{
-					bchannel = false;
-					mchannel = "mpe master " + std::to_string(i_mpeChn + 1);
-					midiInput->channel = -1;
-				}
-			}else {
-				textColor = nvgRGB(0xFF,0x64,0x64);
-				if (*mdriverJ == midiInput->driverId){
-					mdevice = *mdeviceJ;
-					if (*mchannelJ < 0) mchannel = "ALLch";
-					else mchannel =  "ch " + std::to_string(*mchannelJ + 1);
-				}else{
-					mdevice = "(no device)";
-					mchannel = "";
-				}
-				bchannel = false;
+					//showchannel = true;
+				} else mchannel = "";
 			}
-			if (mdriver.compare("Computer keyboard") == 0) {
-				bchannel = false;
-				mchannel = "";
-			}
-			reDisplay = false;
+		isdevice = true;
+	}else {
+		showchannel = false;
+		textColor = nvgRGB(0xFF,0x64,0x64);
+		if (*mdriverJ == midiInput->driverId){
+			mdevice = *mdeviceJ;///saved or last valid one
+			mchannel = "...";
+			isdevice = true;
+		}else{
+			isdevice = false;
+			mdevice = "(no device)";
+			mchannel = "";
 		}
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////
+void MIDIdisplay::draw(const DrawArgs &args){
+	if (midiInput){
+		if ( i_mpeMode != *mpeMode) {
+			i_mpeMode = *mpeMode;
+			reDisplay();
+		}
+		if (i_mpeChn != *mpeChn) {
+			i_mpeChn = *mpeChn;
+			reDisplay();
+		}
+		static int drawframe = 0;
+		if (drawframe++ > 250){
+			drawframe = 0;
+			if (isdevice && (midiInput->getDeviceName(midiInput->deviceId) != *mdeviceJ)){
+				searchdev = true;
+				textColor = nvgRGB(0xFF,0x64,0x64);
+				mchannel = "(disconnected)";
+			}
+			if (searchdev) {
+				for (int deviceId : midiInput->getDeviceIds()) {
+					if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
+						midiInput->setDeviceId(deviceId);
+						midiInput->channel = *mchannelJ;
+						searchdev = false;
+						reDisplay();
+						break;
+					}
+				}
+			}
+		}
+		//mchannel = "."+ *mdeviceJ;
 		if (*midiActiv > 3) *midiActiv -= 4;
-		else	*midiActiv = 0;//clip to 0
+		else *midiActiv = 0;//clip to 0
 		//nvgGlobalCompositeBlendFunc(args.vg,  NVG_ONE , NVG_ONE);
 		nvgBeginPath(args.vg);
 		nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y, 4.f);
@@ -180,52 +192,32 @@ void MIDIdisplay::draw(const DrawArgs &args){
 		nvgText(args.vg, xcenter, 37.5f, mchannel.c_str(), NULL);
 	}
 }
+///////////////////////////////////////////////////////////////////////////////////////
 void MIDIdisplay::onButton(const event::Button &e) {
-	//Widget::onButton(e);
 	e.stopPropagating();
-	bool gotdevice = false;
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
-		if (midiInput->deviceId < 0) {// disconnected device
-			for (int deviceId : midiInput->getDeviceIds()) {
-				if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
-					midiInput->setDeviceId(deviceId);
-					midiInput->channel = *mchannelJ;
-					gotdevice = true;
-					break;
-				}
-			}
-			if (!gotdevice) {
-				if (static_cast<int>(midiInput->getDriverIds().size()) > 0){
-					midiInput->setDeviceId(midiInput->getDeviceIds().at(0));
-					midiInput->channel = -1;
-				} else {// no devices go to next driver ??
-					updateMidiSettings (0, true);
-				}
-			}
-		}
 		*resetMidi = true;
-		reDisplay = true;
-		if (!e.isConsumed())
-			e.consume(this);
+		if (!e.isConsumed()) e.consume(this);
 	}
 }
-
-void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi){
+///////////////////////////////////////////////////////////////////////////////////////
+void MIDIscreen::setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi){
 	clearChildren();
 	
 	MIDIdisplay *md = createWidget<MIDIdisplay>(Vec(0.f,0.f));
-	md->mpeOff = mpeOff;
+	md->midiInput = port;
+	md->mpeMode = mpeMode;
 	md->mpeChn = mpeChn;
 	md->midiActiv = midiActiv;
-	md->midiInput = port;
 	md->box.size = box.size;
-	md->reDisplay = true;
 	md->xcenter = md->box.size.x / 2.f;
 	md->mdriverJ = mdriver;
 	md->mdeviceJ = mdevice;
 	md->mchannelJ = mchannel;
 	md->resetMidi = resetMidi;
+	
 	addChild(md);
+	md->reDisplay();// = true;
 	
 	DispBttnL *drvBttnL = createWidget<DispBttnL>(Vec(1.f,0.f));
 	drvBttnL->md = md;
@@ -254,8 +246,7 @@ void MIDIscreen::setMidiPort(midi::Port *port,int *mpeOff,int *mpeChn,int *midiA
 	chnBttnR->id = 2;
 	chnBttnR->md = md;
 	addChild(chnBttnR);
-	
 }
-
+///////////////////////////////////////////////////////////////////////////////////////
 MIDIscreen::MIDIscreen(){
 }

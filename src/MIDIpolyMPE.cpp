@@ -50,7 +50,7 @@ struct MIDIpolyMPE : Module {
 	int midiActivity = 0;
 	bool resetMidi = false;
 	int mdriverJx = 0 , mchannelJx = 0;
-	std::string mdeviceJx = "";
+	std::string mdeviceJx = "(not saved)";
 /////
 	enum PolyMode {
 		MPE_MODE,
@@ -81,8 +81,6 @@ struct MIDIpolyMPE : Module {
 	int16_t mpex[16] = {0};
 	uint16_t mpey[16] = {0};
 	uint16_t mpez[16] = {0};
-	uint8_t mpeyLB[16] = {0};
-	uint8_t mpezLB[16] = {0};
 	uint8_t mpePlusLB[16] = {0};
 	uint8_t chAfTch = 0;
 	int16_t mPBnd = 0;
@@ -114,6 +112,7 @@ struct MIDIpolyMPE : Module {
 	int learnCC = 0;
 	int learnNote = 0;
 	int cursorIx = 0;
+	bool MPEmode = false;
 	int const numPolycur = 6;
 	int selectedmidich = 0;
 	bool mpePbOut = true;
@@ -142,6 +141,9 @@ struct MIDIpolyMPE : Module {
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", midiInput.toJson());
+//		if (midiInput->deviceId() > -1){
+//			json_object_set_new(rootJ, "mididevbck", json_string(midiInput->getDeviceName(midiInput->deviceId)));
+//		}
 		json_object_set_new(rootJ, "polyModeIx", json_integer(polyModeIx));
 		json_object_set_new(rootJ, "pbMainDwn", json_integer(pbMainDwn));
 		json_object_set_new(rootJ, "pbMainUp", json_integer(pbMainUp));
@@ -175,12 +177,16 @@ struct MIDIpolyMPE : Module {
 			if (driverJ) mdriverJx = json_integer_value(driverJ);
 			json_t* deviceNameJ = json_object_get(midiJ, "deviceName");
 			if (deviceNameJ) mdeviceJx = json_string_value(deviceNameJ);
+			else { json_t *mididevbckJ = json_object_get(rootJ, "mididevbck");
+				if (mididevbckJ) mdeviceJx = json_integer_value(mididevbckJ);
+			}
 			json_t* channelJ = json_object_get(midiJ, "channel");
 			if (channelJ) mchannelJx = json_integer_value(channelJ);
 			midiInput.fromJson(midiJ);
 		}
 		json_t *polyModeIxJ = json_object_get(rootJ, "polyModeIx");
 		if (polyModeIxJ) polyModeIx = json_integer_value(polyModeIxJ);
+		MPEmode = (polyModeIx < ROTATE_MODE);
 		json_t *pbMainDwnJ = json_object_get(rootJ, "pbMainDwn");
 		if (pbMainDwnJ) pbMainDwn = json_integer_value(pbMainDwnJ);
 		json_t *pbMainUpJ = json_object_get(rootJ, "pbMainUp");
@@ -246,8 +252,6 @@ struct MIDIpolyMPE : Module {
 			MPExFilter[i].lambda = lambdaf;
 			MPEyFilter[i].lambda = lambdaf;
 			MPEzFilter[i].lambda = lambdaf;
-			mpeyLB[i] = 0;
-			mpezLB[i] = 0;
 			mpePlusLB[i] = 0;
 		}
 		rotateIndex = -1;
@@ -320,9 +324,7 @@ struct MIDIpolyMPE : Module {
 		stealIndex++;
 		if (stealIndex > (numVo - 1))
 			stealIndex = 0;
-		///if ((polyMode > MPE_MODE) && (polyMode < REASSIGN_MODE) && (gates[stealIndex]))
-		/// cannot reach here if polyMode == MPE mode ...no need to check
-		if ((polyModeIx < REASSIGN_MODE) && (gates[stealIndex]))
+		if ((polyModeIx < REASSIGN_MODE) && (gates[stealIndex]))//&&(polyMode > MPE_MODE).cannot reach here if MPE mode true
 			cachedNotes.push_back(notes[stealIndex]);
 		return stealIndex;
 	}
@@ -748,6 +750,7 @@ struct MIDIpolyMPE : Module {
 					if (polyModeIx < UNISONUPR_MODE) polyModeIx ++;
 					else polyModeIx = MPE_MODE;
 				}
+				MPEmode = (polyModeIx < ROTATE_MODE);
 				resetVoices();
 			}break;
 			case 2: {
@@ -824,6 +827,7 @@ struct MIDIpolyMPE : Module {
 					if (polyModeIx > MPE_MODE) polyModeIx --;
 					else polyModeIx = UNISONUPR_MODE;
 				}
+				MPEmode = (polyModeIx < ROTATE_MODE);
 				resetVoices();
 			}break;
 			case 2: {
@@ -1412,7 +1416,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			//MIDI
 				MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(xPos,yPos));
 				dDisplay->box.size = {136.f, 40.f};
-				dDisplay->setMidiPort (&module->midiInput, &module->polyModeIx, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
+				dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
 				addChild(dDisplay);
 			//PolyModes LCD
 			xPos = 7.f;
