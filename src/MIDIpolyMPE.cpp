@@ -1329,7 +1329,7 @@ struct MidiccDisplay : OpaqueWidget {
 			}break;
 			case 2:{
 				sDisplay = "LRN";
-				module->learnCC = displayID - 5;
+				module->learnCC = displayID - 6;
 			}break;
 		}
 	}
