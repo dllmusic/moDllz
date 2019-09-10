@@ -49,8 +49,8 @@ struct MIDIpolyMPE : Module {
 	int MPEmasterCh = 0;// 0 ~ 15
 	int midiActivity = 0;
 	bool resetMidi = false;
-	int mdriverJx = 0 , mchannelJx = 0;
-	std::string mdeviceJx = "(not saved)";
+	int mdriverJx = 1 , mchannelJx = -1;
+	std::string mdeviceJx = "";
 /////
 	enum PolyMode {
 		MPE_MODE,
@@ -138,12 +138,17 @@ struct MIDIpolyMPE : Module {
 		onReset();
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
+	json_t* miditoJson() {//saves last valid driver/device/chn
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "driver", json_integer(mdriverJx));
+		json_object_set_new(rootJ, "deviceName", json_string(mdeviceJx.c_str()));
+		json_object_set_new(rootJ, "channel", json_integer(mchannelJx));
+		return rootJ;
+	}
+	///////////////////////////////////////////////////////////////////////////////////////
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
-		json_object_set_new(rootJ, "midi", midiInput.toJson());
-//		if (midiInput->deviceId() > -1){
-//			json_object_set_new(rootJ, "mididevbck", json_string(midiInput->getDeviceName(midiInput->deviceId)));
-//		}
+		json_object_set_new(rootJ, "midi", miditoJson());
 		json_object_set_new(rootJ, "polyModeIx", json_integer(polyModeIx));
 		json_object_set_new(rootJ, "pbMainDwn", json_integer(pbMainDwn));
 		json_object_set_new(rootJ, "pbMainUp", json_integer(pbMainUp));
@@ -177,9 +182,6 @@ struct MIDIpolyMPE : Module {
 			if (driverJ) mdriverJx = json_integer_value(driverJ);
 			json_t* deviceNameJ = json_object_get(midiJ, "deviceName");
 			if (deviceNameJ) mdeviceJx = json_string_value(deviceNameJ);
-			else { json_t *mididevbckJ = json_object_get(rootJ, "mididevbck");
-				if (mididevbckJ) mdeviceJx = json_integer_value(mididevbckJ);
-			}
 			json_t* channelJ = json_object_get(midiJ, "channel");
 			if (channelJ) mchannelJx = json_integer_value(channelJ);
 			midiInput.fromJson(midiJ);
@@ -264,9 +266,21 @@ struct MIDIpolyMPE : Module {
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
 			}
+			outputs[X_OUTPUT].setChannels(16);
+			outputs[Y_OUTPUT].setChannels(16);
+			outputs[Z_OUTPUT].setChannels(16);
+			outputs[VEL_OUTPUT].setChannels(16);
+			outputs[RVEL_OUTPUT].setChannels(16);
+			outputs[GATE_OUTPUT].setChannels(16);
 		} else {
 			displayYcc = 130;
 			displayZcc = 129;
+			outputs[X_OUTPUT].setChannels(numVo);
+			outputs[Y_OUTPUT].setChannels(numVo);
+			outputs[Z_OUTPUT].setChannels(numVo);
+			outputs[VEL_OUTPUT].setChannels(numVo);
+			outputs[RVEL_OUTPUT].setChannels(numVo);
+			outputs[GATE_OUTPUT].setChannels(numVo);
 		}
 		learnCC = 0;
 		learnNote = 0;
@@ -366,7 +380,7 @@ struct MIDIpolyMPE : Module {
 		switch (polyModeIx) {
 			case MPE_MODE:
 			case MPEPLUS_MODE:{
-				if (channel == MPEmasterCh) return;
+				if (channel == MPEmasterCh) return; /////  R E T U R N !!!!!!!
 				rotateIndex = channel;
 				//////if gate push note to mpe_buffer for legato/////
 				if (gates[channel]) cachedMPE[channel].push_back(notes[channel]);
@@ -404,7 +418,7 @@ struct MIDIpolyMPE : Module {
 					drift[i] = static_cast<float>(rand() % 200  - 100) * static_cast<float>(driftcents) / 120000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
-				return;
+				return;/////  R E T U R N !!!!!!!
 			} break;
 			case UNISONLWR_MODE: {
 				cachedNotes.push_back(note);
@@ -418,7 +432,7 @@ struct MIDIpolyMPE : Module {
 					drift[i] = static_cast<float>(rand() % 200  - 100) * static_cast<float>(driftcents) / 120000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
-				return;
+				return;/////  R E T U R N !!!!!!!
 			} break;
 			case UNISONUPR_MODE:{
 				cachedNotes.push_back(note);
@@ -432,7 +446,7 @@ struct MIDIpolyMPE : Module {
 					drift[i] = static_cast<float>(rand() % 200  - 100) * static_cast<float>(driftcents) / 120000.f;
 					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
-				return;
+				return;/////  R E T U R N !!!!!!!
 			} break;
 			default: break;
 		}
@@ -897,12 +911,6 @@ struct MIDIpolyMPE : Module {
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
 		}
-		outputs[X_OUTPUT].setChannels(numVo);
-		outputs[Y_OUTPUT].setChannels(numVo);
-		outputs[Z_OUTPUT].setChannels(numVo);
-		outputs[VEL_OUTPUT].setChannels(numVo);
-		outputs[RVEL_OUTPUT].setChannels(numVo);
-		outputs[GATE_OUTPUT].setChannels(numVo);
 		
 		float pbVo = 0.f, pbVoice = 0.f;
 		if (mPBnd < 0){
@@ -929,17 +937,19 @@ struct MIDIpolyMPE : Module {
 			}
 		} else {/// MPE MODE!!!
 			for (int i = 0; i < 16; i++) {
-				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
-				outputs[GATE_OUTPUT].setVoltage(lastGate, i);
-				if (mpex[i] < 0) xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], -8192, 0, -5.f, 0.f)));
-				else xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], 0, 8191, 0.f, 5.f)));
-				outputs[X_OUTPUT].setVoltage(xpitch[i]  * pbMPE / 60.f + ((notes[i] - 60) / 12.f) + pbVoice, i);
-				outputs[VEL_OUTPUT].setVoltage(rescale(vels[i], 0, 127, 0.f, 10.f), i);
-				if (mpePbOut || (polyModeIx > MPE_MODE)) outputs[RVEL_OUTPUT].setVoltage(xpitch[i], i);
-				else outputs[RVEL_OUTPUT].setVoltage(rescale(rvels[i], 0, 127, 0.f, 10.f), i);
-				outputs[Y_OUTPUT].setVoltage(MPEyFilter[i].process(1.f ,rescale(mpey[i], 0, 16383, 0.f, 10.f)), i);
-				outputs[Z_OUTPUT].setVoltage(MPEzFilter[i].process(1.f ,rescale(mpez[i], 0, 16383, 0.f, 10.f)), i);
-				lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
+				if (i != MPEmasterCh){
+					float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
+					outputs[GATE_OUTPUT].setVoltage(lastGate, i);
+					if (mpex[i] < 0) xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], -8192, 0, -5.f, 0.f)));
+					else xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], 0, 8191, 0.f, 5.f)));
+					outputs[X_OUTPUT].setVoltage(xpitch[i]  * pbMPE / 60.f + ((notes[i] - 60) / 12.f) + pbVoice, i);
+					outputs[VEL_OUTPUT].setVoltage(rescale(vels[i], 0, 127, 0.f, 10.f), i);
+					if (mpePbOut || (polyModeIx > MPE_MODE)) outputs[RVEL_OUTPUT].setVoltage(xpitch[i], i);
+					else outputs[RVEL_OUTPUT].setVoltage(rescale(rvels[i], 0, 127, 0.f, 10.f), i);
+					outputs[Y_OUTPUT].setVoltage(MPEyFilter[i].process(1.f ,rescale(mpey[i], 0, 16383, 0.f, 10.f)), i);
+					outputs[Z_OUTPUT].setVoltage(MPEzFilter[i].process(1.f ,rescale(mpez[i], 0, 16383, 0.f, 10.f)), i);
+					lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
+				}
 			}
 		}
 		for (int i = 0; i < 8; i++){
@@ -1414,17 +1424,17 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		int dispID = 1;
 		if (module) {
 			//MIDI
-				MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(xPos,yPos));
-				dDisplay->box.size = {136.f, 40.f};
-				dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
-				addChild(dDisplay);
+			MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(xPos,yPos));
+			dDisplay->box.size = {136.f, 40.f};
+			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
+			addChild(dDisplay);
 			//PolyModes LCD
 			xPos = 7.f;
 			yPos = 61.f;
-				PolyModeDisplay *polyModeDisplay = createWidget<PolyModeDisplay>(Vec(xPos,yPos));
-				polyModeDisplay->box.size = {136.f, 40.f};
-				polyModeDisplay->module = module;
-				addChild(polyModeDisplay);
+			PolyModeDisplay *polyModeDisplay = createWidget<PolyModeDisplay>(Vec(xPos,yPos));
+			polyModeDisplay->box.size = {136.f, 40.f};
+			polyModeDisplay->module = module;
+			addChild(polyModeDisplay);
 			//  Y Z LCDs
 			xPos = 55.f;
 			yPos = 156.f;

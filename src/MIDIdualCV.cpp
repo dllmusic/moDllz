@@ -48,8 +48,8 @@ struct MIDIdualCV :  Module {
 	midi::InputQueue midiInput;
 	int MPEmasterCh = 0;// 0 ~ 15
 	int midiActivity = 0;
-	int mdriverJx = 0 , mchannelJx = 0;
-	std::string mdeviceJx = "-";
+	int mdriverJx = 1 , mchannelJx = -1;
+	std::string mdeviceJx = "";
 	bool resetMidi = false;
 	/////
 	bool MPEmode = false;
@@ -168,9 +168,17 @@ struct MIDIdualCV :  Module {
 		resetVoices();
 	}
 //////////////////////////////////////////////////////////////////////////////////////
+	json_t* miditoJson() {//saves last valid driver/device/chn
+		json_t* rootJ = json_object();
+		json_object_set_new(rootJ, "driver", json_integer(mdriverJx));
+		json_object_set_new(rootJ, "deviceName", json_string(mdeviceJx.c_str()));
+		json_object_set_new(rootJ, "channel", json_integer(mchannelJx));
+		return rootJ;
+	}
+///////////////////////////////////////////////////////////////////////////////////////
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
-		json_object_set_new(rootJ, "midi", midiInput.toJson());
+		json_object_set_new(rootJ, "midi", miditoJson());
 		return rootJ;
 	}
 //////////////////////////////////////////////////////////////////////////////////////

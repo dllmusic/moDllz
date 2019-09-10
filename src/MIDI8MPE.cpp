@@ -66,7 +66,6 @@ struct MIDI8MPE : Module {
 	
 	// cachedNotes : UNISON_MODE and REASSIGN_MODE cache all played notes. The other polyModes cache stolen notes (after the 4th one).
 	std::vector<uint8_t> cachedNotes;
-	
 	std::vector<uint8_t> cachedMPE[8];
 	
 	

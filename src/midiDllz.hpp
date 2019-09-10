@@ -9,26 +9,31 @@ struct MIDIdisplay : OpaqueWidget {
 	bool i_mpeMode = false;
 	int initpointer0 = 0;
 	int *midiActiv = &initpointer0;
+	
+	int initpointer_1 = -1;
+	int *mdriverJ = &initpointer_1;
+	int *mchannelJ = &initpointer_1;
+	int mchannelMem = -1;
+	
 	bool *resetMidi = NULL;
-	int *mdriverJ;
-	int *mchannelJ;
 	bool showchannel = true;
 	bool isdevice = false;
+	bool searchdev = false;
 	std::string *mdeviceJ;
-	std::string mdriver = "";
+	std::string mdriver = "initalizing";
 	std::string mdevice = "";
 	std::string mchannel = "";
-	bool searchdev = false;
 	
 	int cursorId = 0;
 	float mdfontSize = 12.f;	
 	float xcenter = 0.f;
+	int drawframe = 0;
 	std::shared_ptr<Font> font;
-	NVGcolor textColor = nvgRGB(0x80,0x80,0x80);
+	NVGcolor textColor = nvgRGB(0x88,0x88,0x64);
 
-	void draw(const DrawArgs &args) override;
 	void updateMidiSettings(int dRow, bool valup);
 	void reDisplay();
+	void draw(const DrawArgs &args) override;
 	void onButton(const event::Button &e) override;
 };
 
@@ -60,3 +65,4 @@ struct MIDIscreen : OpaqueWidget{
 	MIDIdisplay *md;
 	void setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,int *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi);
 };
+
