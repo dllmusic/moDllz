@@ -908,7 +908,6 @@ struct MIDIpolyMPE : Module {
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
 		}
-		
 		float pbVo = 0.f, pbVoice = 0.f;
 		if (mPBnd < 0){
 			pbVo = mPBndFilter.process(1.f ,rescale(mPBnd, -8192, 0, -5.f, 0.f));
@@ -919,7 +918,6 @@ struct MIDIpolyMPE : Module {
 		}
 		outputs[PBEND_OUTPUT].setVoltage(pbVo);
 		bool sustainHold = (params[SUSTHOLD_PARAM].getValue() > .5 );
-
 		if (polyModeIx > MPEPLUS_MODE){
 			for (int i = 0; i < numVo; i++) {
 				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
@@ -1021,7 +1019,7 @@ struct PolyModeDisplay : TransparentWidget {
 	unsigned char rgblrn, gb1, gb2, gb3, gb4, gb1f, gb2f, gb3f, gb4f;
 	unsigned char rgbf1 = 0xdd;
 	unsigned char rgbf2 = 0xdd;
-	
+
 	void draw(const DrawArgs &args) override {
 		if (cursorIxI != module->cursorIx){
 			cursorIxI = module->cursorIx;
