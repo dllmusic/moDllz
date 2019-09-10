@@ -689,14 +689,13 @@ struct MIDIpolyMPE : Module {
 			} break;
 				// cc
 			case 0xb: {
-				///////// LEARN CC   ???
-				if (learnCC > 0) {
-					midiCCs[learnCC - 1] = msg.getNote();
-					learnCC = 0;
-					return;
-				}else if (polyModeIx < ROTATE_MODE){
+				if (polyModeIx < ROTATE_MODE){
 					if (msg.getChannel() == MPEmasterCh){
-						processCC(msg);
+						if (learnCC > 0) {///////// LEARN CC MPE master
+							midiCCs[learnCC - 1] = msg.getNote();
+							learnCC = 0;
+							return;
+						}else processCC(msg);
 					}else if (polyModeIx == MPEPLUS_MODE){ //Continuum
 						if (msg.getNote() == 87){
 							mpePlusLB[msg.getChannel()] = msg.getValue();
@@ -710,23 +709,25 @@ struct MIDIpolyMPE : Module {
 					}else if (msg.getNote() == mpeZcc){
 						mpez[msg.getChannel()] = msg.getValue() * 128;
 					}
-				}else{
-					processCC(msg);
-				}
-				midiActivity = msg.getValue();
+				}else if (learnCC > 0) {///////// LEARN CC Poly
+					midiCCs[learnCC - 1] = msg.getNote();
+					learnCC = 0;
+					return;
+				}else processCC(msg);
 			} break;
 			default: break;
 		}
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	void processCC(midi::Message msg) {
+		midiActivity = msg.getValue();
 		if (msg.getNote() ==  0x40) { //internal sust pedal
 			if (msg.getValue() >= 64)
 				pressPedal();
 			else
 				releasePedal();
 		}
-		for (int i = 0; i < 6; i++){
+		for (int i = 0; i < 8; i++){
 			if (midiCCs[i] == msg.getNote()){
 				midiCCsVal[i] = msg.getValue();
 				return;
