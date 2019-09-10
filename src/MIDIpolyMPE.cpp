@@ -96,6 +96,7 @@ struct MIDIpolyMPE : Module {
 	int rotateIndex = 0;
 	int stealIndex = 0;
 	int numVo = 8;
+	int numVOch = 8;
 	int pbMainDwn = -12;
 	int pbMainUp = 2;
 	int pbMPE = 96;
@@ -266,21 +267,11 @@ struct MIDIpolyMPE : Module {
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
 			}
-			outputs[X_OUTPUT].setChannels(16);
-			outputs[Y_OUTPUT].setChannels(16);
-			outputs[Z_OUTPUT].setChannels(16);
-			outputs[VEL_OUTPUT].setChannels(16);
-			outputs[RVEL_OUTPUT].setChannels(16);
-			outputs[GATE_OUTPUT].setChannels(16);
-		} else {
+			numVOch = 16;
+		}else {
 			displayYcc = 130;
 			displayZcc = 129;
-			outputs[X_OUTPUT].setChannels(numVo);
-			outputs[Y_OUTPUT].setChannels(numVo);
-			outputs[Z_OUTPUT].setChannels(numVo);
-			outputs[VEL_OUTPUT].setChannels(numVo);
-			outputs[RVEL_OUTPUT].setChannels(numVo);
-			outputs[GATE_OUTPUT].setChannels(numVo);
+			numVOch = numVo;
 		}
 		learnCC = 0;
 		learnNote = 0;
@@ -907,6 +898,12 @@ struct MIDIpolyMPE : Module {
 //////   STEP START
 ///////////////////////
 	void process(const ProcessArgs &args) override {
+		outputs[X_OUTPUT].setChannels(numVOch);
+		outputs[Y_OUTPUT].setChannels(numVOch);
+		outputs[Z_OUTPUT].setChannels(numVOch);
+		outputs[VEL_OUTPUT].setChannels(numVOch);
+		outputs[RVEL_OUTPUT].setChannels(numVOch);
+		outputs[GATE_OUTPUT].setChannels(numVOch);
 		midi::Message msg;
 		while (midiInput.shift(&msg)) {
 			processMessage(msg);
