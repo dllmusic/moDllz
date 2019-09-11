@@ -10,4 +10,5 @@ void init(rack::Plugin *p) {
 	p->addModel(modelXBender);
 	p->addModel(modelTwinGlider);
 	p->addModel(modelMIDI8MPE);
+	//p->addModel(modelPolyTune);
 }

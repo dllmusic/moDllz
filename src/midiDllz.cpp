@@ -51,7 +51,7 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 				}
 				drIx ++;
 			}
-			if (resetdr) midiInput->setDriverId(1);
+			if (resetdr) midiInput->setDriverId(midiInput->getDriverIds().front());
 			if (midiInput->getDeviceIds().size() > 0){
 				midiInput->setDeviceId(0);
 				*mdriverJ = midiInput->driverId;//valid for saving
@@ -79,7 +79,7 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 					}
 					deIx ++;
 				}
-				if (!devhere) midiInput->setDeviceId(midiInput->getDeviceIds().at(0));
+				if (!devhere) midiInput->setDeviceId(midiInput->getDeviceIds().front());
 				*mdeviceJ = midiInput->getDeviceName(midiInput->deviceId);//valid for saving
 				mchannelMem = -1;
 				*mchannelJ = -1;
@@ -158,31 +158,35 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			if (searchdev) {
 				showchannel = false;
 				textColor = nvgRGB(0xFF,0x64,0x64);
-				midiInput->setDriverId(*mdriverJ);
-				mdriver = midiInput->getDriverName(midiInput->driverId);
-				if (*mdeviceJ != ""){
-					mdevice = *mdeviceJ;
-					mchannel = "...disconnected...";
-					for (int deviceId : midiInput->getDeviceIds()) {
-						if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
-							midiInput->setDeviceId(deviceId);
-							mchannelMem = *mchannelJ;
-							searchdev = false;
-							isdevice = true;
-							showchannel = true;
-							reDisplay();
-							break;
-						}
-					}
-				}else{
-					if (midiInput->getDeviceIds().size() > 0){
-						midiInput->setDeviceId(0);
-						*mdeviceJ = midiInput->getDeviceName(0);
-					}else midiInput->setDeviceId(-1);
-					//mchannelMem = -1;
-					//*mchannelJ = -1;
-				}
+				
 			}
+			if (*mdeviceJ != ""){
+				midiInput->setDriverId(*mdriverJ);
+				mdevice = *mdeviceJ;
+				mchannel = "...disconnected...";
+				for (int deviceId : midiInput->getDeviceIds()) {
+					if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
+						midiInput->setDeviceId(deviceId);
+						mchannelMem = *mchannelJ;
+						searchdev = false;
+						isdevice = true;
+						showchannel = true;
+						reDisplay();
+						break;
+					}
+				}
+			}else{
+				midiInput->setDriverId(midiInput->getDriverIds().front());
+				*mdriverJ = midiInput->driverId;//valid for saving
+				if (midiInput->getDeviceIds().size() > 0){
+					midiInput->setDeviceId(midiInput->getDeviceIds().front());
+					midiInput->setDeviceId(0);
+					*mdeviceJ = midiInput->getDeviceName(0);
+				}else midiInput->setDeviceId(-1);
+				//mchannelMem = -1;
+				//*mchannelJ = -1;
+			}
+			mdriver = midiInput->getDriverName(midiInput->driverId);
 		}
 		if (*midiActiv > 3) *midiActiv -= 4;
 		else *midiActiv = 0;//clip to 0

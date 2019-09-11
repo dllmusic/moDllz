@@ -49,7 +49,8 @@ struct MIDIpolyMPE : Module {
 	int MPEmasterCh = 0;// 0 ~ 15
 	int midiActivity = 0;
 	bool resetMidi = false;
-	int mdriverJx = 1 , mchannelJx = -1;
+	int mdriverJx = -1;
+	int mchannelJx = -1;
 	std::string mdeviceJx = "";
 /////
 	enum PolyMode {
@@ -119,6 +120,8 @@ struct MIDIpolyMPE : Module {
 	bool mpePbOut = true;
 	float dataKnob = 0.f;
 	int frameData = 0;
+	//int dynCh = 0;
+	//uint8_t MPEchOut[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 	
 	dsp::ExponentialFilter MPExFilter[16];
 	dsp::ExponentialFilter MPEyFilter[16];

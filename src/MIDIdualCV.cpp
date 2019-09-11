@@ -48,7 +48,8 @@ struct MIDIdualCV :  Module {
 	midi::InputQueue midiInput;
 	int MPEmasterCh = 0;// 0 ~ 15
 	int midiActivity = 0;
-	int mdriverJx = 1 , mchannelJx = -1;
+	int mdriverJx = -1;
+	int mchannelJx = -1;
 	std::string mdeviceJx = "";
 	bool resetMidi = false;
 	/////
