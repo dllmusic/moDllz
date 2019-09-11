@@ -1030,7 +1030,7 @@ struct PolyModeDisplay : TransparentWidget {
 		if (module->polyModeIx < 2){
 			sVo =  "Vo chnl PBend: " + std::to_string(module->pbMPE);
 		}else{
-			sVo = "Voice channels: "+ std::to_string(module->numVo);
+			sVo = "Voice channels: " + std::to_string(module->numVo);
 		}
 		snoteMin = noteName[module->noteMin % 12] + std::to_string((module->noteMin / 12) - 2);
 		snoteMax = noteName[module->noteMax % 12] + std::to_string((module->noteMax / 12) - 2);
