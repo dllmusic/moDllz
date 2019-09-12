@@ -120,8 +120,9 @@ struct MIDIpolyMPE : Module {
 	bool mpePbOut = true;
 	float dataKnob = 0.f;
 	int frameData = 0;
-	//int dynCh = 0;
-	//uint8_t MPEchOut[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+	
+	uint8_t MPEchMap[16];
+	std::vector<uint8_t> dynMPEch;
 	
 	dsp::ExponentialFilter MPExFilter[16];
 	dsp::ExponentialFilter MPEyFilter[16];
@@ -270,7 +271,9 @@ struct MIDIpolyMPE : Module {
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
 			}
-			numVOch = 16;
+			//numVOch = 16;
+			numVOch = 1;
+			dynMPEch.clear();
 		}else {
 			displayYcc = 130;
 			displayZcc = 129;
@@ -375,9 +378,18 @@ struct MIDIpolyMPE : Module {
 			case MPE_MODE:
 			case MPEPLUS_MODE:{
 				if (channel == MPEmasterCh) return; /////  R E T U R N !!!!!!!
-				rotateIndex = channel;
-				//////if gate push note to mpe_buffer for legato/////
-				if (gates[channel]) cachedMPE[channel].push_back(notes[channel]);
+				uint8_t ixch;
+				std::vector<uint8_t>::iterator it = std::find(dynMPEch.begin(), dynMPEch.end(), channel);
+				if (it != dynMPEch.end()) {//found = get the index of the channel
+					 ixch = std::distance(dynMPEch.begin(), it);
+				}else {// not found = get index (old size) and add
+					ixch = dynMPEch.size();
+					dynMPEch.push_back(channel);
+					numVOch = ixch + 1; // grow dynamic voices
+				}
+				rotateIndex = ixch; // ASSIGN VOICE Index
+				if (gates[ixch]) cachedMPE[ixch].push_back(notes[ixch]);///if gate push note to mpe_buffer
+				MPEchMap[channel] = ixch; //map channel for note off
 			} break;
 			case ROTATE_MODE: {
 				rotateIndex = getPolyIndex(rotateIndex);
@@ -460,29 +472,30 @@ struct MIDIpolyMPE : Module {
 		if (polyModeIx > MPEPLUS_MODE) {
 		// Remove the note
 			if (!cachedNotes.empty()) backnote = (note == cachedNotes.back());
-			auto it = std::find(cachedNotes.begin(), cachedNotes.end(), note);
+			std::vector<uint8_t>::iterator it = std::find(cachedNotes.begin(), cachedNotes.end(), note);
 			if (it != cachedNotes.end()) cachedNotes.erase(it);
 		}else{
 			if (channel == MPEmasterCh) return;
-			auto it = std::find(cachedMPE[channel].begin(), cachedMPE[channel].end(), note);
-			if (it != cachedMPE[channel].end()) cachedMPE[channel].erase(it);
+			//get channel from dynamic map
+			std::vector<uint8_t>::iterator it = std::find(cachedMPE[MPEchMap[channel]].begin(), cachedMPE[MPEchMap[channel]].end(), note);
+			if (it != cachedMPE[MPEchMap[channel]].end()) cachedMPE[MPEchMap[channel]].erase(it);
 		}
 		switch (polyModeIx) {
 			case MPE_MODE:
 			case MPEPLUS_MODE:{
-				if (note == notes[channel]) {
-					if (pedalgates[channel]) {
-						gates[channel] = false;
+				if (note == notes[MPEchMap[channel]]) {
+					if (pedalgates[MPEchMap[channel]]) {
+						gates[MPEchMap[channel]] = false;
 					}
 					/// check for cachednotes on MPE buffers...
-					else if (!cachedMPE[channel].empty()) {
-						notes[channel] = cachedMPE[channel].back();
-						cachedMPE[channel].pop_back();
+					else if (!cachedMPE[MPEchMap[channel]].empty()) {
+						notes[MPEchMap[channel]] = cachedMPE[MPEchMap[channel]].back();
+						cachedMPE[MPEchMap[channel]].pop_back();
 					}
 					else {
-						gates[channel] = false;
+						gates[MPEchMap[channel]] = false;
 					}
-					rvels[channel] = vel;
+					rvels[MPEchMap[channel]] = vel;
 				}
 			} break;
 			case REASSIGN_MODE: {
