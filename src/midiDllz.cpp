@@ -229,35 +229,33 @@ void MIDIscreen::setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,int *mid
 	md->searchdev = true;
 	addChild(md);
 	
-	DispBttnL *drvBttnL = createWidget<DispBttnL>(Vec(1.f,0.f));
+	DispBttnL *drvBttnL = createWidget<DispBttnL>(Vec(1.f,1.f));
 	drvBttnL->md = md;
 	addChild(drvBttnL);
 	
-	DispBttnL *devBttnL = createWidget<DispBttnL>(Vec(1.f,13.f));
+	DispBttnL *devBttnL = createWidget<DispBttnL>(Vec(1.f,14.f));
 	devBttnL->id = 1;
 	devBttnL->md = md;
 	addChild(devBttnL);
 	
-	DispBttnL *chnBttnL = createWidget<DispBttnL>(Vec(1.f,26.f));
+	DispBttnL *chnBttnL = createWidget<DispBttnL>(Vec(1.f,27.f));
 	chnBttnL->id = 2;
 	chnBttnL->md = md;
 	addChild(chnBttnL);
 	
-	DispBttnR *drvBttnR = createWidget<DispBttnR>(Vec(box.size.x - 11.f,0.f));
+	DispBttnR *drvBttnR = createWidget<DispBttnR>(Vec(box.size.x - 11.f,1.f));
 	drvBttnR->md = md;
 	addChild(drvBttnR);
 
-	DispBttnR *devBttnR = createWidget<DispBttnR>(Vec(box.size.x - 11.f,13.f));
+	DispBttnR *devBttnR = createWidget<DispBttnR>(Vec(box.size.x - 11.f,14.f));
 	devBttnR->id = 1;
 	devBttnR->md = md;
 	addChild(devBttnR);
 
-	DispBttnR *chnBttnR = createWidget<DispBttnR>(Vec(box.size.x - 11.f,26.f));
+	DispBttnR *chnBttnR = createWidget<DispBttnR>(Vec(box.size.x - 11.f,27.f));
 	chnBttnR->id = 2;
 	chnBttnR->md = md;
 	addChild(chnBttnR);
-	
-	
 }
 ///////////////////////////////////////////////////////////////////////////////////////
 MIDIscreen::MIDIscreen(){
