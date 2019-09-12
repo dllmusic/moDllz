@@ -133,7 +133,7 @@ void MIDIdisplay::reDisplay(){
 		}
 		isdevice = true;
 	}else {
-		textColor = nvgRGB(0x88,0x88,0x00);
+		textColor = nvgRGB(0xaa,0xaa,0x00);
 		showchannel = false;
 		isdevice = false;
 		mdevice = "(no device)";
@@ -152,40 +152,39 @@ void MIDIdisplay::draw(const DrawArgs &args){
 			i_mpeChn = *mpeChn;
 			mchannel = "mpe master " + std::to_string(i_mpeChn + 1);
 		}
-		if (drawframe++ > 100){
+		if (drawframe++ > 50){
 			drawframe = 0;
 			if (isdevice && (midiInput->getDeviceName(midiInput->deviceId) != *mdeviceJ)) searchdev = true;
 			if (searchdev) {
 				showchannel = false;
-				textColor = nvgRGB(0xFF,0x64,0x64);
-				
-			}
-			if (*mdeviceJ != ""){
-				midiInput->setDriverId(*mdriverJ);
-				mdevice = *mdeviceJ;
-				mchannel = "...disconnected...";
-				for (int deviceId : midiInput->getDeviceIds()) {
-					if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
-						midiInput->setDeviceId(deviceId);
-						mchannelMem = *mchannelJ;
-						searchdev = false;
-						isdevice = true;
-						showchannel = true;
-						reDisplay();
-						break;
+				if (*mdeviceJ != ""){/// if previously saved
+					textColor = nvgRGB(0xFF,0x64,0x64);
+					midiInput->setDriverId(*mdriverJ);
+					mdevice = *mdeviceJ;
+					mchannel = "...disconnected...";
+					for (int deviceId : midiInput->getDeviceIds()) {
+						if (midiInput->getDeviceName(deviceId) == *mdeviceJ) {
+							midiInput->setDeviceId(deviceId);
+							mchannelMem = *mchannelJ;
+							searchdev = false;
+							isdevice = true;
+							showchannel = true;
+							reDisplay();
+							break;
+						}
 					}
+				}else{ //initial searchdev / (no saved devices)
+					midiInput->setDriverId(midiInput->getDriverIds().front());
+					if (midiInput->getDeviceIds().size() > 0){
+						midiInput->setDeviceId(midiInput->getDeviceIds().front());
+						*mdriverJ = midiInput->driverId;//valid for saving
+						*mdeviceJ = midiInput->getDeviceName(midiInput->deviceId);
+					}else midiInput->setDeviceId(-1);
+					*mchannelJ = -1;
+					mchannelMem = -1;
+					reDisplay();
 				}
-			}else{
-				midiInput->setDriverId(midiInput->getDriverIds().front());
-				*mdriverJ = midiInput->driverId;//valid for saving
-				if (midiInput->getDeviceIds().size() > 0){
-					midiInput->setDeviceId(midiInput->getDeviceIds().front());
-					*mdeviceJ = midiInput->getDeviceName(midiInput->deviceId);
-				}else midiInput->setDeviceId(-1);
-				//mchannelMem = -1;
-				//*mchannelJ = -1;
 			}
-			mdriver = midiInput->getDriverName(midiInput->driverId);
 		}
 		if (*midiActiv > 3) *midiActiv -= 4;
 		else *midiActiv = 0;//clip to 0
