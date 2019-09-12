@@ -180,7 +180,6 @@ void MIDIdisplay::draw(const DrawArgs &args){
 				*mdriverJ = midiInput->driverId;//valid for saving
 				if (midiInput->getDeviceIds().size() > 0){
 					midiInput->setDeviceId(midiInput->getDeviceIds().front());
-					midiInput->setDeviceId(0);
 					*mdeviceJ = midiInput->getDeviceName(0);
 				}else midiInput->setDeviceId(-1);
 				//mchannelMem = -1;
