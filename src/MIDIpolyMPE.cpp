@@ -389,7 +389,7 @@ struct MIDIpolyMPE : Module {
 				}
 				rotateIndex = ixch; // ASSIGN VOICE Index
 				if (gates[ixch]) cachedMPE[ixch].push_back(notes[ixch]);///if gate push note to mpe_buffer
-				MPEchMap[channel] = ixch; //map channel for note off
+				MPEchMap[channel] = ixch; //map channel for chPB Y Z and note off
 			} break;
 			case ROTATE_MODE: {
 				rotateIndex = getPolyIndex(rotateIndex);
@@ -457,7 +457,7 @@ struct MIDIpolyMPE : Module {
 			default: break;
 		}
 		// Set notes and gates
-		if (static_cast<bool>(params[RETRIG_PARAM].getValue()) && ((gates[rotateIndex] || pedalgates[rotateIndex])))
+		if (static_cast<bool>(params[RETRIG_PARAM].getValue()) && (gates[rotateIndex] || pedalgates[rotateIndex]))
 			reTrigger[rotateIndex].trigger(1e-3);
 		notes[rotateIndex] = note;
 		vels[rotateIndex] = vel;
@@ -590,7 +590,7 @@ struct MIDIpolyMPE : Module {
 		pedal = true;
 		lights[SUSTHOLD_LIGHT].value = params[SUSTHOLD_PARAM].getValue();
 		if (polyModeIx == MPE_MODE) {
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < numVOch; i++) {
 				pedalgates[i] = gates[i];
 			}
 		}else {
@@ -605,7 +605,7 @@ struct MIDIpolyMPE : Module {
 		lights[SUSTHOLD_LIGHT].value = 0.f;
 		// When pedal is off, recover notes for pressed keys (if any) after they were already being shut by pedal-sustained notes.
 		if (polyModeIx < ROTATE_MODE) {
-			for (int i = 0; i < 16; i++) {
+			for (int i = 0; i < numVOch; i++) {
 				pedalgates[i] = false;
 				if (!cachedMPE[i].empty()) {
 						notes[i] = cachedMPE[i].back();
@@ -669,16 +669,17 @@ struct MIDIpolyMPE : Module {
 					return;
 				}////////////////////////////////////////
 				else if (polyModeIx < ROTATE_MODE){
-					if (msg.getChannel() == MPEmasterCh){
+					uint8_t channel = msg.getChannel();
+					if (channel == MPEmasterCh){
 						chAfTch = msg.getNote();
 					}else if (polyModeIx > 0){
-						mpez[msg.getChannel()] =  msg.getNote() * 128 + mpePlusLB[msg.getChannel()];
-						mpePlusLB[msg.getChannel()] = 0;
+						mpez[MPEchMap[channel]] =  msg.getNote() * 128 + mpePlusLB[MPEchMap[channel]];
+						mpePlusLB[MPEchMap[channel]] = 0;
 					}else {
 						if (mpeZcc == 128)
-							mpez[msg.getChannel()] = msg.getNote() * 128;
+							mpez[MPEchMap[channel]] = msg.getNote() * 128;
 						if (mpeYcc == 128)
-							mpey[msg.getChannel()] = msg.getNote() * 128;
+							mpey[MPEchMap[channel]] = msg.getNote() * 128;
 					}
 				}else{
 					chAfTch = msg.getNote();
@@ -693,10 +694,11 @@ struct MIDIpolyMPE : Module {
 					return;
 				}////////////////////////////////////////
 				else if (polyModeIx < ROTATE_MODE){
-					if (msg.getChannel() == MPEmasterCh){
+					uint8_t channel = msg.getChannel();
+					if (channel == MPEmasterCh){
 						mPBnd = msg.getValue() * 128 + msg.getNote()  - 8192;
 					}else{
-						mpex[msg.getChannel()] = msg.getValue() * 128 + msg.getNote()  - 8192;
+						mpex[MPEchMap[channel]] = msg.getValue() * 128 + msg.getNote()  - 8192;
 					}
 				}else{
 					mPBnd = msg.getValue() * 128 + msg.getNote() - 8192; //14bit Pitch Bend
@@ -706,7 +708,8 @@ struct MIDIpolyMPE : Module {
 				// cc
 			case 0xb: {
 				if (polyModeIx < ROTATE_MODE){
-					if (msg.getChannel() == MPEmasterCh){
+					uint8_t channel = msg.getChannel();
+					if (channel == MPEmasterCh){
 						if (learnCC > 0) {///////// LEARN CC MPE master
 							midiCCs[learnCC - 1] = msg.getNote();
 							learnCC = 0;
@@ -714,16 +717,16 @@ struct MIDIpolyMPE : Module {
 						}else processCC(msg);
 					}else if (polyModeIx == MPEPLUS_MODE){ //Continuum
 						if (msg.getNote() == 87){
-							mpePlusLB[msg.getChannel()] = msg.getValue();
+							mpePlusLB[MPEchMap[channel]] = msg.getValue();
 						}else if (msg.getNote() == 74){
-							mpey[msg.getChannel()] =  msg.getValue() * 128 + mpePlusLB[msg.getChannel()];
-							mpePlusLB[msg.getChannel()] = 0;
+							mpey[MPEchMap[channel]] =  msg.getValue() * 128 + mpePlusLB[MPEchMap[channel]];
+							mpePlusLB[MPEchMap[channel]] = 0;
 						}
 					}else if (msg.getNote() == mpeYcc){
 						//cc74 0x4a default
-						mpey[msg.getChannel()] = msg.getValue() * 128;
+						mpey[MPEchMap[channel]] = msg.getValue() * 128;
 					}else if (msg.getNote() == mpeZcc){
-						mpez[msg.getChannel()] = msg.getValue() * 128;
+						mpez[MPEchMap[channel]] = msg.getValue() * 128;
 					}
 				}else if (learnCC > 0) {///////// LEARN CC Poly
 					midiCCs[learnCC - 1] = msg.getNote();
@@ -948,8 +951,7 @@ struct MIDIpolyMPE : Module {
 				lights[CH_LIGHT+ i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
 			}
 		} else {/// MPE MODE!!!
-			for (int i = 0; i < 16; i++) {
-				if (i != MPEmasterCh){
+			for (int i = 0; i < numVOch; i++) {
 					float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
 					outputs[GATE_OUTPUT].setVoltage(lastGate, i);
 					if (mpex[i] < 0) xpitch[i] = (MPExFilter[i].process(1.f ,rescale(mpex[i], -8192, 0, -5.f, 0.f)));
@@ -961,7 +963,6 @@ struct MIDIpolyMPE : Module {
 					outputs[Y_OUTPUT].setVoltage(MPEyFilter[i].process(1.f ,rescale(mpey[i], 0, 16383, 0.f, 10.f)), i);
 					outputs[Z_OUTPUT].setVoltage(MPEzFilter[i].process(1.f ,rescale(mpez[i], 0, 16383, 0.f, 10.f)), i);
 					lights[CH_LIGHT + i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
-				}
 			}
 		}
 		for (int i = 0; i < 8; i++){
