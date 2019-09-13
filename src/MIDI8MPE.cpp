@@ -151,7 +151,7 @@ struct MIDI8MPE : Module {
 		configParam(LEARNCCF_PARAM, 0.f, 1.f, 0.f);
 		configParam(SUSTHOLD_PARAM, 0.f, 1.f, 1.f);
 		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
-		onReset();
+		//onReset();
 	}
 
 	json_t *dataToJson() override {
