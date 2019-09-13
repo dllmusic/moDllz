@@ -140,7 +140,7 @@ struct MIDIpolyMPE : Module {
 		configParam(SUSTHOLD_PARAM, 0.f, 1.f, 1.f);
 		configParam(RETRIG_PARAM, 0.f, 1.f, 1.f);
 		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
-		onReset();
+		//onReset();
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	json_t* miditoJson() {//saves last valid driver/device/chn
@@ -238,7 +238,7 @@ struct MIDIpolyMPE : Module {
 		if (velMinJ) velMin = json_integer_value(velMinJ);
 		json_t *velMaxJ = json_object_get(rootJ, "velMax");
 		if (velMaxJ) velMax = json_integer_value(velMaxJ);
-		resetVoices();
+		//resetVoices();
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	void resetVoices(){
