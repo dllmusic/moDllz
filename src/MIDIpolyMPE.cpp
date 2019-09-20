@@ -260,6 +260,8 @@ struct MIDIpolyMPE : Module {
 			MPEyFilter[i].lambda = lambdaf;
 			MPEzFilter[i].lambda = lambdaf;
 			mpePlusLB[i] = 0;
+			lights[CH_LIGHT+ i].value = 0.f;
+			outputs[GATE_OUTPUT].setVoltage( 0.f, i);
 		}
 		rotateIndex = -1;
 		cachedNotes.clear();
@@ -1168,8 +1170,8 @@ struct PolyModeDisplay : TransparentWidget {
 				i += static_cast<int>(e.pos.x / 34.f);
 				if (module->cursorIx != i){
 					module->cursorIx = i;
-					module->learnNote = 0;
-				} else if (module->learnNote != i - 2)	module->learnNote = i - 2;
+					module->learnNote = i - 2;
+				} else if (module->learnNote == i - 2)	module->learnNote = 0;
 				else {
 					module->learnNote = 0;
 					module->cursorIx = 0;
@@ -1335,13 +1337,12 @@ struct MidiccDisplay : OpaqueWidget {
 		switch (mymode){
 			case 0:{
 				focusOn = false;
-				if (canlearn) displayedCC();
 				module->cursorIx = 0;
 				module->learnCC = 0;
 			}break;
 			case 1:{
 				module->cursorIx = displayID + module->numPolycur;
-				//module->learnCC = 0;
+				if (canlearn) displayedCC();
 				flashFocus = 64;
 				focusOn = true;
 			}break;
@@ -1396,9 +1397,12 @@ struct MidiccDisplay : OpaqueWidget {
 			//int dispLine = static_cast<int>((e.pos.y - 2.f)/ 13.f) ;
 			//bool valpress = (e.pos.x >  box.size.x / 2.f);
 			if (e.action == GLFW_RELEASE){
-				mymode ++;
-				if (mymode > 2) mymode = 0;
-				else if ((mymode > 1) && (!canlearn)) mymode = 0;
+				if (mymode < 1) {
+					if (canlearn) mymode = 2;
+					else mymode = 1;
+				}
+				else mymode --;
+				
 				mymodeAction();
 			};
 		}
