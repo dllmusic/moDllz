@@ -97,7 +97,7 @@ struct MIDIpolyMPE : Module {
 	int rotateIndex = 0;
 	int stealIndex = 0;
 	int numVo = 8;
-	int numVOch = 8;
+	int numVOch = 1;
 	int pbMainDwn = -12;
 	int pbMainUp = 2;
 	int pbMPE = 96;
@@ -120,9 +120,9 @@ struct MIDIpolyMPE : Module {
 	bool mpePbOut = true;
 	float dataKnob = 0.f;
 	int frameData = 0;
-	
-	uint8_t MPEchMap[16];
-	std::vector<uint8_t> dynMPEch;
+	int autoFocusOff = 0;
+	//uint8_t MPEchMap[16];
+	//std::vector<uint8_t> dynMPEch;
 	
 	dsp::ExponentialFilter MPExFilter[16];
 	dsp::ExponentialFilter MPEyFilter[16];
@@ -273,14 +273,12 @@ struct MIDIpolyMPE : Module {
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
 			}
-			//numVOch = 16;
-			numVOch = 1;
-			dynMPEch.clear();
+			//dynMPEch.clear();
 		}else {
 			displayYcc = 130;
 			displayZcc = 129;
-			numVOch = numVo;
 		}
+		numVOch = 1;
 		learnCC = 0;
 		learnNote = 0;
 		for (int i=0; i < 8; i++){
@@ -380,18 +378,21 @@ struct MIDIpolyMPE : Module {
 			case MPE_MODE:
 			case MPEPLUS_MODE:{
 				if (channel == MPEmasterCh) return; /////  R E T U R N !!!!!!!
-				uint8_t ixch;
-				std::vector<uint8_t>::iterator it = std::find(dynMPEch.begin(), dynMPEch.end(), channel);
-				if (it != dynMPEch.end()) {//found = get the index of the channel
-					 ixch = std::distance(dynMPEch.begin(), it);
-				}else {// not found = get index (old size) and add
-					ixch = dynMPEch.size();
-					dynMPEch.push_back(channel);
-					numVOch = ixch + 1; // grow dynamic voices
-				}
-				rotateIndex = ixch; // ASSIGN VOICE Index
-				if (gates[ixch]) cachedMPE[ixch].push_back(notes[ixch]);///if gate push note to mpe_buffer
-				MPEchMap[channel] = ixch; //map channel for chPB Y Z and note off
+				//uint8_t ixch;
+				if (channel + 1 > numVOch) numVOch = channel + 1;
+				rotateIndex = channel; // ASSIGN VOICE Index
+				if (gates[channel]) cachedMPE[channel].push_back(notes[channel]);///if gate push note to mpe_buffer
+//				std::vector<uint8_t>::iterator it = std::find(dynMPEch.begin(), dynMPEch.end(), channel);
+//				if (it != dynMPEch.end()) {//found = get the index of the channel
+//					 ixch = std::distance(dynMPEch.begin(), it);
+//				}else {// not found = get index (old size) and add
+//					ixch = dynMPEch.size();
+//					dynMPEch.push_back(channel);
+//					numVOch = ixch + 1; // grow dynamic voices
+//				}
+//				rotateIndex = ixch; // ASSIGN VOICE Index
+//				if (gates[ixch]) cachedMPE[ixch].push_back(notes[ixch]);///if gate push note to mpe_buffer
+//				MPEchMap[channel] = ixch; //map channel for chPB Y Z and note off
 			} break;
 			case ROTATE_MODE: {
 				rotateIndex = getPolyIndex(rotateIndex);
@@ -479,25 +480,25 @@ struct MIDIpolyMPE : Module {
 		}else{
 			if (channel == MPEmasterCh) return;
 			//get channel from dynamic map
-			std::vector<uint8_t>::iterator it = std::find(cachedMPE[MPEchMap[channel]].begin(), cachedMPE[MPEchMap[channel]].end(), note);
-			if (it != cachedMPE[MPEchMap[channel]].end()) cachedMPE[MPEchMap[channel]].erase(it);
+			std::vector<uint8_t>::iterator it = std::find(cachedMPE[channel].begin(), cachedMPE[channel].end(), note);
+			if (it != cachedMPE[channel].end()) cachedMPE[channel].erase(it);
 		}
 		switch (polyModeIx) {
 			case MPE_MODE:
 			case MPEPLUS_MODE:{
-				if (note == notes[MPEchMap[channel]]) {
-					if (pedalgates[MPEchMap[channel]]) {
-						gates[MPEchMap[channel]] = false;
+				if (note == notes[channel]) {
+					if (pedalgates[channel]) {
+						gates[channel] = false;
 					}
 					/// check for cachednotes on MPE buffers...
-					else if (!cachedMPE[MPEchMap[channel]].empty()) {
-						notes[MPEchMap[channel]] = cachedMPE[MPEchMap[channel]].back();
-						cachedMPE[MPEchMap[channel]].pop_back();
+					else if (!cachedMPE[channel].empty()) {
+						notes[channel] = cachedMPE[channel].back();
+						cachedMPE[channel].pop_back();
 					}
 					else {
-						gates[MPEchMap[channel]] = false;
+						gates[channel] = false;
 					}
-					rvels[MPEchMap[channel]] = vel;
+					rvels[channel] = vel;
 				}
 			} break;
 			case REASSIGN_MODE: {
@@ -675,13 +676,13 @@ struct MIDIpolyMPE : Module {
 					if (channel == MPEmasterCh){
 						chAfTch = msg.getNote();
 					}else if (polyModeIx > 0){
-						mpez[MPEchMap[channel]] =  msg.getNote() * 128 + mpePlusLB[MPEchMap[channel]];
-						mpePlusLB[MPEchMap[channel]] = 0;
+						mpez[channel] =  msg.getNote() * 128 + mpePlusLB[channel];
+						mpePlusLB[channel] = 0;
 					}else {
 						if (mpeZcc == 128)
-							mpez[MPEchMap[channel]] = msg.getNote() * 128;
+							mpez[channel] = msg.getNote() * 128;
 						if (mpeYcc == 128)
-							mpey[MPEchMap[channel]] = msg.getNote() * 128;
+							mpey[channel] = msg.getNote() * 128;
 					}
 				}else{
 					chAfTch = msg.getNote();
@@ -700,7 +701,7 @@ struct MIDIpolyMPE : Module {
 					if (channel == MPEmasterCh){
 						mPBnd = msg.getValue() * 128 + msg.getNote()  - 8192;
 					}else{
-						mpex[MPEchMap[channel]] = msg.getValue() * 128 + msg.getNote()  - 8192;
+						mpex[channel] = msg.getValue() * 128 + msg.getNote()  - 8192;
 					}
 				}else{
 					mPBnd = msg.getValue() * 128 + msg.getNote() - 8192; //14bit Pitch Bend
@@ -719,16 +720,16 @@ struct MIDIpolyMPE : Module {
 						}else processCC(msg);
 					}else if (polyModeIx == MPEPLUS_MODE){ //Continuum
 						if (msg.getNote() == 87){
-							mpePlusLB[MPEchMap[channel]] = msg.getValue();
+							mpePlusLB[channel] = msg.getValue();
 						}else if (msg.getNote() == 74){
-							mpey[MPEchMap[channel]] =  msg.getValue() * 128 + mpePlusLB[MPEchMap[channel]];
-							mpePlusLB[MPEchMap[channel]] = 0;
+							mpey[channel] =  msg.getValue() * 128 + mpePlusLB[channel];
+							mpePlusLB[channel] = 0;
 						}
 					}else if (msg.getNote() == mpeYcc){
 						//cc74 0x4a default
-						mpey[MPEchMap[channel]] = msg.getValue() * 128;
+						mpey[channel] = msg.getValue() * 128;
 					}else if (msg.getNote() == mpeZcc){
-						mpez[MPEchMap[channel]] = msg.getValue() * 128;
+						mpez[channel] = msg.getValue() * 128;
 					}
 				}else if (learnCC > 0) {///////// LEARN CC Poly
 					midiCCs[learnCC - 1] = msg.getNote();
@@ -829,7 +830,7 @@ struct MIDIpolyMPE : Module {
 				else midiCCs[cursorIx - numPolycur - 7] = 0;
 			}break;
 		}
-		learnCC = 0;
+		autoFocusOff = 10 * APP->engine->getSampleRate();
 		return;
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -907,7 +908,7 @@ struct MIDIpolyMPE : Module {
 				else midiCCs[cursorIx - numPolycur - 7] = 128;
 			}break;
 		}
-		learnCC = 0;
+		autoFocusOff = 10 * APP->engine->getSampleRate();
 		return;
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -973,15 +974,27 @@ struct MIDIpolyMPE : Module {
 			else
 				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
 		}
+		if (resetMidi) resetVoices();// resetMidi from MIDI widget;
+		if (autoFocusOff > 0){
+			autoFocusOff --;
+			if (autoFocusOff < 1){
+				autoFocusOff = 0;
+				learnCC = 0;
+				learnNote = 0;
+				cursorIx = 0;
+			}
+		}
 		//// PANEL KNOB AND BUTTONS
 		dataKnob = params[DATAKNOB_PARAM].getValue();
 		if ( dataKnob > 0.07f){
+			if (learnCC + learnNote > 0) return;
 			int knobInterval = static_cast<int>(0.05 * args.sampleRate / dataKnob);
 			if (frameData ++ > knobInterval){
 				frameData = 0;
 				dataPlus();
 			}
 		}else if(dataKnob < -0.07f){
+			if (learnCC + learnNote > 0) return;
 			int knobInterval = static_cast<int>(0.05 * args.sampleRate / -dataKnob);
 			if (frameData ++ > knobInterval){
 				frameData = 0;
@@ -989,14 +1002,15 @@ struct MIDIpolyMPE : Module {
 			}
 		}
 		if (PlusOneTrigger.process(params[PLUSONE_PARAM].getValue())) {
+			if (learnCC + learnNote > 0) return;
 			dataPlus();
 			return;
 		}
 		if (MinusOneTrigger.process(params[MINUSONE_PARAM].getValue())) {
+			if (learnCC + learnNote > 0) return;
 			dataMinus();
 			return;
 		}
-		if (resetMidi) resetVoices();// resetMidi from MIDI widget;
 	}
 ///////////////////////
 //////   STEP END
@@ -1171,15 +1185,24 @@ struct PolyModeDisplay : TransparentWidget {
 				if (module->cursorIx != i){
 					module->cursorIx = i;
 					module->learnNote = i - 2;
-				} else if (module->learnNote == i - 2)	module->learnNote = 0;
-				else {
+					module->autoFocusOff = 10 * APP->engine->getSampleRate();
+				} else if (module->learnNote == i - 2)	{
+					module->learnNote = 0;
+					module->autoFocusOff = 10 * APP->engine->getSampleRate();
+				}else {
 					module->learnNote = 0;
 					module->cursorIx = 0;
+					module->autoFocusOff = 0;
 				}
 			} else {
 				module->learnNote = 0;
-				if (module->cursorIx != i)	module->cursorIx = i;
-				else module->cursorIx = 0;
+				if (module->cursorIx != i)	{
+					module->cursorIx = i;
+					module->autoFocusOff = 10 * APP->engine->getSampleRate();
+				}else {
+					module->cursorIx = 0;
+					module->autoFocusOff = 0;
+				}
 			}
 		}
 	}
@@ -1339,16 +1362,19 @@ struct MidiccDisplay : OpaqueWidget {
 				focusOn = false;
 				module->cursorIx = 0;
 				module->learnCC = 0;
+				module->autoFocusOff = 0;
 			}break;
 			case 1:{
 				module->cursorIx = displayID + module->numPolycur;
 				if (canlearn) displayedCC();
 				flashFocus = 64;
 				focusOn = true;
+				module->autoFocusOff = 10 * APP->engine->getSampleRate();
 			}break;
 			case 2:{
 				sDisplay = "LRN";
 				module->learnCC = displayID - 6;
+				module->autoFocusOff = 10 * APP->engine->getSampleRate();
 			}break;
 		}
 	}
