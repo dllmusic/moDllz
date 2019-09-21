@@ -238,7 +238,6 @@ struct MIDIpolyMPE : Module {
 		if (velMinJ) velMin = json_integer_value(velMinJ);
 		json_t *velMaxJ = json_object_get(rootJ, "velMax");
 		if (velMaxJ) velMax = json_integer_value(velMaxJ);
-		//resetVoices();
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	void resetVoices(){
@@ -273,12 +272,13 @@ struct MIDIpolyMPE : Module {
 				displayYcc = mpeYcc;
 				displayZcc = mpeZcc;
 			}
+			numVOch = 1;
 			//dynMPEch.clear();
 		}else {
 			displayYcc = 130;
 			displayZcc = 129;
+			numVOch = numVo;
 		}
-		numVOch = 1;
 		learnCC = 0;
 		learnNote = 0;
 		for (int i=0; i < 8; i++){
@@ -286,8 +286,12 @@ struct MIDIpolyMPE : Module {
 			midiCCsVal[i] = 0;
 		}
 		mPBndFilter.lambda = lambdaf;
-		midiActivity = 220;
+		midiActivity = 96;
 		resetMidi = false;
+	}
+	///////////////////////////////////////////////////////////////////////////////////////
+	void onAdd() override{
+		resetVoices();
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	void onReset() override{
@@ -667,7 +671,7 @@ struct MIDIpolyMPE : Module {
 				// channel aftertouch
 			case 0xd: {
 				if (learnCC > 0) {// learn enabled ???
-					midiCCs[learnCC - 1] = 129;
+					midiCCs[learnCC - 1] = 128;
 					learnCC = 0;
 					return;
 				}////////////////////////////////////////
@@ -687,7 +691,7 @@ struct MIDIpolyMPE : Module {
 				}else{
 					chAfTch = msg.getNote();
 				}
-				midiActivity = msg.getValue();
+				midiActivity = msg.getNote();
 			} break;
 				// pitch Bend
 			case 0xe:{
@@ -736,13 +740,13 @@ struct MIDIpolyMPE : Module {
 					learnCC = 0;
 					return;
 				}else processCC(msg);
+				midiActivity = msg.getValue();
 			} break;
 			default: break;
 		}
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	void processCC(midi::Message msg) {
-		midiActivity = msg.getValue();
 		if (msg.getNote() ==  0x40) { //internal sust pedal
 			if (msg.getValue() >= 64)
 				pressPedal();
@@ -988,14 +992,14 @@ struct MIDIpolyMPE : Module {
 		dataKnob = params[DATAKNOB_PARAM].getValue();
 		if ( dataKnob > 0.07f){
 			if (learnCC + learnNote > 0) return;
-			int knobInterval = static_cast<int>(0.05 * args.sampleRate / dataKnob);
+			int knobInterval = static_cast<int>(0.03 * args.sampleRate / dataKnob);
 			if (frameData ++ > knobInterval){
 				frameData = 0;
 				dataPlus();
 			}
 		}else if(dataKnob < -0.07f){
 			if (learnCC + learnNote > 0) return;
-			int knobInterval = static_cast<int>(0.05 * args.sampleRate / -dataKnob);
+			int knobInterval = static_cast<int>(0.03 * args.sampleRate / -dataKnob);
 			if (frameData ++ > knobInterval){
 				frameData = 0;
 				dataMinus();
@@ -1204,6 +1208,7 @@ struct PolyModeDisplay : TransparentWidget {
 					module->autoFocusOff = 0;
 				}
 			}
+			module->learnCC = 0;
 		}
 	}
 };
@@ -1227,8 +1232,8 @@ struct MidiccDisplay : OpaqueWidget {
 	int flashFocus = 0;
 	bool canlearn = true;
 	bool canedit = true;
-	bool refreshccy = true;
 	int polychanged = -1;
+	int lrncol = 0;
 	std::shared_ptr<Font> font;
 	void draw(const DrawArgs &args) override{
 			switch (displayID){
@@ -1322,7 +1327,7 @@ struct MidiccDisplay : OpaqueWidget {
 				focusOn = false;
 				if (mymode == 2) {
 					displayedCC();
-					module->learnCC = 0;
+					//module->learnCC = 0;
 				}
 				mymode = 0;
 			}
@@ -1344,7 +1349,6 @@ struct MidiccDisplay : OpaqueWidget {
 					nvgFillColor(args.vg, nvgRGB(0xdd, 0xdd, 0));
 				}break;
 				case 2:{
-					static int lrncol = 0;
 					if ((lrncol += 16) > 255) lrncol = 0;
 					nvgBeginPath(args.vg);
 					nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
@@ -1365,14 +1369,17 @@ struct MidiccDisplay : OpaqueWidget {
 				module->autoFocusOff = 0;
 			}break;
 			case 1:{
-				module->cursorIx = displayID + module->numPolycur;
 				if (canlearn) displayedCC();
 				flashFocus = 64;
 				focusOn = true;
+				module->learnCC = 0;
+				module->cursorIx = displayID + module->numPolycur;
 				module->autoFocusOff = 10 * APP->engine->getSampleRate();
 			}break;
 			case 2:{
 				sDisplay = "LRN";
+				focusOn = true;
+				module->cursorIx = displayID + module->numPolycur;
 				module->learnCC = displayID - 6;
 				module->autoFocusOff = 10 * APP->engine->getSampleRate();
 			}break;
@@ -1422,14 +1429,14 @@ struct MidiccDisplay : OpaqueWidget {
 		if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (canedit)){
 			//int dispLine = static_cast<int>((e.pos.y - 2.f)/ 13.f) ;
 			//bool valpress = (e.pos.x >  box.size.x / 2.f);
-			if (e.action == GLFW_RELEASE){
+			if (e.action == GLFW_PRESS){
 				if (mymode < 1) {
 					if (canlearn) mymode = 2;
 					else mymode = 1;
 				}
 				else mymode --;
-				
 				mymodeAction();
+				module->learnNote = 0;
 			};
 		}
 	}

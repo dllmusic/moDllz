@@ -105,6 +105,7 @@ struct MIDIdualCV :  Module {
 	dsp::PulseGenerator gatePulseLwr;
 	dsp::PulseGenerator gatePulseUpr;
 	
+	int processframe = 0;
 	int srFrametime; // check midi notes every SR/1000
 	
 	MIDIdualCV() {
@@ -302,8 +303,7 @@ struct MIDIdualCV :  Module {
 			pitchtocvUPR = pitchwheel * params[PBPOS_UPPER_PARAM].getValue() / 60.f;
 		}
 		outputs[PBEND_OUTPUT].setVoltage(pitchwheel);
-		static int processframe = 0;
-		if (processframe++ > srFrametime) {
+		if (processframe ++ > srFrametime) {
 			processframe = 0;
 			if (anynoteGate){
 				///LOWER///

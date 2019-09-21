@@ -289,6 +289,11 @@ struct MIDIpoly16 : Module {
 	bool BPMdecimals = false;
 	bool firstBPM = true; ///to hold if no clock ...and skip first BPM calc...
 	bool extBPM = false;
+	int framedrift = 0;
+	int lockedM = 0;
+	int liveM = 0;
+	int bounced[numPads] = {0};
+	int MIDIframe = 0;
 	
 	///////////////
 	MIDIpoly16() {
@@ -767,7 +772,6 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 	bool analogdrift = (params[DRIFT_PARAM].getValue() > 0.0001f);
 	bool newdrift = false;
 	if (analogdrift){
-		static int framedrift = 0;
 		if (framedrift > args.sampleRate)
 		{
 			newdrift = true;
@@ -783,8 +787,6 @@ void MIDIpoly16::process(const ProcessArgs &args) {
  //   bool retrigLive = false;
 	bool lockedgate = false;
  //   bool retrigLocked = false;
-	static int lockedM = 0;
-	static int liveM = 0;
 	for (int i = 0; i < numPads; i++)
 	{
 		if ((!noteButtons[i].button) && (params[KEYBUTTON_PARAM + i].getValue() > 0.5f)){ ///button ON
@@ -885,8 +887,7 @@ void MIDIpoly16::process(const ProcessArgs &args) {
 			}
 		   ///////// POLY PITCH OUTPUT///////////////////////
 				if (analogdrift){
-					static int bounced[numPads] = {0};
-					 float dlimit = (0.1f + params[DRIFT_PARAM].getValue() )/ 26.4f;
+					float dlimit = (0.1f + params[DRIFT_PARAM].getValue() )/ 26.4f;
 					const float driftfactor = 1e-9f;
 					if (newdrift) {
 						bounced[i] = 0;
@@ -1275,8 +1276,6 @@ void MIDIpoly16::doSequencer(){
 		}
 	}
 	if (clockSource == 2){
-		
-		static int MIDIframe = 0;
 			if (extBPM && (sampleFrames < (3 *  static_cast<int>(APP->engine->getSampleRate()))))
 				sampleFrames ++;
 			else////// 3 seconds without a tick......(20 bmp min)
