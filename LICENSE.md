@@ -1,6 +1,6 @@
-BSD 3-Clause License
+[GNU General Public License v3.0](LICENSE-GPLv3)
 
-Copyright (c) 2017, dllmusic
+Copyright (c) 2019, Pablo Delaloza
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
