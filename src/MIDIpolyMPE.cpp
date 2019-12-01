@@ -146,8 +146,8 @@ struct MIDIpolyMPE : Module {
 
 	MIDIpolyMPE() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(MINUSONE_PARAM, 0.f, 1.f, 0.f);
 		configParam(PLUSONE_PARAM, 0.f, 1.f, 0.f);
+		configParam(MINUSONE_PARAM, 0.f, 1.f, 0.f);
 		configParam(SUSTHOLD_PARAM, 0.f, 1.f, 1.f);
 		configParam(RETRIG_PARAM, 0.f, 1.f, 1.f);
 		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
