@@ -30,12 +30,7 @@ struct MIDIpolyMPE : Module {
 		RVEL_OUTPUT,
 		GATE_OUTPUT,
 		PBEND_OUTPUT,
-		MMA_OUTPUT,
-		MMB_OUTPUT,
-		MMC_OUTPUT,
-		MMD_OUTPUT,
-		MME_OUTPUT,
-		MMF_OUTPUT,
+		ENUMS(MM_OUTPUT, 8),
 		NUM_OUTPUTS
 	};
 	enum LightIds {
@@ -135,8 +130,8 @@ struct MIDIpolyMPE : Module {
 
 	MIDIpolyMPE() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		configParam(MINUSONE_PARAM, 0.f, 1.f, 0.f);
 		configParam(PLUSONE_PARAM, 0.f, 1.f, 0.f);
+		configParam(MINUSONE_PARAM, 0.f, 1.f, 0.f);
 		configParam(SUSTHOLD_PARAM, 0.f, 1.f, 1.f);
 		configParam(RETRIG_PARAM, 0.f, 1.f, 1.f);
 		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f);
@@ -974,9 +969,9 @@ struct MIDIpolyMPE : Module {
 		}
 		for (int i = 0; i < 8; i++){
 			if (midiCCs[i] == 128)
-				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(chAfTch, 0, 127, 0.f, 10.f)));
+				outputs[MM_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(chAfTch, 0, 127, 0.f, 10.f)));
 			else
-				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
+				outputs[MM_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
 		}
 		if (resetMidi) resetVoices();// resetMidi from MIDI widget;
 		if (autoFocusOff > 0){
@@ -1571,7 +1566,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 					MccDisplay->module = module;
 					addChild(MccDisplay);
 				}
-				addOutput(createOutput<moDllzPortG>(Vec(xPos + 3.5f, yPos + 13.f),  module, MIDIpolyMPE::MMA_OUTPUT + i + r * 4));
+				addOutput(createOutput<moDllzPortG>(Vec(xPos + 3.5f, yPos + 13.f),  module, MIDIpolyMPE::MM_OUTPUT + i + r * 4));
 				xPos += 33.f;
 			}
 			yPos += 40.f;
