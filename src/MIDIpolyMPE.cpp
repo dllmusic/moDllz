@@ -1,7 +1,23 @@
-#include "moDllz.hpp"
 /*
- * MIDI8MPE Midi to 16ch CV with MPE and regular Polyphonic modes
- */
+MIDI8MPE : Midi to 16ch CV with MPE and regular Polyphonic modes
+
+Copyright (C) 2019 Pablo Delaloza.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https:www.gnu.org/licenses/>.
+*/
+#include "moDllz.hpp"
+
 struct MIDIpolyMPE : Module {
 	enum ParamIds {
 		PLUSONE_PARAM,
@@ -30,12 +46,7 @@ struct MIDIpolyMPE : Module {
 		RVEL_OUTPUT,
 		GATE_OUTPUT,
 		PBEND_OUTPUT,
-		MMA_OUTPUT,
-		MMB_OUTPUT,
-		MMC_OUTPUT,
-		MMD_OUTPUT,
-		MME_OUTPUT,
-		MMF_OUTPUT,
+		ENUMS(MM_OUTPUT, 8),
 		NUM_OUTPUTS
 	};
 	enum LightIds {
@@ -974,9 +985,9 @@ struct MIDIpolyMPE : Module {
 		}
 		for (int i = 0; i < 8; i++){
 			if (midiCCs[i] == 128)
-				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(chAfTch, 0, 127, 0.f, 10.f)));
+				outputs[MM_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(chAfTch, 0, 127, 0.f, 10.f)));
 			else
-				outputs[MMA_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
+				outputs[MM_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(midiCCsVal[i], 0, 127, 0.f, 10.f)));
 		}
 		if (resetMidi) resetVoices();// resetMidi from MIDI widget;
 		if (autoFocusOff > 0){
@@ -1571,7 +1582,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 					MccDisplay->module = module;
 					addChild(MccDisplay);
 				}
-				addOutput(createOutput<moDllzPortG>(Vec(xPos + 3.5f, yPos + 13.f),  module, MIDIpolyMPE::MMA_OUTPUT + i + r * 4));
+				addOutput(createOutput<moDllzPortG>(Vec(xPos + 3.5f, yPos + 13.f),  module, MIDIpolyMPE::MM_OUTPUT + i + r * 4));
 				xPos += 33.f;
 			}
 			yPos += 40.f;

@@ -1,8 +1,23 @@
-#include "moDllz.hpp"
 /*
- * MIDIpoly16 converts midi note on/off events, velocity , pitch wheel and mod wheel to CV
- * with 16 Midi Note Buttons with individual vel & gate
- */
+MIDIpoly16 : Midi to CV with 16 Midi Note Buttons with individual vel & gate + 16 step Squencer and arpeggiator.
+ 
+Copyright (C) 2019 Pablo Delaloza.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https:www.gnu.org/licenses/>.
+*/
+#include "moDllz.hpp"
+
 struct MidiNoteData {
 	uint8_t velocity = 0;
 	uint8_t aftertouch = 0;
