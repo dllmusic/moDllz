@@ -20,8 +20,8 @@ along with this program.  If not, see <https:www.gnu.org/licenses/>.
 
 struct MIDIpolyMPE : Module {
 	enum ParamIds {
-		PLUSONE_PARAM,
 		MINUSONE_PARAM,
+		PLUSONE_PARAM,
 		LEARNCCA_PARAM,
 		LEARNCCB_PARAM,
 		LEARNCCC_PARAM,
@@ -1016,14 +1016,14 @@ struct MIDIpolyMPE : Module {
 				dataMinus();
 			}
 		}
-		if (PlusOneTrigger.process(params[PLUSONE_PARAM].getValue())) {
-			if (learnCC + learnNote > 0) return;
-			dataPlus();
-			return;
-		}
 		if (MinusOneTrigger.process(params[MINUSONE_PARAM].getValue())) {
 			if (learnCC + learnNote > 0) return;
 			dataMinus();
+			return;
+		}
+		if (PlusOneTrigger.process(params[PLUSONE_PARAM].getValue())) {
+			if (learnCC + learnNote > 0) return;
+			dataPlus();
 			return;
 		}
 	}
