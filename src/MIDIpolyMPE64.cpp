@@ -1,7 +1,7 @@
 /*
 MIDIpolyMPE 64 : Midi to 4x16ch CV with MPE and regular Polyphonic modes
 
-Copyright (C) 2019 Pablo Delaloza, Anthony Lexander Matos
+Copyright (C) 2019 Pablo Delaloza
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
