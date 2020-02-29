@@ -38,6 +38,7 @@ extern Model *modelMIDIdualCV;
 extern Model *modelMIDI8MPE;
 extern Model *modelMIDIpoly16;
 extern Model *modelMIDIpolyMPE;
+extern Model* modelMIDIpolyMPE64;
 //extern Model *modelPolyTune;
 
 ///////////////////////
@@ -415,4 +416,3 @@ struct moDllzPortG : SvgPort {
 		shadow->opacity = 0.f;
 	}
 };
-

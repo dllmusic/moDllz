@@ -23,6 +23,7 @@ Plugin *pluginInstance;
 void init(rack::Plugin *p) {
 	pluginInstance = p;
 	p->addModel(modelMIDIpolyMPE);
+	p->addModel(modelMIDIpolyMPE64);
 	p->addModel(modelMIDIdualCV);
 	p->addModel(modelMIDIpoly16);
 	p->addModel(modelXBender);

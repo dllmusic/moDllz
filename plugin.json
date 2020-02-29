@@ -24,6 +24,17 @@
 			]
 		},
 		{
+			"slug": "MIDIpolyMPE64",
+			"name": "MIDIpolyMPE 64",
+			"description": "Polyphonic MIDI with MPE mode and 64-note polyphony",
+			"tags": [
+				"MIDI",
+				"External",
+				"Multiple",
+				"Polyphonic"
+			]
+		},
+		{
 			"slug": "MIDIdualCV",
 			"name": "MIDIdualCV",
 			"description": "MIDI to Duophonic CV (Lower - Upper notes)",
