@@ -1650,8 +1650,8 @@ struct MidiccDisplayC : OpaqueWidget {
 	}
 };
 ///////////////////////////////////////////////////////////////////////////////////////
-struct springDataKnobB : SvgKnob {
-	springDataKnobB() {
+struct springDataKnobC : SvgKnob {
+	springDataKnobC() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dataKnobB.svg")));
@@ -1659,9 +1659,9 @@ struct springDataKnobB : SvgKnob {
 	}
 	void randomize() override{
 	}
-	void onButton(const event::Button &e) override{
-		if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_RELEASE) this->reset();
-		SvgKnob::onButton(e);
+	void onDragEnd(const event::DragEnd& e) override{
+		this->reset();
+		Knob::onDragEnd(e);
 	}
 };
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1735,7 +1735,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 		xPos = 57.953f;
 		yPos = 107.5f;
 		////DATA KNOB + -
-		addParam(createParam<springDataKnobB>(Vec(xPos, yPos), module, MIDIpolyMPE64::DATAKNOB_PARAM));
+		addParam(createParam<springDataKnobC>(Vec(xPos, yPos), module, MIDIpolyMPE64::DATAKNOB_PARAM));
 		yPos = 113.5f;
 		xPos = 24.953f;
 		addParam(createParam<minusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE64::MINUSONE_PARAM));
