@@ -1141,8 +1141,8 @@ struct MIDIpolyMPE64 : Module {
 ///////////////////////
 };
 // Main Display///////////////////////////////////////////////////////////////////////////////////////
-struct PolyModeDisplay : TransparentWidget {
-	PolyModeDisplay(){
+struct PolyModeDisplayC : TransparentWidget {
+	PolyModeDisplayC(){
 		font = APP->window->loadFont(mFONT_FILE);
 	}
 	MIDIpolyMPE64 *module;
@@ -1356,8 +1356,8 @@ struct PolyModeDisplay : TransparentWidget {
 	}
 };
 ///////////////////////////////////////////////////////////////////////////////////////
-struct MidiccDisplay : OpaqueWidget {
-	MidiccDisplay(){
+struct MidiccDisplayC : OpaqueWidget {
+	MidiccDisplayC(){
 	font = APP->window->loadFont(mFONT_FILE);
 	}
 	MIDIpolyMPE64 *module;
@@ -1663,7 +1663,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 			//PolyModes LCD
 			xPos = 7.953f;
 			yPos = 61.f;
-			PolyModeDisplay *polyModeDisplay = createWidget<PolyModeDisplay>(Vec(xPos,yPos));
+			PolyModeDisplayC *polyModeDisplay = createWidget<PolyModeDisplayC>(Vec(xPos,yPos));
 			polyModeDisplay->box.size = {136.f, 40.f};
 			polyModeDisplay->module = module;
 			addChild(polyModeDisplay);
@@ -1671,7 +1671,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 			xPos = 203.f;
 			yPos = 65.222f;
 			for ( int i = 0; i < 2; i++){
-				MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
+				MidiccDisplayC *MccDisplay = createWidget<MidiccDisplayC>(Vec(xPos,yPos));
 				MccDisplay->box.size = {40.f, 13.f};
 				MccDisplay->displayID =  dispID ++;;
 				MccDisplay->module = (module ? module : NULL);
@@ -1681,7 +1681,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 			// RelVel / chPbend LCD
 			xPos = 206.f;
 			yPos = 183.081f;
-			MidiccDisplay *rvelDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
+			MidiccDisplayC *rvelDisplay = createWidget<MidiccDisplayC>(Vec(xPos,yPos));
 			rvelDisplay->box.size = {34.f, 13.f};
 			rvelDisplay->displayID =  dispID ++;;
 			rvelDisplay->module = module;
@@ -1690,7 +1690,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 			xPos = 158.472f;
 			yPos = 159.505f;
 			for ( int i = 0; i < 3; i++){
-				MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
+				MidiccDisplayC *MccDisplay = createWidget<MidiccDisplayC>(Vec(xPos,yPos));
 				MccDisplay->box.size = {25.f, 13.f};
 				MccDisplay->displayID =  dispID ++;;
 				MccDisplay->module = module;
@@ -1758,7 +1758,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 			xPos = 10.5f;
 			for ( int i = 0; i < 4; i++){
 				if (module){
-					MidiccDisplay *MccDisplay = createWidget<MidiccDisplay>(Vec(xPos,yPos));
+					MidiccDisplayC *MccDisplay = createWidget<MidiccDisplayC>(Vec(xPos,yPos));
 					MccDisplay->box.size = {30.f, 13.f};
 					MccDisplay->displayID = dispID ++;
 					MccDisplay->module = module;
