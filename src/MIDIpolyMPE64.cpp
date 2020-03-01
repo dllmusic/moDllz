@@ -68,6 +68,7 @@ struct MIDIpolyMPE64 : Module {
 		MPE_MODE,
 		MPEPLUS_MODE,
 		ROTATE_MODE,
+    ROTATE_OUT_MODE,
 		REUSE_MODE,
 		RESET_MODE,
 		REASSIGN_MODE,
@@ -323,7 +324,7 @@ struct MIDIpolyMPE64 : Module {
 				VOcount = 0;
 			}
 		}
-		rotateIndex = -1;
+		rotateIndex = ((polyModeIx == ROTATE_OUT_MODE)? -numVOper : -1);
 		cachedNotes.clear();
 		if (polyModeIx < ROTATE_MODE) {
 			if (polyModeIx > 0){// Haken MPE Plus
@@ -429,6 +430,25 @@ struct MIDIpolyMPE64 : Module {
 		return stealIndex;
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
+		int getAltPolyIndex(int nowIndex) {
+			for (int i = 0; i < numVo; i++) {
+				nowIndex += numVOper;
+				if (nowIndex >= numVo)
+					nowIndex = (((nowIndex - numVo + 1) == numVOper)? 0 : nowIndex - numVo + 1);
+				if (!(gates[nowIndex] || pedalgates[nowIndex])) {
+					stealIndex = nowIndex;
+					return nowIndex;
+				}
+			}
+			// All taken = steal (rotates)
+			stealIndex += numVOper;
+			if (stealIndex > (numVo - 1))
+				stealIndex = (((stealIndex - numVo + 1) == numVOper)? 0 : stealIndex - numVo + 1);
+			if ((polyModeIx < REASSIGN_MODE) && (gates[stealIndex]))//&&(polyMode > MPE_MODE).cannot reach here if MPE mode true
+				cachedNotes.push_back(notes[stealIndex]);
+			return stealIndex;
+		}
+///////////////////////////////////////////////////////////////////////////////////////
 	void pressNote(uint8_t channel, uint8_t note, uint8_t vel) {
 		switch (learnNote){
 			case 0:
@@ -486,6 +506,9 @@ struct MIDIpolyMPE64 : Module {
 			case ROTATE_MODE: {
 				rotateIndex = getPolyIndex(rotateIndex);
 			} break;
+      case ROTATE_OUT_MODE: {
+        rotateIndex = getAltPolyIndex(rotateIndex);
+      } break;
 			case REUSE_MODE: {
 				bool reuse = false;
 				for (int i = 0; i < numVo; i++) {
@@ -864,7 +887,8 @@ struct MIDIpolyMPE64 : Module {
 							break;
 					}
 				}else{
-					if (polyModeIx < UNISONUPR_MODE) polyModeIx ++;
+					if (polyModeIx < UNISONUPR_MODE)
+            polyModeIx ++;
 					else polyModeIx = MPE_MODE;
 				}
 				MPEmode = (polyModeIx < ROTATE_MODE);
@@ -979,6 +1003,7 @@ struct MIDIpolyMPE64 : Module {
 					outputs[VEL_OUTPUT+ numVOout].setChannels(0);
 					outputs[RVEL_OUTPUT+ numVOout].setChannels(0);
 					outputs[GATE_OUTPUT+ numVOout].setChannels(0);
+          if (numVOout < 2 && polyModeIx == ROTATE_OUT_MODE) polyModeIx = ROTATE_MODE;
 				}
 				resetVoices();
 			}break;
@@ -1158,10 +1183,11 @@ struct PolyModeDisplayC : TransparentWidget {
 	std::string yyDisplay = "";
 	std::string zzDisplay = "";
 	std::shared_ptr<Font> font;
-	std::string polyModeStr[9] = {
+	std::string polyModeStr[10] = {
 		"M. P. E.",
 		"M. P. E. Plus",
 		"R O T A T E",
+    "R O T A T E Out",
 		"R E U S E",
 		"R E S E T",
 		"R E A S S I G N",
