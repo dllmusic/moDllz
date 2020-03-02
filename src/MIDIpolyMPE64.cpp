@@ -86,15 +86,15 @@ struct MIDIpolyMPE64 : Module {
 	NoteData noteData[128];
 
 	std::vector<uint8_t> cachedNotes;// Stolen notes (UNISON_MODE and REASSIGN_MODE cache all played)
-	std::vector<uint8_t> cachedMPE[64];// MPE stolen notes
+	std::vector<uint8_t> cachedMPE[16];// MPE stolen notes
 
 	uint8_t notes[64] = {0};
 	uint8_t vels[64] = {0};
 	uint8_t rvels[64] = {0};
-	int16_t mpex[64] = {0};
-	uint16_t mpey[64] = {0};
-	uint16_t mpez[64] = {0};
-	uint8_t mpePlusLB[64] = {0};
+	int16_t mpex[16] = {0};
+	uint16_t mpey[16] = {0};
+	uint16_t mpez[16] = {0};
+	uint8_t mpePlusLB[16] = {0};
 	uint8_t chAfTch = 0;
 	int16_t mPBnd = 0;
 	uint8_t midiCCsVal[20] = {0};
@@ -102,7 +102,7 @@ struct MIDIpolyMPE64 : Module {
 	int midiCCs[20] = {128,1,2,7,10,11,12,13,64,16,17,18,19,70,71,74,80,81,82,83};
 	bool gates[64] = {false};
 
-	float xpitch[64] = {0.f};
+	float xpitch[16] = {0.f};
 	float drift[64] = {0.f};
 	bool pedalgates[64] = {false}; // gates set to TRUE by pedal if current gate. FALSE by pedal.
 	bool pedal = false;
@@ -138,9 +138,9 @@ struct MIDIpolyMPE64 : Module {
 	//uint8_t MPEchMap[16];
 	//std::vector<uint8_t> dynMPEch;
 
-	dsp::ExponentialFilter MPExFilter[64];
-	dsp::ExponentialFilter MPEyFilter[64];
-	dsp::ExponentialFilter MPEzFilter[64];
+	dsp::ExponentialFilter MPExFilter[16];
+	dsp::ExponentialFilter MPEyFilter[16];
+	dsp::ExponentialFilter MPEzFilter[16];
 	dsp::ExponentialFilter MCCsFilter[20];
 	dsp::ExponentialFilter mPBndFilter;
 	dsp::PulseGenerator reTrigger[64];	// retrigger for stolen notes
@@ -300,31 +300,32 @@ struct MIDIpolyMPE64 : Module {
 		float lambdaf = 100.f * APP->engine->getSampleTime();
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].value = 0.f;
-		int OUTcount = 0;
-		int VOcount = 0;
-		for (int i = 0; i < 64; i++) {
+		int OUTcount = 0, VOcount = 0; //Iterating across 4 outputs using single 64-index array
+		for (int i = 0; i < 64; i++) { //64 for non-MPE
 			notes[i] = 60;
 			gates[i] = false;
 			pedalgates[i] = false;
-			mpey[i] = 0;
 			vels[i] = 0;
 			rvels[i] = 0;
+			lights[CH_LIGHT+ i].value = 0.f;
+			outputs[GATE_OUTPUT+ OUTcount].setVoltage(0.f, i - OUTcount*16);
+			if (++ VOcount == 16) { //Increment VOcount. If incrementation corresponds to next output, adjust to match
+				OUTcount ++;
+				VOcount = 0;
+			}
+		}
+		for (int i = 0; i < 16; i++) { //16 for MPE-only
 			xpitch[i] = {0.f};
 			mpex[i] = 0;
+			mpey[i] = 0;
 			mpez[i] = 0;
 			cachedMPE[i].clear();
 			MPExFilter[i].lambda = lambdaf;
 			MPEyFilter[i].lambda = lambdaf;
 			MPEzFilter[i].lambda = lambdaf;
 			mpePlusLB[i] = 0;
-			lights[CH_LIGHT+ i].value = 0.f;
-			outputs[GATE_OUTPUT+ OUTcount].setVoltage(0.f, i - OUTcount*16);
-			if (++ VOcount == 16) {
-				OUTcount ++;
-				VOcount = 0;
-			}
 		}
-		rotateIndex = ((polyModeIx == ROTATE_OUT_MODE)? -numVOper : -1);
+		rotateIndex = ((polyModeIx == ROTATE_OUT_MODE)? -numVOper : -1);  //For "Output Rotation", ensure that first index is 0 by setting rotateIndex to e.g. -16
 		cachedNotes.clear();
 		if (polyModeIx < ROTATE_MODE) {
 			if (polyModeIx > 0){// Haken MPE Plus
@@ -380,7 +381,7 @@ struct MIDIpolyMPE64 : Module {
 		midiCCs[18] = 82;
 		midiCCs[19] = 83;
 		numVOper = 8;
-		if (numVOout != 1) {
+		if (numVOout != 1) {  //When resetting from a state with more than 1 active output, reset the channels of the extra outputs then output count to 1
 				for (int i = numVOout; i > 1; i--) {
 					outputs[X_OUTPUT+ i- 1].setChannels(0);
 					outputs[Y_OUTPUT+ i- 1].setChannels(0);
@@ -391,7 +392,7 @@ struct MIDIpolyMPE64 : Module {
 				}
 				numVOout = 1;
 		}
-		numVo = numVOper * numVOout;
+		numVo = numVOout * numVOper;  //The number of voices = the number of active outputs multiplied by the number of voices per output
 		trnsps = 0;
 		pbMainDwn = -12;
 		pbMainUp = 12;
@@ -430,11 +431,11 @@ struct MIDIpolyMPE64 : Module {
 		return stealIndex;
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
-		int getAltPolyIndex(int nowIndex) {
+		int getAltPolyIndex(int nowIndex) {  //This alternate function rotates the index across all active outputs, e.g. A[1] -> B[1] -> C[1] -> D[1] -> A[2]...
 			for (int i = 0; i < numVo; i++) {
 				nowIndex += numVOper;
 				if (nowIndex >= numVo)
-					nowIndex = (((nowIndex - numVo + 1) == numVOper)? 0 : nowIndex - numVo + 1);
+					nowIndex = (((nowIndex - numVo + 1) == numVOper)? 0 : nowIndex - numVo + 1);  //If we have reached the last channel of the last active output, advance to the first channel of the first output (0)
 				if (!(gates[nowIndex] || pedalgates[nowIndex])) {
 					stealIndex = nowIndex;
 					return nowIndex;
@@ -506,7 +507,7 @@ struct MIDIpolyMPE64 : Module {
 			case ROTATE_MODE: {
 				rotateIndex = getPolyIndex(rotateIndex);
 			} break;
-      case ROTATE_OUT_MODE: {
+      case ROTATE_OUT_MODE: {  //Added mode for rotating first-across-then-within outputs
         rotateIndex = getAltPolyIndex(rotateIndex);
       } break;
 			case REUSE_MODE: {
@@ -887,8 +888,7 @@ struct MIDIpolyMPE64 : Module {
 							break;
 					}
 				}else{
-					if (polyModeIx < UNISONUPR_MODE)
-            polyModeIx ++;
+					if (polyModeIx < UNISONUPR_MODE) polyModeIx ++;
 					else polyModeIx = MPE_MODE;
 				}
 				MPEmode = (polyModeIx < ROTATE_MODE);
@@ -898,17 +898,17 @@ struct MIDIpolyMPE64 : Module {
 				if (polyModeIx < ROTATE_MODE) {
 					if (pbMPE < 96) pbMPE ++;
 				} else {
-					if (numVOper < 16) {
+					if (numVOper < 16) {  //In non-MPE modes, dataPlus here increments the number of voices-per-output rather than the total number of voices
 						numVOper ++;
-						numVo = numVOper * numVOout;
+						numVo = numVOout * numVOper;  //Update total number of voices to match
 					}
 					resetVoices();
 				}
 			}break;
-			case 3: {
+			case 3: {  //Added incrementable setting for number of active outputs
 				if (numVOout < 4) {
 					numVOout ++;
-					numVo = numVOper * numVOout;
+					numVo = numVOout * numVOper;
 				}
 				resetVoices();
 			}break;
@@ -948,7 +948,7 @@ struct MIDIpolyMPE64 : Module {
 				if (pbMainUp < 96) pbMainUp ++;
 			}break;
 			default: {
-				if (midiCCs[cursorIx - numPolycur - 19] < 128)
+				if (midiCCs[cursorIx - numPolycur - 19] < 128)  //20 total CCs
 					midiCCs[cursorIx - numPolycur - 19]  ++;
 				else midiCCs[cursorIx - numPolycur - 19] = 0;
 			}break;
@@ -985,25 +985,26 @@ struct MIDIpolyMPE64 : Module {
 				if (polyModeIx < ROTATE_MODE) {
 					if (pbMPE > 0) pbMPE --;
 				} else {
-					if (numVOper > 1) {
+					if (numVOper > 1) {  //In non-MPE modes, dataPlus here increments the number of voices-per-output rather than the total number of voices
 						numVOper --;
-						numVo = numVOper * numVOout;
+						numVo = numVOout * numVOper;  //Update total number of voices to match
 						if (numVo == 1) polyModeIx = UNISON_MODE;
 					}
 					resetVoices();
 				}
 			}break;
 			case 3: {
-				if (numVOout > 1) {
+				if (numVOout > 1) {  //Added decrementable setting for number of active outputs
 					numVOout --;
 					numVo = numVOper * numVOout;
+					//Reset channels on the now-deactivated output
 					outputs[X_OUTPUT+ numVOout].setChannels(0);
 					outputs[Y_OUTPUT+ numVOout].setChannels(0);
 					outputs[Z_OUTPUT+ numVOout].setChannels(0);
 					outputs[VEL_OUTPUT+ numVOout].setChannels(0);
 					outputs[RVEL_OUTPUT+ numVOout].setChannels(0);
 					outputs[GATE_OUTPUT+ numVOout].setChannels(0);
-          if (numVOout < 2 && polyModeIx == ROTATE_OUT_MODE) polyModeIx = ROTATE_MODE;
+          if (numVOout < 2 && polyModeIx == ROTATE_OUT_MODE) polyModeIx = ROTATE_MODE;  //If using ROTATE OUT mode and the number of outputs is reduced to 1, revert to basic ROTATE mode
 				}
 				resetVoices();
 			}break;
@@ -1043,7 +1044,7 @@ struct MIDIpolyMPE64 : Module {
 				if (pbMainUp > -96) pbMainUp --;
 			}break;
 			default: {
-				if (midiCCs[cursorIx - numPolycur - 19] > 0)
+				if (midiCCs[cursorIx - numPolycur - 19] > 0)  //20 total CCs
 					midiCCs[cursorIx - numPolycur - 19] --;
 				else midiCCs[cursorIx - numPolycur - 19] = 128;
 			}break;
@@ -1061,7 +1062,7 @@ struct MIDIpolyMPE64 : Module {
 //////   STEP START
 ///////////////////////
 	void process(const ProcessArgs &args) override {
-		for (int i = 0; i < numVOout; i++) {
+		for (int i = 0; i < numVOout; i++) {  //For each active output, set channels to number of voices-per-output
 			outputs[X_OUTPUT+ i].setChannels(numVOper);
 			outputs[Y_OUTPUT+ i].setChannels(numVOper);
 			outputs[Z_OUTPUT+ i].setChannels(numVOper);
@@ -1085,8 +1086,7 @@ struct MIDIpolyMPE64 : Module {
 		outputs[PBEND_OUTPUT].setVoltage(pbVo);
 		bool sustainHold = (params[SUSTHOLD_PARAM].getValue() > .5 );
 		if (polyModeIx > MPEPLUS_MODE){
-			int OUTcount = 0;
-			int VOcount = 0;
+			int OUTcount = 0, VOcount = 0;  //Iterating across 4 outputs using single 64-index array
 			for (int i = 0; i < numVo; i++) {
 				float lastGate = ((gates[i] || (sustainHold && pedalgates[i])) && (!(reTrigger[i].process(args.sampleTime))))? 10.f : 0.f;
 				float thispitch = ((notes[i] - 60 + trnsps) / 12.f) + pbVoice;
@@ -1097,7 +1097,7 @@ struct MIDIpolyMPE64 : Module {
 				outputs[RVEL_OUTPUT+ OUTcount].setVoltage(rescale(rvels[i], 0, 127, 0.f, 10.f), i - OUTcount*numVOper);
 				outputs[Z_OUTPUT+ OUTcount].setVoltage(rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f), i - OUTcount*numVOper);
 				lights[CH_LIGHT+ i].value = ((i == rotateIndex)? 0.2f : 0.f) + (lastGate * .08f);
-				if (++ VOcount == numVOper) {
+				if (++ VOcount == numVOper) {  //Increment VOcount. If incrementation corresponds to next output, adjust to match
 					OUTcount ++;
 					VOcount = 0;
 				}
@@ -1174,7 +1174,7 @@ struct PolyModeDisplayC : TransparentWidget {
 	float mdfontSize = 12.f;
 	std::string sMode = "";
 	std::string sVo = "";
-	std::string sOut = "";
+	std::string sOut = "";  //Added string for number of active outputs
 	std::string sPBM = "";
 	std::string snoteMin = "";
 	std::string snoteMax = "";
@@ -1245,21 +1245,21 @@ struct PolyModeDisplayC : TransparentWidget {
 				lrnflash = 0x64;
 				rgbf1 = 0;
 			}break;
-			case 2:{ //numVoicesPer/PB MPE
+			case 2:{ //numVoicesPerOutput/PB MPE
 				nvgBeginPath(args.vg);
-				if (module->polyModeIx < 2) {
+				if (module->polyModeIx < 2) {  //In MPE modes, react as full-width button
 					nvgRoundedRect(args.vg, 1.f, 14.f, 134.f, 12.f, 3.f);
-				}else{
+				}else{  //In non-MPE modes, react as half-width button on left side
 					nvgRoundedRect(args.vg, 1.f, 14.f, 67.f, 12.f, 3.f);
 				}
 				lrnflash = 0x64;
 				rgbf2 = 0;
 			}break;
-			case 3: { //numVoiceOutputs
-				nvgBeginPath(args.vg);
-				nvgRoundedRect(args.vg, 67.f, 14.f, 67.f, 12.f, 3.f);
-				lrnflash = 0x64;
-				rgbf3 = 0;
+			case 3: { //numVoiceOutputs. This case is only reachable in non-MPE modes
+					nvgBeginPath(args.vg);
+					nvgRoundedRect(args.vg, 67.f, 14.f, 67.f, 12.f, 3.f);
+					lrnflash = 0x64;
+					rgbf3 = 0;
 			}break;
 			case 4:{ //minNote
 				nvgBeginPath(args.vg);
@@ -1327,10 +1327,10 @@ struct PolyModeDisplayC : TransparentWidget {
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
 		nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf1));
 		nvgTextBox(args.vg, 1.f, 11.0f, 134.f, sMode.c_str(), NULL);
-		if (module->polyModeIx < 2) {
+		if (module->polyModeIx < 2) {  //One button in MPE modes
 			nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf2));
 			nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
-		}else{
+		}else{  //Two buttons in non-MPE modes
 			nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf2));
 			nvgTextBox(args.vg, 1.f, 24.f, 67.f, sVo.c_str(), NULL);
 			nvgFillColor(args.vg, nvgRGB(rgbx, rgbx, rgbf3));
@@ -1353,7 +1353,7 @@ struct PolyModeDisplayC : TransparentWidget {
 		if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
 			int i = static_cast<int>(e.pos.y / 13.f) + 1;
 			if (i > 2) {
-				i += static_cast<int>(e.pos.x / 34.f) + 1;
+				i += static_cast<int>(e.pos.x / 34.f) + 1;  //Add 1 to account for two buttons on one row in non-MPE modes (numVOper, numVOout)
 				if (module->cursorIx != i){
 					module->cursorIx = i;
 					module->learnNote = i - 2;
@@ -1368,7 +1368,7 @@ struct PolyModeDisplayC : TransparentWidget {
 				}
 			} else {
 				module->learnNote = 0;
-				if (module->polyModeIx > 1 && i == 2) i += static_cast<int>(e.pos.x / 67);
+				if (module->polyModeIx > 1 && i == 2) i += static_cast<int>(e.pos.x / 67);  //If non-MPE mode, add pos.x to determine whether left half or right half was clicked
 				if (module->cursorIx != i)	{
 					module->cursorIx = i;
 					module->autoFocusOff = 10 * APP->engine->getSampleRate();
@@ -1727,7 +1727,7 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 		yPos = (150.5f - 1.5f);
 		xPos = 10.5f;
 		// ch Leds x 64
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 2; i++) {  //Spread ch Leds across two rows
 			for (int j = 0; j < 32; j++) {
 				addChild(createLight<TinyLight<RedLight>>(Vec(xPos + j * 4.05f, yPos + i * 6.f), module, MIDIpolyMPE64::CH_LIGHT + j + i*32));
 			}
@@ -1741,38 +1741,39 @@ struct MIDIpolyMPE64Widget : ModuleWidget {
 		addParam(createParam<minusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE64::MINUSONE_PARAM));
 		xPos = 103.953f;
 		addParam(createParam<plusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE64::PLUSONE_PARAM));
+		// X Outs
+		float xOffset = 29.192f;
 		yPos = 37.332f;
 		xPos = 167.496f;
-		// X Outs
 		for (int i = 0; i < 4; i++)
-			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * 29.192f, yPos),  module, MIDIpolyMPE64::X_OUTPUT + i));
-		yPos = 81.222f;
+			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * xOffset, yPos),  module, MIDIpolyMPE64::X_OUTPUT + i));
 		// Y Outs
+		yPos = 81.222f;
 		for (int i = 0; i < 4; i++)
-			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * 29.192f, yPos),  module, MIDIpolyMPE64::Y_OUTPUT + i));
-		yPos = 125.112f;
+			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * xOffset, yPos),  module, MIDIpolyMPE64::Y_OUTPUT + i));
 		// Z Outs
+		yPos = 125.112f;
 		for (int i = 0; i < 4; i++)
-			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * 29.192f, yPos),  module, MIDIpolyMPE64::Z_OUTPUT + i));
-		yPos = 199.081f;
+			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * xOffset, yPos),  module, MIDIpolyMPE64::Z_OUTPUT + i));
 		//RVel Outs
+		yPos = 199.081f;
 		for (int i = 0; i < 4; i++)
-			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * 29.192f, yPos),  module, MIDIpolyMPE64::RVEL_OUTPUT + i));
-		yPos = 242.971f;
+			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * xOffset, yPos),  module, MIDIpolyMPE64::RVEL_OUTPUT + i));
 		//Vel Outs
+		yPos = 242.971f;
 		for (int i = 0; i < 4; i++)
-			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * 29.192f, yPos),  module, MIDIpolyMPE64::VEL_OUTPUT + i));
-		yPos = 286.861f;
+			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * xOffset, yPos),  module, MIDIpolyMPE64::VEL_OUTPUT + i));
 		//Gate Outs
+		yPos = 286.861f;
 		for (int i = 0; i < 4; i++)
-			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * 29.192f, yPos),  module, MIDIpolyMPE64::GATE_OUTPUT + i));
+			addOutput(createOutput<moDllzPortPoly>(Vec(xPos + i * xOffset, yPos),  module, MIDIpolyMPE64::GATE_OUTPUT + i));
+		///Sustain hold notes switch
 		xPos = 209.622f;
 		yPos = 334.496;
-		///Sustain hold notes switch
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDIpolyMPE64::SUSTHOLD_PARAM));
 		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDIpolyMPE64::SUSTHOLD_LIGHT));
-		xPos = 221.264;
 		//Retrig
+		xPos = 221.264;
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDIpolyMPE64::RETRIG_PARAM));
 		// PBend Out
 		yPos = 154.505f;

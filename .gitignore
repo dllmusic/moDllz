@@ -3,6 +3,6 @@
 /dist
 /dep
 /plugin.dylib
-/plugin.dll
 /plugin.so
 moDllz.code-workspace
+plugin.dll
