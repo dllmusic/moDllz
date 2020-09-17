@@ -68,7 +68,7 @@ struct MIDIpolyMPE64 : Module {
 		MPE_MODE,
 		MPEPLUS_MODE,
 		ROTATE_MODE,
-    ROTATE_OUT_MODE,
+    	ROTATE_OUT_MODE,
 		REUSE_MODE,
 		RESET_MODE,
 		REASSIGN_MODE,
@@ -431,24 +431,24 @@ struct MIDIpolyMPE64 : Module {
 		return stealIndex;
 	}
 ///////////////////////////////////////////////////////////////////////////////////////
-		int getAltPolyIndex(int nowIndex) {  //This alternate function rotates the index across all active outputs, e.g. A[1] -> B[1] -> C[1] -> D[1] -> A[2]...
-			for (int i = 0; i < numVo; i++) {
-				nowIndex += numVOper;
-				if (nowIndex >= numVo)
-					nowIndex = (((nowIndex - numVo + 1) == numVOper)? 0 : nowIndex - numVo + 1);  //If we have reached the last channel of the last active output, advance to the first channel of the first output (0)
-				if (!(gates[nowIndex] || pedalgates[nowIndex])) {
-					stealIndex = nowIndex;
-					return nowIndex;
-				}
+	int getAltPolyIndex(int nowIndex) {  //This alternate function rotates the index across all active outputs, e.g. A[1] -> B[1] -> C[1] -> D[1] -> A[2]...
+		for (int i = 0; i < numVo; i++) {
+			nowIndex += numVOper;
+			if (nowIndex >= numVo)
+				nowIndex = (((nowIndex - numVo + 1) == numVOper)? 0 : nowIndex - numVo + 1);  //If we have reached the last channel of the last active output, advance to the first channel of the first output (0)
+			if (!(gates[nowIndex] || pedalgates[nowIndex])) {
+				stealIndex = nowIndex;
+				return nowIndex;
 			}
-			// All taken = steal (rotates)
-			stealIndex += numVOper;
-			if (stealIndex > (numVo - 1))
-				stealIndex = (((stealIndex - numVo + 1) == numVOper)? 0 : stealIndex - numVo + 1);
-			if ((polyModeIx < REASSIGN_MODE) && (gates[stealIndex]))//&&(polyMode > MPE_MODE).cannot reach here if MPE mode true
-				cachedNotes.push_back(notes[stealIndex]);
-			return stealIndex;
 		}
+		// All taken = steal (rotates)
+		stealIndex += numVOper;
+		if (stealIndex > (numVo - 1))
+			stealIndex = (((stealIndex - numVo + 1) == numVOper)? 0 : stealIndex - numVo + 1);
+		if ((polyModeIx < REASSIGN_MODE) && (gates[stealIndex]))//&&(polyMode > MPE_MODE).cannot reach here if MPE mode true
+			cachedNotes.push_back(notes[stealIndex]);
+		return stealIndex;
+	}
 ///////////////////////////////////////////////////////////////////////////////////////
 	void pressNote(uint8_t channel, uint8_t note, uint8_t vel) {
 		switch (learnNote){
@@ -507,9 +507,9 @@ struct MIDIpolyMPE64 : Module {
 			case ROTATE_MODE: {
 				rotateIndex = getPolyIndex(rotateIndex);
 			} break;
-      case ROTATE_OUT_MODE: {  //Added mode for rotating first-across-then-within outputs
-        rotateIndex = getAltPolyIndex(rotateIndex);
-      } break;
+			case ROTATE_OUT_MODE: {  //Added mode for rotating first-across-then-within outputs
+				rotateIndex = getAltPolyIndex(rotateIndex);
+			} break;
 			case REUSE_MODE: {
 				bool reuse = false;
 				for (int i = 0; i < numVo; i++) {
@@ -862,7 +862,7 @@ struct MIDIpolyMPE64 : Module {
 			else
 				releasePedal();
 		}
-		for (int i = 0; i < 8; i++){
+		for (int i = 0; i < 20; i++){
 			if (midiCCs[i] == msg.getNote()){
 				midiCCsVal[i] = msg.getValue();
 				return;
@@ -1004,9 +1004,9 @@ struct MIDIpolyMPE64 : Module {
 					outputs[VEL_OUTPUT+ numVOout].setChannels(0);
 					outputs[RVEL_OUTPUT+ numVOout].setChannels(0);
 					outputs[GATE_OUTPUT+ numVOout].setChannels(0);
-          if (numVOout < 2 && polyModeIx == ROTATE_OUT_MODE) polyModeIx = ROTATE_MODE;  //If using ROTATE OUT mode and the number of outputs is reduced to 1, revert to basic ROTATE mode
-				}
-				resetVoices();
+			if (numVOout < 2 && polyModeIx == ROTATE_OUT_MODE) polyModeIx = ROTATE_MODE;  //If using ROTATE OUT mode and the number of outputs is reduced to 1, revert to basic ROTATE mode
+					}
+					resetVoices();
 			}break;
 			case 4: {
 				if (noteMin > 0) noteMin --;
