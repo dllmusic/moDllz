@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="23px" height="24px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;">
-    <g id="Port">
-        <rect id="_-Rectangle-" serif:id="(Rectangle)" x="0" y="0" width="23" height="23.037" style="fill:none;"/>
-        <circle id="ring" cx="11.513" cy="11.519" r="8.75" style="fill:#545454;stroke:#262626;stroke-width:0.8px;"/>
-        <circle id="hole" cx="11.5" cy="11.519" r="5.75"/>
-    </g>
-</svg>
