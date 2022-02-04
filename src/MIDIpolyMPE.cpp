@@ -128,7 +128,7 @@ struct MIDIpolyMPE : Module {
 	int ProcessFrame = 0;
 	int onFocus = 0;
 	bool updateDataKnob = false;
-///pointers
+	///pointers
 	int Yhaken = 131;
 	int Zhaken = 132;
 	int NOTEAFT = 129;
@@ -153,7 +153,7 @@ struct MIDIpolyMPE : Module {
 	
 	std::string ccNames[133];
 	std::string ccLongNames[133];
-
+	
 	MIDIpolyMPE() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configButton(PLUSONE_PARAM,"(Selected) +1");
@@ -506,7 +506,7 @@ struct MIDIpolyMPE : Module {
 			case UNISONLWR_MODE: {
 				cachedNotes.push_back(note);
 				uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
-				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f) && (lnote < notes[0]);
+				bool retrignow = ((params[RETRIG_PARAM].getValue() > 0.f) && (lnote < notes[0]));
 				for (int i = 0; i < paramsMap[numVoCh]; i++) {
 					notes[i] = lnote;
 					vels[i] = vel;
@@ -533,12 +533,12 @@ struct MIDIpolyMPE : Module {
 			} break;
 			default: break;
 		}
-		// Set notes and gates
-		if ((params[RETRIG_PARAM].getValue() > 0.f) && (gates[rotateIndex]))
-			reTrigger[rotateIndex].trigger(1e-3);
+		
 		notes[rotateIndex] = note;
 		vels[rotateIndex] = vel;
 		gates[rotateIndex] = true;
+		// Set notes and gates
+		if (params[RETRIG_PARAM].getValue() > 0.f) reTrigger[rotateIndex].trigger(1e-3);
 		hold[rotateIndex] = pedal;
 		drift[rotateIndex] = static_cast<float>((rand() % 1000 - 500) * paramsMap[RNDetune]) / 1200000.f;
 		midiActivity = vel;
@@ -562,16 +562,13 @@ struct MIDIpolyMPE : Module {
 			default: {
 				for (int i = 0; i < paramsMap[numVoCh]; i++) {
 					if (notes[i] == note) {
-						////pedal
-						if ((params[SUSTHOLD_PARAM].getValue() > 0.f) && hold[i]){
-							gates[i] = false;
-						}else {
-							if (!cachedNotes.empty()) {
-								notes[i] = cachedNotes.back();
-								cachedNotes.pop_back();
-								//Retrigger recovered notes
-								if (params[RETRIG_PARAM].getValue() > 1.f) reTrigger[i].trigger(1e-3);
-							}else gates[i] = false;
+						gates[i] = false;
+						if (!cachedNotes.empty()) {
+							notes[i] = cachedNotes.back();
+							cachedNotes.pop_back();
+							gates[i] = true;
+							//Retrigger recovered notes
+							if (params[RETRIG_PARAM].getValue() > 1.f) reTrigger[i].trigger(1e-3);
 						}
 						rvels[i] = vel;
 					}
@@ -580,7 +577,7 @@ struct MIDIpolyMPE : Module {
 			case MPE_MODE:
 			case MPEPLUS_MODE:{
 				if (note == notes[channel]) {
-					if ((params[SUSTHOLD_PARAM].getValue() > 0.f) && hold[channel]) {
+					if (hold[channel]) {
 						gates[channel] = false;
 					}
 					//					/// check for cachednotes on MPE buffers...
@@ -598,7 +595,7 @@ struct MIDIpolyMPE : Module {
 			case RESTACK_MODE: {
 				for( int i = 0 ; i < paramsMap[numVoCh] ; i++){
 					if (notes[i] == note) {
-						if ((params[SUSTHOLD_PARAM].getValue() > 0.f) && hold[i]){
+						if (hold[i]){
 							/// don't restack if pedal hold
 							gates[i] = false;
 						}else {
@@ -696,6 +693,10 @@ struct MIDIpolyMPE : Module {
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
 	void pressPedal() {
+		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) {
+			pedal = false;
+			return;
+		}
 		pedal = true;
 		lights[SUSTHOLD_LIGHT].setBrightness(10.f);
 		if (paramsMap[polyModeId] < ROTATE_MODE) { ///MPE or MPE+
@@ -710,6 +711,7 @@ struct MIDIpolyMPE : Module {
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
 	void releasePedal() {
+		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) return;
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].setBrightness(0.f);
 		// When pedal is released, recover cached notes for pressed keys if they were overtaked.
@@ -718,7 +720,8 @@ struct MIDIpolyMPE : Module {
 				if (gates[i] && !cachedMPE[i].empty()) {
 					notes[i] = cachedMPE[i].back();
 					cachedMPE[i].pop_back();
-					gates[i] = true;
+					bool retrignow = (params[RETRIG_PARAM].getValue() == 2.f);
+					if (retrignow) reTrigger[i].trigger(1e-3);
 				}
 				hold[i] = false;
 			}
@@ -728,7 +731,8 @@ struct MIDIpolyMPE : Module {
 					if  (paramsMap[polyModeId] < RESTACK_MODE){
 						notes[i] = cachedNotes.back();
 						cachedNotes.pop_back();
-						gates[i] = true;
+						bool retrignow = gates[i] && (params[RETRIG_PARAM].getValue() == 2.f);
+						if (retrignow) reTrigger[i].trigger(1e-3);
 					}
 				}
 				hold[i] = false;
@@ -801,12 +805,12 @@ struct MIDIpolyMPE : Module {
 			} break;
 				// pitch Bend
 			case 0xe:{
-//				if (learnId > 0) {// learn pitch bend ???
-//					paramsMap[learnId] = 128;
-//					onFocus = 1;
-//					return;
-//				}////////////////////////////////////////
-//				else
+				//				if (learnId > 0) {// learn pitch bend ???
+				//					paramsMap[learnId] = 128;
+				//					onFocus = 1;
+				//					return;
+				//				}////////////////////////////////////////
+				//				else
 				if (paramsMap[polyModeId] < ROTATE_MODE){
 					uint8_t channel = msg.getChannel();
 					if (channel == MPEmasterCh){
@@ -1114,7 +1118,6 @@ struct MIDIpolyMPE : Module {
 				}
 			}break;
 			case pbUp: { ///MAIN PBend UP
-				//				if (pbMainUp < 96) pbMainUp ++;
 				if (updateDataKnob) {
 					configDataKnob(-96.f,96.f,(float)paramsMap[pbUp]);
 					return;
@@ -1131,7 +1134,6 @@ struct MIDIpolyMPE : Module {
 					return;
 				}
 				int newVal = (int) params[DATAKNOB_PARAM].getValue();
-				//				paramsMap[midiCCs + ix] =  (paramsMap[midiCCs + ix] + 1 ) % 129;
 				if (paramsMap[cursorIx] != newVal){
 					paramsMap[cursorIx] = newVal;
 					outputInfos[MM_OUTPUT + cursorIx - midiCCs]->name = ccLongNames[paramsMap[cursorIx]];
@@ -1518,13 +1520,6 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		xPos = 57.f;
 		yPos = 107.5f;
 		////DATA KNOB + -
-		//		DataEntryKnob dKnob = new DataEntryKnob;
-		//		dKnob->module = module;
-		//		dKnob->box.pos = Vec(xPos, yPos);
-		//		dKnob->app::ParamWidget::module = module;
-		//		dKnob->app::ParamWidget::paramId = MIDIpolyMPE::DATAKNOB_PARAM;
-		//		dKnob->initParamQuantity();
-		//		addParam(dKnob);
 		addParam(createParam<DataEntryKnob>(Vec(xPos, yPos), module, MIDIpolyMPE::DATAKNOB_PARAM));
 		//+ - Buttons
 		yPos = 114.f;
@@ -1571,12 +1566,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-//		if (module){ //////TEST VALUE TOP
-//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-//			MccLCD->box.size = {60.f, 15.f};
-//			MccLCD->testval = &module->TEST_FLOAT;
-//			addChild(MccLCD);
-//		}
+		//		if (module){ //////TEST VALUE TOP
+		//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
+		//			MccLCD->box.size = {60.f, 15.f};
+		//			MccLCD->testval = &module->TEST_FLOAT;
+		//			addChild(MccLCD);
+		//		}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");
