@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="36" height="36" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-4.19535e-07,32,-32,-4.19535e-07,18,2)"><stop offset="0" style="stop-color:#808080;stop-opacity:1"/><stop offset="1" style="stop-color:#000000;stop-opacity:1"/></linearGradient>
+    </defs>
+    <rect id="DataKnob" x="0" y="-0" width="36" height="36" style="fill:none;"/>
+    <g id="DataKnob1" serif:id="DataKnob">
+        <circle id="BackHilite" cx="18" cy="18" r="16" style="fill:url(#_Linear1);"/>
+    </g>
+ 
+</svg>

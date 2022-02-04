@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="22" height="22" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-2.88431e-07,22,-22,-2.88431e-07,11,-3.41061e-13)"><stop offset="0" style="stop-color:#808080;stop-opacity:1"/><stop offset="1" style="stop-color:#000;stop-opacity:1"/></linearGradient>
+    </defs>
+    <g id="dKnob">
+        <g id="BackHilite">
+            <circle cx="11" cy="11" r="11" style="fill:url(#_Linear1);"/>
+            <path d="M11,0C17.071,0 22,4.929 22,11C22,17.071 17.071,22 11,22C4.929,22 -0,17.071 -0,11C-0,4.929 4.929,0 11,0ZM11,1C16.519,1 21,5.481 21,11C21,16.519 16.519,21 11,21C5.481,21 1,16.519 1,11C1,5.481 5.481,1 11,1Z" style="fill-opacity:0.69;"/>
+        </g>
+    </g>
+
+</svg>

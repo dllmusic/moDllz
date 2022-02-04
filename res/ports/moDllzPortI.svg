@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="23" height="23" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+<defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-0.0178074,-19.9644,19.9288,-0.0177757,11.5,21.4822)"><stop offset="0" style="stop-color:#ddd;stop-opacity:1"/><stop offset="1" style="stop-color:#666;stop-opacity:1"/></linearGradient>
+    </defs>
+    <g id="Port">
+        <circle id="back" cx="11.5" cy="11.5" r="11.5" style="fill:none;"/>
+        <ellipse id="ring" cx="11.5" cy="11.5" rx="10" ry="9.982" style="fill:url(#_Linear1);stroke:#333;stroke-width:0.5px;"/>
+        <circle id="hole" cx="11.5" cy="11.5" r="5.5" style="stroke:#444;stroke-width:1.5px;"/>
+    </g>
+</svg>

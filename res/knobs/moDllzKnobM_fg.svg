@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="44" height="44" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+	        <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(5.48171e-06,10,-4.375,2.39825e-06,22,24)"><stop offset="0" style="stop-color:#abc5ca;stop-opacity:0.5"/><stop offset="1" style="stop-color:#a8c5ca;stop-opacity:0.25"/></linearGradient>
+        <linearGradient id="_Linear2" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1.91233e-15,31.2308,-31.2308,1.91233e-15,22,6.76923)"><stop offset="0" style="stop-color:#333;stop-opacity:1"/><stop offset="1" style="stop-color:#777;stop-opacity:0"/></linearGradient>
+    </defs>
+    <g id="moDllzKnobM">
+        <rect x="0" y="0" width="44" height="44" style="fill:#ebebeb;fill-opacity:0;"/>
+        <path id="Paint" d="M22,35C27.954,35 32.915,31.5 33.908,27.5C34.669,24.432 30.725,24 22,24C13.275,24 9.331,24.432 10.092,27.5C11.085,31.5 16.046,35 22,35Z" style="fill:url(#_Linear1);"/>
+        <path d="M6,22.391C6,18.06 8.5,13 13,8C16.824,3.751 20,0.5 22,0.5C24,0.5 27.139,3.71 31,8C35.5,13 38,17.908 38,22.391C38,31.222 30.831,38.391 22,38.391C13.169,38.391 6,31.222 6,22.391Z" style="fill:url(#_Linear2);"/>
+        <path d="M6,22.391C6,18.06 8.5,13 13,8C16.824,3.751 20,0.5 22,0.5C24,0.5 27.139,3.71 31,8C35.5,13 38,17.908 38,22.391C38,31.222 30.831,38.391 22,38.391C13.169,38.391 6,31.222 6,22.391ZM7,22.391C7,18.253 9.444,13.446 13.743,8.669C15.992,6.171 18.007,4.02 19.686,2.703C20.602,1.985 21.359,1.5 22,1.5C22.64,1.5 23.393,1.979 24.304,2.692C25.976,4.001 27.987,6.147 30.257,8.669C34.556,13.446 37,18.107 37,22.391C37,30.67 30.279,37.391 22,37.391C13.721,37.391 7,30.67 7,22.391Z" style="fill:#222;"/>
+        <path id="mark" d="M23.128,2.628C23.128,2.006 22.623,1.5 22,1.5C21.377,1.5 20.872,2.006 20.872,2.628L20.872,10.718C20.872,11.341 21.377,11.846 22,11.846C22.623,11.846 23.128,11.341 23.128,10.718L23.128,2.628Z" style="fill:#fff;fill-opacity:0.78;"/>
+    </g>
+
+</svg>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="23" height="23" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g id="PortPolyO">
+        <rect id="_-Rectangle-" serif:id="(Rectangle)" x="0" y="0" width="23" height="23" style="fill:none;"/>
+        <g>
+            <circle cx="11.5" cy="11.5" r="10" style="fill:#333;"/>
+            <path d="M11.5,1.1C5.76,1.1 1.1,5.76 1.1,11.5C1.1,17.24 5.76,21.9 11.5,21.9C17.24,21.9 21.9,17.24 21.9,11.5C21.9,5.76 17.24,1.1 11.5,1.1ZM11.5,1.5C17.019,1.5 21.5,5.981 21.5,11.5C21.5,17.019 17.019,21.5 11.5,21.5C5.981,21.5 1.5,17.019 1.5,11.5C1.5,5.981 5.981,1.5 11.5,1.5Z" style="fill:#222;"/>
+            <circle id="ring" cx="11.5" cy="11.5" r="7.5"/>
+            <circle cx="11.5" cy="11.5" r="6" style="fill:#444;"/>
+            <rect x="10.299" y="5.45" width="2.4" height="1.1"/>
+            <g>
+                <circle cx="8.167" cy="10.389" r="0.667"/>
+                <circle cx="8.167" cy="12.611" r="0.667"/>
+                <circle cx="8.167" cy="14.833" r="0.667"/>
+                <circle cx="10.389" cy="8.167" r="0.667"/>
+                <circle cx="10.389" cy="10.389" r="0.667"/>
+                <circle cx="10.389" cy="12.611" r="0.667"/>
+                <circle cx="10.389" cy="14.833" r="0.667"/>
+                <circle cx="12.611" cy="10.389" r="0.667"/>
+                <circle cx="12.611" cy="12.611" r="0.667"/>
+                <circle cx="12.611" cy="14.833" r="0.667"/>
+                <circle cx="14.833" cy="10.389" r="0.667"/>
+                <circle cx="14.833" cy="12.611" r="0.667"/>
+                <circle cx="14.833" cy="8.167" r="0.667"/>
+                <circle cx="12.611" cy="8.167" r="0.667"/>
+                <circle cx="14.833" cy="14.833" r="0.667"/>
+                <circle cx="8.167" cy="8.167" r="0.667"/>
+            </g>
+        </g>
+    </g>
+</svg>
