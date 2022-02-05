@@ -115,7 +115,7 @@ void DataEntyOnLed::drawLayer(const DrawArgs &args, int layer) {
 		float p = static_cast<float>(i);
 		float h = p * .5f;
 		float a = 1.f/ (1.f + p * 2.f);
-		nvgStrokeColor(args.vg, nvgRGBA(0xff, 0, 0, 0xe8 * a));
+		nvgStrokeColor(args.vg, nvgRGBA(0xff, 0, 0, 0xcc * a));
 		nvgRoundedRect(args.vg, 2.f - h, 9.f - h, 24.f + p, 24.f + p,5.9f + p * .25);
 		nvgRoundedRect(args.vg, 81.f - h, 9.f - h, 24.f + p, 24.f + p,5.9f + p * .25);
 		nvgCircle(args.vg, 53.5f, 21.f, 18.5f + p);

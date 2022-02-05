@@ -1406,11 +1406,11 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			polyModeDisplay->box.size = {136.f, 40.f};
 			polyModeDisplay->module = module;
 			addChild(polyModeDisplay);
-			xPos = 55.f;
-			yPos = 156.f;
+			xPos = 17.f;
+			yPos = 202.f;
 			{//MPE Ycc
 				MPEYdetuneLCD *MccLCD = createWidget<MPEYdetuneLCD>(Vec(xPos,yPos));
-				MccLCD->box.size = {40.f, 13.f};
+				MccLCD->box.size = {34.f, 13.f};
 				MccLCD->buttonId = MIDIpolyMPE::mpeYcc;
 				MccLCD->cursorIx = &module->cursorIx;
 				MccLCD->ptr_param_val = &module->Y_ptr;
@@ -1422,10 +1422,10 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->canedit = &module->Ycanedit;
 				addChild(MccLCD);
 			}
-			xPos += 44.f;
+			xPos = 60.f;
 			{///MPE Zcc
 				PTR_paramLCD *MccLCD = createWidget<PTR_paramLCD>(Vec(xPos,yPos));
-				MccLCD->box.size = {40.f, 13.f};
+				MccLCD->box.size = {34.f, 13.f};
 				MccLCD->buttonId = MIDIpolyMPE::mpeZcc;
 				MccLCD->cursorIx = &module->cursorIx;
 				MccLCD->ptr_param_val = &module->Z_ptr;
@@ -1436,8 +1436,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->canedit = &module->Zcanedit;
 				addChild(MccLCD);
 			}
-			xPos = 14.f;
-			yPos = 201.f;
+			xPos = 103.f;
 			{// RelPbendMPE LCD
 				RelVelLCD *MccLCD = createWidget<RelVelLCD>(Vec(xPos,yPos));
 				MccLCD->box.size = {34.f, 13.f};
@@ -1451,11 +1450,11 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->canedit = &module->RPcanedit;
 				addChild(MccLCD);
 			}
-			xPos = 10.5f;
-			yPos = 256.5f;
+			xPos = 11.5f;
+			yPos = 253.5f;
 			{///Transpose
 				PlusMinusValLCD *MccLCD = createWidget<PlusMinusValLCD>(Vec(xPos,yPos));
-				MccLCD->box.size = {26.f, 13.f};
+				MccLCD->box.size = {30.f, 13.f};
 				MccLCD->buttonId = MIDIpolyMPE::transpose;
 				MccLCD->cursorIx = &module->cursorIx;
 				MccLCD->param_val = &module->paramsMap[MIDIpolyMPE::transpose];
@@ -1465,10 +1464,10 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->canlearn = false;
 				addChild(MccLCD);
 			}
-			xPos = 43.5f;
+			xPos = 47.5f;
 			{///PBend Down
 				PlusMinusValLCD *MccLCD = createWidget<PlusMinusValLCD>(Vec(xPos,yPos));
-				MccLCD->box.size = {25.f, 13.f};
+				MccLCD->box.size = {23.f, 13.f};
 				MccLCD->buttonId = MIDIpolyMPE::pbDwn;
 				MccLCD->cursorIx = &module->cursorIx;
 				MccLCD->param_val = &module->paramsMap[MIDIpolyMPE::pbDwn];
@@ -1478,10 +1477,10 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->canlearn = false;
 				addChild(MccLCD);
 			}
-			xPos += 25.f;
+			xPos += 23.f;
 			{///PBend Up
 				PlusMinusValLCD *MccLCD = createWidget<PlusMinusValLCD>(Vec(xPos,yPos));
-				MccLCD->box.size = {25.f, 13.f};
+				MccLCD->box.size = {23.f, 13.f};
 				MccLCD->buttonId = MIDIpolyMPE::pbUp;
 				MccLCD->canlearn = false;
 				MccLCD->cursorIx = &module->cursorIx;
@@ -1511,14 +1510,8 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			dataEntyOnLed->cursorIx = &module->cursorIx;
 			addChild(dataEntyOnLed);
 		}///end if module
-		yPos = 150.5f;
-		xPos = 13.f;
-		// ch Leds x 16
-		for (int i = 0; i < 16; i++){
-			addChild(createLight<TinyLight<RedLight>>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
-		}
-		xPos = 57.f;
 		yPos = 107.5f;
+		xPos = 57.f;
 		////DATA KNOB + -
 		addParam(createParam<DataEntryKnob>(Vec(xPos, yPos), module, MIDIpolyMPE::DATAKNOB_PARAM));
 		//+ - Buttons
@@ -1527,33 +1520,36 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		addParam(createParam<minusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE::MINUSONE_PARAM));
 		xPos = 103.f;
 		addParam(createParam<plusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE::PLUSONE_PARAM));
-		// X Y Z Outs
-		float xOffset = 44.f;
-		yPos = 172.f;
-		xPos = 19.5f;
-		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::X_OUTPUT));
-		xPos += xOffset;
-		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::Y_OUTPUT));
-		xPos += xOffset;
-		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::Z_OUTPUT));
-		yPos = 217.f;
-		xPos = 19.5f;
-		xOffset = 31.f;
-		//Vel RVel Gate Outs
-		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::RVEL_OUTPUT));
-		xPos += xOffset;
-		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::VEL_OUTPUT));
-		xPos += xOffset;
-		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::GATE_OUTPUT));
-		xPos = 111.f;
-		yPos = 219.f;
+		// channel Leds x 16
+		yPos = 150.f;
+		xPos = 13.f;
+		for (int i = 0; i < 16; i++){
+			addChild(createLight<TinyLight<RedLight>>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
+		}
+		yPos = 170.5f;
+		xPos = 81.f;
 		//Sustain hold notes switch
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDIpolyMPE::SUSTHOLD_PARAM));
 		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDIpolyMPE::SUSTHOLD_LIGHT));
 		//Retrig
-		addParam(createParam<moDllzSwitchT>(Vec(127.f, 215.f), module, MIDIpolyMPE::RETRIG_PARAM));
-		// PBend Out
-		yPos = 251.5f;
+		addParam(createParam<moDllzSwitchT>(Vec(98.5f, yPos), module, MIDIpolyMPE::RETRIG_PARAM));
+	//// POLY OUTPUTS
+		yPos = 171.f;
+		xPos = 19.5f;//Pitch
+		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::X_OUTPUT));
+		xPos = 50.5f;//Gate
+		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::GATE_OUTPUT));
+		xPos = 114.5;//Vel
+		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::VEL_OUTPUT));
+		yPos = 218.5f;
+		xPos = 22.5f;//Y
+		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::Y_OUTPUT));
+		xPos = 65.5f;//Z
+		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::Z_OUTPUT));
+		xPos = 108.5f;// RVel
+		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::RVEL_OUTPUT));
+		// Main PBend Out
+		yPos = 251.f;
 		xPos = 119.f;
 		addOutput(createOutput<moDllzPortO>(Vec(xPos, yPos),  module, MIDIpolyMPE::PBEND_OUTPUT));
 		//CC outputs
