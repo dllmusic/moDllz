@@ -352,7 +352,7 @@ struct MIDIpolyMPE : Module {
 			midiCCsValues[paramsMap[midiCCs + i]] = 0;
 		}
 		//		mrPBendFilter.lambda = lambdaf;
-		midiActivity = 96;
+		midiActivity = 127;
 		resetMidi = false;
 	}
 	
@@ -913,8 +913,8 @@ struct MIDIpolyMPE : Module {
 					newVal = paramsMap[pbMPE] + val;
 					if ((newVal < 0) || (newVal > 96)) return;
 				} else {//num voices
-					newVal = paramsMap[numVoCh] + val; ///2  to 16//
-					if ((newVal < 2) || (newVal > 16)) return;
+					newVal = paramsMap[numVoCh] + val; ///1  to 16//
+					if ((newVal < 1) || (newVal > 16)) return;
 					doreset= true;
 				}
 			}break;
@@ -1005,7 +1005,7 @@ struct MIDIpolyMPE : Module {
 					}
 				} else {//num Voices
 					if (updateDataKnob) {
-						configDataKnob(2.f,16.f,(float)paramsMap[numVoCh]);
+						configDataKnob(1.f,16.f,(float)paramsMap[numVoCh]);
 						return;
 					}
 					int newVal = static_cast<int>(params[DATAKNOB_PARAM].getValue());
@@ -1521,25 +1521,25 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				addChild(MccLCD);
 			}
 			//dataEntry
-			DataEntyOnLed *dataEntyOnLed = createWidget<DataEntyOnLed>(Vec(21.5f,104.5f));
+			DataEntyOnLed *dataEntyOnLed = createWidget<DataEntyOnLed>(Vec(21.5f,107.5f));
 			dataEntyOnLed->cursorIx = &module->cursorIx;
 			addChild(dataEntyOnLed);
 		}///end if module
-		yPos = 107.5f;
+		yPos = 110.5f;
 		xPos = 57.f;
 		////DATA KNOB + -
 		addParam(createParam<DataEntryKnob>(Vec(xPos, yPos), module, MIDIpolyMPE::DATAKNOB_PARAM));
 		//+ - Buttons
-		yPos = 114.f;
+		yPos = 117.f;
 		xPos = 24.f;
 		addParam(createParam<minusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE::MINUSONE_PARAM));
 		xPos = 103.f;
 		addParam(createParam<plusButtonB>(Vec(xPos, yPos), module, MIDIpolyMPE::PLUSONE_PARAM));
 		// channel Leds x 16
-		yPos = 150.f;
+		yPos = 101.f;
 		xPos = 13.f;
 		for (int i = 0; i < 16; i++){
-			addChild(createLight<TinyLight<RedLight>>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
+			addChild(createLight<VoiceChRedLed>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
 		}
 		yPos = 170.5f;
 		xPos = 81.f;

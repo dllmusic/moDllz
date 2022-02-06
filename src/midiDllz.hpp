@@ -20,26 +20,20 @@
 #include <app/common.hpp>
 #include <midi.hpp>
 namespace rack {
-
-
 struct MIDIdisplay : OpaqueWidget {
 	MIDIdisplay();
 	midi::Port *midiInput;
 	int initpointer_1 = -1;
-	
 	int *mpeChn = &initpointer_1;
 	bool i_bool = false;
 	bool i_mpeMode = false;
 	bool *mpeMode = &i_bool;
 	unsigned char  initpointer0 = 0;
 	unsigned char *midiActiv = &initpointer0;
-	
 	int *mdriverJ = &initpointer_1;
 	int *mchannelJ = &initpointer_1;
 	int mchannelMem = -1;
-
 	bool *resetMidi = &i_bool;
-	
 	bool showchannel = true;
 	bool isdevice = false;
 	bool searchdev = false;
@@ -47,21 +41,17 @@ struct MIDIdisplay : OpaqueWidget {
 	std::string mdriver = "initalizing";
 	std::string mdevice = "";
 	std::string mchannel = "";
-	
 	int cursorId = 0;
 	float mdfontSize = 13.f;
 	float xcenter = 0.f;
 	char drawframe = 0;
 	std::shared_ptr<Font> font;
 	NVGcolor textColor = nvgRGB(0x88,0x88,0x88);
-	
-	void updateMidiSettings(int dRow, bool valup);
+	void updateMidiSettings(int dRow, int incr);
 	void reDisplay();
-	//void draw(const DrawArgs &args) override;
 	void drawLayer(const DrawArgs &args, int layer) override;
 	void onButton(const event::Button &e) override;
 };
-
 struct DispBttnL : SvgSwitch {
 	DispBttnL();
 	MIDIdisplay *md = nullptr;
@@ -74,7 +64,6 @@ struct DispBttnR : SvgSwitch {
 	int id = 0;
 	void onButton(const event::Button &e) override;
 };
-
 struct MIDIscreen : OpaqueWidget{
 	MIDIscreen();
 	DispBttnL *drvL;
@@ -84,9 +73,6 @@ struct MIDIscreen : OpaqueWidget{
 	DispBttnR *devR;
 	DispBttnR *chnR;
 	MIDIdisplay *md;
-	void setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,unsigned char *midiActiv, int *mdriver, std::string *mdevice, int *mchannel,
-					 // void (*resetMidi)());
-					 bool *resetMidi);
+	void setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,unsigned char *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi);
 };
-
 } // namespace rack
