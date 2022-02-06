@@ -26,7 +26,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 struct paramLCD : OpaqueWidget {
 	paramLCD(){
-		font = APP->window->loadFont(mFONT_FILE);
+		//font = APP->window->loadFont(mFONT_FILE);
 	}
 	int intptr = 0;
 	bool boolptr = true;
@@ -134,6 +134,19 @@ struct DataEntyOnLed : TransparentWidget {
 	int dummyInit = 0;
 	int *cursorIx = &dummyInit;
 
+	void drawLayer(const DrawArgs &args, int layer) override;
+	void onButton(const event::Button &e) override;
+};
+
+struct transparentMidiButton : MidiButton {
+	transparentMidiButton();
+	float mdfontSize = 12.f;
+	//	float xcenter = 0.f;
+	//	char drawframe = 0;
+	std::shared_ptr<Font> font;
+	NVGcolor okColor = nvgRGB(0x88,0x88,0x88);
+	NVGcolor unsetColor = nvgRGB(0xff,0,0);
+	
 	void drawLayer(const DrawArgs &args, int layer) override;
 	void onButton(const event::Button &e) override;
 };

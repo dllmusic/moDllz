@@ -22,7 +22,7 @@
 namespace rack {
 
 MIDIdisplay::MIDIdisplay(){
-	font = APP->window->loadFont(mFONT_FILE);
+	/////////font = APP->window->loadFont(mFONT_FILE);
 }
 ///////////////////////////////////////////////////////////////////////////////////////
 DispBttnL::DispBttnL(){
@@ -136,14 +136,12 @@ void MIDIdisplay::updateMidiSettings (int dRow, bool valup){
 	return;
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
 void MIDIdisplay::reDisplay(){
 	mdriver = midi::getDriver(midiInput->driverId)->getName();
 	// driver name
 	if (midiInput->deviceId > -1){
-		textColor = nvgRGB(0xbb,0xbb,0xbb);
+		textColor = nvgRGB(0xcc,0xcc,0xcc);
 		mdevice = midiInput->getDeviceName(midiInput->deviceId);// device
 		showchannel = (mdriver.substr(0,17) != "Computer keyboard");
 		if (i_mpeMode) { //channel MPE
@@ -168,9 +166,11 @@ void MIDIdisplay::reDisplay(){
 	drawframe = 0;
 }
 ///////////////////////////////////////////////////////////////////////////////////////
+//void MIDIdisplay::draw(const DrawArgs &args){
 void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 	if (layer != 1) return;
 	if (!font) font = APP->window->loadFont(mFONT_FILE);
+	if (!(font && font->handle >= 0)) return;
 	if (midiInput){
 		if (i_mpeMode != *mpeMode) {
 			i_mpeMode = *mpeMode;
@@ -214,14 +214,15 @@ void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 				}
 			}
 		}
-		if (*midiActiv > 4) {
+		if (*midiActiv > 3) {
 			nvgBeginPath(args.vg);
 			nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y, 3.f);
-			nvgFillColor(args.vg, nvgRGB( *midiActiv, 0, 0));
+			nvgFillColor(args.vg, nvgRGB(*midiActiv, 0, 0));
 			nvgFill(args.vg);
 			*midiActiv -= 4;
 		}
 		else *midiActiv = 0;//clip to 0
+		
 		nvgFontSize(args.vg, mdfontSize);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -236,6 +237,7 @@ void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 void MIDIdisplay::onButton(const ButtonEvent &e) {
 	e.stopPropagating();
 	if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
+		//resetMidi();
 		*resetMidi = true;
 		if (!e.isConsumed()) e.consume(this);
 	}

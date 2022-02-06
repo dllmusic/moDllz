@@ -17,7 +17,7 @@
  along with this program.  If not, see <https:www.gnu.org/licenses/>.
  */
 
-#include "moDllz.hpp"
+//#include "moDllz.hpp"
 #include "moDllzComp.hpp"
 
 struct MIDIpolyMPE : Module {
@@ -54,6 +54,7 @@ struct MIDIpolyMPE : Module {
 	};
 	//////MIDI
 	midi::InputQueue midiInput;
+	
 	int MPEmasterCh = 0;// 0 ~ 15
 	unsigned char midiActivity = 0;
 	bool resetMidi = false;
@@ -117,7 +118,7 @@ struct MIDIpolyMPE : Module {
 	bool pedal = false;
 	int rotateIndex = 0;
 	int stealIndex = 0;
-	int nVoChMPE = 1;
+	int nVoChMPE = 16;
 	int learnId = 0;
 	int cursorIx = 0;
 	int selectedmidich = 0;
@@ -151,20 +152,19 @@ struct MIDIpolyMPE : Module {
 	dsp::SchmittTrigger PlusOneTrigger;
 	dsp::SchmittTrigger MinusOneTrigger;
 	
-	std::string ccNames[133];
 	std::string ccLongNames[133];
-	
 	MIDIpolyMPE() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 		configButton(PLUSONE_PARAM,"(Selected) +1");
 		configButton(MINUSONE_PARAM,"(Selected) -1");
 		configSwitch(SUSTHOLD_PARAM, false, true, false,"cc64 Sustain hold",{"off","ON"});
 		configSwitch(RETRIG_PARAM, 0.f, 2.f, 1.f,"Retrigger",{"FirstOn","NotesOn","NotesOn+Recovered"});
-		configParam(DATAKNOB_PARAM, -1.f, 1.f, 0.f,"(Selected) - +");
+		configParam(DATAKNOB_PARAM, 999.9f, 1000.1f, 1000.f,"Data Entry");
 		configOutput(X_OUTPUT, "1V/oct pitch");
 		configOutput(VEL_OUTPUT, "0~10V Velocity");
 		configOutput(GATE_OUTPUT, "10V Gate");
 		configOutput(PBEND_OUTPUT, "Master Pitch Bend");
+		
 		///////////////////////////////////////
 		for (int i = 0 ; i < 128; i++){
 			ccLongNames[i].assign("cc" + std::to_string(i));
@@ -180,7 +180,17 @@ struct MIDIpolyMPE : Module {
 		ccLongNames[130].assign("Detuned");
 		ccLongNames[131].assign("Y Axis 14bit");
 		ccLongNames[132].assign("Z Axis 14bit");
-		initParamsSettings();
+		
+		for (int c = 0; c < 16; c++) {
+			MPExFilter[c].setTau(1 / 30.f);
+			MPEyFilter[16].setTau(1 / 30.f);
+			MPEzFilter[16].setTau(1 / 30.f);
+		}
+		for (int c = 0; c < 8; c++) {
+			MCCsFilter[c].setTau(1 / 30.f);
+		}
+		mrPBendFilter.setTau(1/30.f);
+		onReset();
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
 	json_t* miditoJson() {//saves last valid driver/device/chn
@@ -191,9 +201,11 @@ struct MIDIpolyMPE : Module {
 		return rootJ;
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
+	
 	json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 		json_object_set_new(rootJ, "midi", miditoJson());
+		//json_object_set_new(rootJ, "midi", midiInput.toJson());
 		json_object_set_new(rootJ, "polyModeId", json_integer(paramsMap[polyModeId]));
 		json_object_set_new(rootJ, "pbDwn", json_integer(paramsMap[pbDwn]));
 		json_object_set_new(rootJ, "pbUp", json_integer(paramsMap[pbUp]));
@@ -231,6 +243,8 @@ struct MIDIpolyMPE : Module {
 			if (channelJ) mchannelJx = json_integer_value(channelJ);
 			midiInput.fromJson(midiJ);
 		}
+		//		json_t* midiJ = json_object_get(rootJ, "midi");
+		//		if (midiJ) midiInput.fromJson(midiJ);
 		json_t *polyModeIdJ = json_object_get(rootJ, "polyModeId");
 		if (polyModeIdJ) paramsMap[polyModeId] = json_integer_value(polyModeIdJ);
 		MPEmode = (paramsMap[polyModeId] < ROTATE_MODE);
@@ -278,9 +292,24 @@ struct MIDIpolyMPE : Module {
 		if (velMinJ) paramsMap[velMin] = json_integer_value(velMinJ);
 		json_t *velMaxJ = json_object_get(rootJ, "velMax");
 		if (velMaxJ) paramsMap[velMax] = json_integer_value(velMaxJ);
-		disableDataKnob();
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////
+	
+	void onReset() override{
+		midiInput.reset();
+		initParamsSettings();
+		initVoices();
+		MPEmasterCh = 0;// 0 ~ 15
+		cursorIx = 0;
+		outputInfos[Y_OUTPUT]->name = "1V/Oct detuned";
+		outputInfos[Z_OUTPUT]->name = "Note Aftertouch";
+		outputInfos[RVEL_OUTPUT]->name = "Release Velocity";
+		for ( int i = 0 ; i < 8 ; i++ ){
+			outputInfos[MM_OUTPUT + i]->name =  ccLongNames[paramsMap[midiCCs + i]];
+		}
+		disableDataKnob();
+	}
+	
 	void resetVoices(){
 		initVoices();
 		if (paramsMap[polyModeId] < ROTATE_MODE) {
@@ -304,7 +333,7 @@ struct MIDIpolyMPE : Module {
 				outputInfos[Z_OUTPUT]->name = "MPE Z";
 			}
 			outputInfos[RVEL_OUTPUT]->name = "Channel PitchBend";
-			nVoChMPE = 1;
+			nVoChMPE = 16;
 		}else {
 			Y_ptr = &Detune130;
 			Z_ptr = &NOTEAFT;//129
@@ -317,18 +346,18 @@ struct MIDIpolyMPE : Module {
 			outputInfos[Z_OUTPUT]->name = "Note Aftertouch";
 			outputInfos[RVEL_OUTPUT]->name = "Release Velocity";
 		}
-		float lambdaf = 100.f * APP->engine->getSampleTime();
+		//		float lambdaf = 100.f * APP->engine->getSampleTime();
 		for (int i=0; i < 8; i++){
-			MCCsFilter[i].lambda = lambdaf;
+			//			MCCsFilter[i].lambda = lambdaf;
 			midiCCsValues[paramsMap[midiCCs + i]] = 0;
 		}
-		mrPBendFilter.lambda = lambdaf;
+		//		mrPBendFilter.lambda = lambdaf;
 		midiActivity = 96;
 		resetMidi = false;
 	}
 	
 	void initVoices(){
-		float lambdaf = 100.f * APP->engine->getSampleTime();
+		//float lambdaf = 100.f * APP->engine->getSampleTime();
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].setBrightness(0.f);
 		for (int i = 0; i < 16; i++) {
@@ -342,9 +371,6 @@ struct MIDIpolyMPE : Module {
 			mpex[i] = 0;
 			mpez[i] = 0;
 			cachedMPE[i].clear();
-			MPExFilter[i].lambda = lambdaf;
-			MPEyFilter[i].lambda = lambdaf;
-			MPEzFilter[i].lambda = lambdaf;
 			mpePlusLB[i] = 0;
 			lights[CH_LIGHT+ i].setBrightness(0.f);
 			outputs[GATE_OUTPUT].setVoltage( 0.f, i);
@@ -354,17 +380,14 @@ struct MIDIpolyMPE : Module {
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////
-	void onAdd() override{
-		initVoices();
-		for ( int i = 0 ; i < 8 ; i++ ){
-			outputInfos[MM_OUTPUT + i]->name =  ccLongNames[paramsMap[midiCCs + i]];
-		}
-	}
-	/////////////////////////////////////////////////////////////////////////////////////////
-	void onReset(const ResetEvent& e) override{
-		initVoices();
-		initStatus();
-	}
+	//	void onAdd() override{
+	//		initVoices();
+	//		for ( int i = 0 ; i < 8 ; i++ ){
+	//			outputInfos[MM_OUTPUT + i]->name =  ccLongNames[paramsMap[midiCCs + i]];
+	//		}
+	//	}
+	//	/////////////////////////////////////////////////////////////////////////////////////////
+	
 	////
 	void initParamsSettings(){
 		paramsMap[_noSelection] = 0;
@@ -395,18 +418,6 @@ struct MIDIpolyMPE : Module {
 		RP_ptr = &zero;
 	}
 	
-	void initStatus(){
-		initParamsSettings();
-		MPEmasterCh = 0;// 0 ~ 15
-		cursorIx = 0;
-		outputInfos[Y_OUTPUT]->name = "1V/Oct detuned";
-		outputInfos[Z_OUTPUT]->name = "Note Aftertouch";
-		outputInfos[RVEL_OUTPUT]->name = "Release Velocity";
-		for ( int i = 0 ; i < 8 ; i++ ){
-			outputInfos[MM_OUTPUT + i]->name =  ccLongNames[paramsMap[midiCCs + i]];
-		}
-		disableDataKnob();
-	}
 	void onRandomize(const RandomizeEvent& e) override {
 		// ...
 		//
@@ -533,7 +544,6 @@ struct MIDIpolyMPE : Module {
 			} break;
 			default: break;
 		}
-		
 		notes[rotateIndex] = note;
 		vels[rotateIndex] = vel;
 		gates[rotateIndex] = true;
@@ -737,7 +747,7 @@ struct MIDIpolyMPE : Module {
 				}
 				hold[i] = false;
 			}
-			//			/////// TO DO !!!(???)
+			//			/////// revise
 			//			if (paramsMap[polyModeId] == RESTACK_MODE) {
 			//				for (int i = 0; i < paramsMap[numVoCh]; i++) {
 			//					if (i < (int) cachedNotes.size()) {
@@ -1233,7 +1243,7 @@ struct MIDIpolyMPE : Module {
 //// Main Display ///////////////////////////////////////////////////////////////////////////////////////
 struct PolyModeDisplay : TransparentWidget {
 	PolyModeDisplay(){
-		font = APP->window->loadFont(mFONT_FILE);
+		//font = APP->window->loadFont(mFONT_FILE);
 	}
 	MIDIpolyMPE *module;
 	float mdfontSize = 13.f;
@@ -1272,7 +1282,8 @@ struct PolyModeDisplay : TransparentWidget {
 	bool canlearn = true;
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if (layer != 1) return;
-		if (!font) font = APP->window->loadFont(mFONT_FILE);
+		font = APP->window->loadFont(mFONT_FILE);
+		if (!(font && font->handle >= 0)) return;
 		if (cursorIxI != module->cursorIx){
 			cursorIxI = module->cursorIx;
 			timedFocus = 48;
@@ -1378,7 +1389,6 @@ struct PolyModeDisplay : TransparentWidget {
 	}
 };
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////// MODULE WIDGET ////////
 /////////////////////////////////////////////////
@@ -1399,6 +1409,11 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			dDisplay->box.size = {136.f, 40.f};
 			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
 			addChild(dDisplay);
+			//Midi w Menu
+			//			transparentMidiButton* midiButton = createWidget<transparentMidiButton>(Vec(xPos,yPos));
+			//			 midiButton->setMidiPort(&module->midiInput);
+			//			 addChild(midiButton);
+			
 			//PolyModes LCD
 			xPos = 7.f;
 			yPos = 61.f;
@@ -1528,12 +1543,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		}
 		yPos = 170.5f;
 		xPos = 81.f;
-		//Sustain hold notes switch
+		// Sustain hold notes switch
 		addParam(createParam<moDllzSwitchLed>(Vec(xPos, yPos), module, MIDIpolyMPE::SUSTHOLD_PARAM));
 		addChild(createLight<TranspOffRedLight>(Vec(xPos, yPos), module, MIDIpolyMPE::SUSTHOLD_LIGHT));
 		//Retrig
 		addParam(createParam<moDllzSwitchT>(Vec(98.5f, yPos), module, MIDIpolyMPE::RETRIG_PARAM));
-	//// POLY OUTPUTS
+		////  POLY OUTPUTS
 		yPos = 171.f;
 		xPos = 19.5f;//Pitch
 		addOutput(createOutput<moDllzPolyO>(Vec(xPos, yPos),  module, MIDIpolyMPE::X_OUTPUT));

@@ -24,10 +24,9 @@
 #include <vector> // std::vector
 #include "midiDllz.hpp"
 
-#define FONT_FILE asset::plugin(pluginInstance, "res/fonts/bold_led_board-7.ttf")
-//#define mFONT_FILE asset::plugin(pluginInstance, "res/ShareTechMono-Regular.ttf")
+//#define FONT_FILE asset::plugin(pluginInstance, "res/fonts/bold_led_board-7.ttf")
 #define mFONT_FILE asset::plugin(pluginInstance, "res/fonts/Gidolinya-Regular.ttf")
-
+//#define mFONT_FILE asset::system("res/fonts/ShareTechMono-Regular.ttf")
 using namespace rack;
 
 extern Plugin *pluginInstance;
@@ -38,11 +37,6 @@ extern Model *modelMIDIpolyMPE;
 //extern Model *modelPolyGlider;
 //extern Model *modelKn8b;
 //extern Model *modelXBender;
-
-//extern Model *modelMIDI8MPE;
-//extern Model *modelMIDIpoly16;
-
-
 
 ///////////////////////
 // custom components

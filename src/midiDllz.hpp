@@ -26,30 +26,29 @@ struct MIDIdisplay : OpaqueWidget {
 	MIDIdisplay();
 	midi::Port *midiInput = nullptr;
 	int i_mpeChn = 0;
-	bool i_boolptr = false;
 	int *mpeChn = &i_mpeChn;
 	bool *mpeMode = nullptr;
 	bool i_mpeMode = false;
 	unsigned char  initpointer0 = 0;
-	unsigned char *midiActiv = &initpointer0;
+	unsigned char *midiActiv = nullptr;
 	
 	int initpointer_1 = -1;
 	int *mdriverJ = &initpointer_1;
 	int *mchannelJ = &initpointer_1;
 	int mchannelMem = -1;
-	bool *resetMidi = &i_boolptr;
+	//void (*resetMidi)() = nullptr;
+	bool *resetMidi = nullptr;
 	
 	bool showchannel = true;
 	bool isdevice = false;
 	bool searchdev = false;
-	
 	std::string *mdeviceJ;
 	std::string mdriver = "initalizing";
 	std::string mdevice = "";
 	std::string mchannel = "";
 	
 	int cursorId = 0;
-	float mdfontSize = 12.f;	
+	float mdfontSize = 12.f;
 	float xcenter = 0.f;
 	char drawframe = 0;
 	std::shared_ptr<Font> font;
@@ -57,6 +56,7 @@ struct MIDIdisplay : OpaqueWidget {
 	
 	void updateMidiSettings(int dRow, bool valup);
 	void reDisplay();
+	//void draw(const DrawArgs &args) override;
 	void drawLayer(const DrawArgs &args, int layer) override;
 	void onButton(const event::Button &e) override;
 };

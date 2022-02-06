@@ -21,9 +21,10 @@
 //ParamLCD
 void paramLCD::drawLayer(const DrawArgs &args, int layer) {
 	if (layer != 1) return;
-	if (!font) font = APP->window->loadFont(mFONT_FILE);
-	nvgFontSize(args.vg, mdfontSize);
+	font = APP->window->loadFont(mFONT_FILE);
+	if (!(font && font->handle >= 0)) return;
 	nvgFontFaceId(args.vg, font->handle);
+	nvgFontSize(args.vg, mdfontSize);
 	nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
 	if(*cursorIx != buttonId){
 		unsigned char alphaedit =  static_cast<unsigned char> (*canedit) * 0x44 + 0xbb;
@@ -94,7 +95,8 @@ void PlusMinusValLCD::drawLayer(const DrawArgs &args, int layer) {
 ///Value Test LCD
 void ValueTestLCD::drawLayer(const DrawArgs &args, int layer) {
 	if (layer != 1) return;
-	if (!font) font = APP->window->loadFont(mFONT_FILE);
+	font = APP->window->loadFont(mFONT_FILE);
+	if (!(font && font->handle >= 0)) return;
 	nvgFontSize(args.vg, mdfontSize);
 	nvgFontFaceId(args.vg, font->handle);
 	nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -106,7 +108,7 @@ void ValueTestLCD::drawLayer(const DrawArgs &args, int layer) {
 	nvgTextBox(args.vg, 0.f, 10.5f,box.size.x, std::to_string(*testval).c_str(), NULL);
 }
 
-///Data Knob LED
+///Data Knob LED//
 void DataEntyOnLed::drawLayer(const DrawArgs &args, int layer) {
 	if ((layer != 1) || (*cursorIx < 1)) return;
 	for (int i = 0; i < 8; i++){
@@ -127,3 +129,44 @@ void DataEntyOnLed::onButton(const event::Button &e) {
 	return;
 }
 
+transparentMidiButton::transparentMidiButton(){
+	//font = APP->window->loadFont(mFONT_FILE);
+	box.size = {136.f, 40.f};
+}
+void transparentMidiButton::onButton(const event::Button &e) {
+	MidiButton::onButton(e);
+	e.stopPropagating();
+}
+void transparentMidiButton::drawLayer(const DrawArgs &args, int layer) {
+	if (layer != 1) return;
+	font = APP->window->loadFont(mFONT_FILE);
+	if (!((port) && (font && font->handle >= 0))) return;
+	float xcenter = box.size.x / 2;
+	nvgFontSize(args.vg, mdfontSize);
+	nvgFontFaceId(args.vg, font->handle);
+	nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
+	nvgScissor(args.vg, 2.f, 0.f, box.size.x - 4.f, box.size.y);
+	
+	std::string mdriver = (port && port->driver) ? port->getDriver()->getName() : "";
+	if (mdriver.empty()) {
+		mdriver = "(No driver)";
+		nvgFillColor(args.vg, unsetColor);
+		nvgText(args.vg, xcenter, 11.5f, mdriver.c_str(), NULL);
+	}else {
+		nvgFillColor(args.vg, okColor);
+		nvgText(args.vg, xcenter, 11.5f, mdriver.c_str(), NULL);
+		
+		std::string mdevice = (port && port->device) ? port->getDevice()->getName() : "";
+		if (mdevice.empty()) {
+			mdevice = "(No device)";
+			nvgFillColor(args.vg, unsetColor);
+			nvgText(args.vg, xcenter , 24.5f, mdevice.c_str(), NULL);
+		}else {
+			nvgFillColor(args.vg, okColor);
+			nvgText(args.vg, xcenter , 24.5f, mdevice.c_str(), NULL);
+			///show channel if device set
+			std::string mchannel  = port ? port->getChannelName(port->getChannel()) : "Channel 1";
+			nvgText(args.vg, xcenter, 37.5f, mchannel.c_str(), NULL);
+		}
+	}
+}
