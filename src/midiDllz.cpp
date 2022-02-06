@@ -145,7 +145,7 @@ void MIDIdisplay::reDisplay(){
 		mdevice = midiInput->getDeviceName(midiInput->deviceId);// device
 		showchannel = (mdriver.substr(0,17) != "Computer keyboard");
 		if (i_mpeMode) { //channel MPE
-			mchannel = "mpe master " + std::to_string(i_mpeMode + 1);
+			mchannel = "mpe master " + std::to_string(*mpeChn + 1);
 			midiInput->channel = -1;
 		}else { // channel
 			if (showchannel){
@@ -175,6 +175,9 @@ void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 			i_mpeMode = *mpeMode;
 			reDisplay();
 		}
+//		if (*mpeMode){
+//			mchannel = "mpe master " + std::to_string(*mpeChn + 1);
+//		}
 		if (drawframe++ > 50){
 			drawframe = 0;
 			if (isdevice && (midiInput->getDeviceName(midiInput->deviceId) != *mdeviceJ)) searchdev = true;
