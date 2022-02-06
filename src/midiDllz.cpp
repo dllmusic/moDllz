@@ -145,7 +145,7 @@ void MIDIdisplay::reDisplay(){
 		mdevice = midiInput->getDeviceName(midiInput->deviceId);// device
 		showchannel = (mdriver.substr(0,17) != "Computer keyboard");
 		if (i_mpeMode) { //channel MPE
-			mchannel = "mpe master " + std::to_string(i_mpeChn + 1);
+			mchannel = "mpe master " + std::to_string(i_mpeMode + 1);
 			midiInput->channel = -1;
 		}else { // channel
 			if (showchannel){
@@ -169,16 +169,11 @@ void MIDIdisplay::reDisplay(){
 //void MIDIdisplay::draw(const DrawArgs &args){
 void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 	if (layer != 1) return;
-	if (!font) font = APP->window->loadFont(mFONT_FILE);
-	if (!(font && font->handle >= 0)) return;
-	if (midiInput){
+	font = APP->window->loadFont(mFONT_FILE);
+	if (!((font && font->handle >= 0) || midiInput)) return;
 		if (i_mpeMode != *mpeMode) {
 			i_mpeMode = *mpeMode;
 			reDisplay();
-		}
-		if ((i_mpeChn != *mpeChn) && (i_mpeMode)){
-			i_mpeChn = *mpeChn;
-			mchannel = "mpe master " + std::to_string(i_mpeChn + 1);
 		}
 		if (drawframe++ > 50){
 			drawframe = 0;
@@ -231,7 +226,6 @@ void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 		nvgText(args.vg, xcenter, 11.5f, mdriver.c_str(), NULL);
 		nvgText(args.vg, xcenter, 24.5f, mdevice.c_str(), NULL);
 		nvgText(args.vg, xcenter, 37.5f, mchannel.c_str(), NULL);
-	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////
 void MIDIdisplay::onButton(const ButtonEvent &e) {

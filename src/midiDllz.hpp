@@ -24,20 +24,21 @@ namespace rack {
 
 struct MIDIdisplay : OpaqueWidget {
 	MIDIdisplay();
-	midi::Port *midiInput = nullptr;
-	int i_mpeChn = 0;
-	int *mpeChn = &i_mpeChn;
-	bool *mpeMode = nullptr;
-	bool i_mpeMode = false;
-	unsigned char  initpointer0 = 0;
-	unsigned char *midiActiv = nullptr;
-	
+	midi::Port *midiInput;
 	int initpointer_1 = -1;
+	
+	int *mpeChn = &initpointer_1;
+	bool i_bool = false;
+	bool i_mpeMode = false;
+	bool *mpeMode = &i_bool;
+	unsigned char  initpointer0 = 0;
+	unsigned char *midiActiv = &initpointer0;
+	
 	int *mdriverJ = &initpointer_1;
 	int *mchannelJ = &initpointer_1;
 	int mchannelMem = -1;
-	//void (*resetMidi)() = nullptr;
-	bool *resetMidi = nullptr;
+
+	bool *resetMidi = &i_bool;
 	
 	bool showchannel = true;
 	bool isdevice = false;
@@ -48,7 +49,7 @@ struct MIDIdisplay : OpaqueWidget {
 	std::string mchannel = "";
 	
 	int cursorId = 0;
-	float mdfontSize = 12.f;
+	float mdfontSize = 13.f;
 	float xcenter = 0.f;
 	char drawframe = 0;
 	std::shared_ptr<Font> font;
