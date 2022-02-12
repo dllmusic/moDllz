@@ -37,10 +37,11 @@ struct MIDIdisplay : OpaqueWidget {
 	bool showchannel = true;
 	bool isdevice = false;
 	bool searchdev = false;
+	//int *cursorIx = &initpointer_1;
 	std::string *mdeviceJ;
 	std::string mdriver = "initalizing";
-	std::string mdevice = "";
-	std::string mchannel = "";
+	std::string mdevice;
+	std::string mchannel;
 	int cursorId = 0;
 	float mdfontSize = 13.f;
 	float xcenter = 0.f;
@@ -73,6 +74,6 @@ struct MIDIscreen : OpaqueWidget{
 	DispBttnR *devR;
 	DispBttnR *chnR;
 	MIDIdisplay *md;
-	void setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,unsigned char *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi);
+	void setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,unsigned char *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi);//, int *cursorIx);
 };
 } // namespace rack

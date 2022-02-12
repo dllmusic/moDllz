@@ -60,7 +60,7 @@ struct MIDIpolyMPE : Module {
 	bool resetMidi = false;
 	int mdriverJx = -1;
 	int mchannelJx = -1;
-	std::string mdeviceJx = "";
+	std::string mdeviceJx;
 	/////
 	enum PolyMode {
 		MPE_MODE,
@@ -180,16 +180,7 @@ struct MIDIpolyMPE : Module {
 		ccLongNames[130].assign("Detuned");
 		ccLongNames[131].assign("Y Axis 14bit");
 		ccLongNames[132].assign("Z Axis 14bit");
-		
-		for (int c = 0; c < 16; c++) {
-			MPExFilter[c].setTau(1 / 30.f);
-			MPEyFilter[16].setTau(1 / 30.f);
-			MPEzFilter[16].setTau(1 / 30.f);
-		}
-		for (int c = 0; c < 8; c++) {
-			MCCsFilter[c].setTau(1 / 30.f);
-		}
-		mrPBendFilter.setTau(1/30.f);
+		setFilters();
 		onReset();
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -346,18 +337,14 @@ struct MIDIpolyMPE : Module {
 			outputInfos[Z_OUTPUT]->name = "Note Aftertouch";
 			outputInfos[RVEL_OUTPUT]->name = "Release Velocity";
 		}
-		//		float lambdaf = 100.f * APP->engine->getSampleTime();
 		for (int i=0; i < 8; i++){
-			//			MCCsFilter[i].lambda = lambdaf;
 			midiCCsValues[paramsMap[midiCCs + i]] = 0;
 		}
-		//		mrPBendFilter.lambda = lambdaf;
 		midiActivity = 127;
 		resetMidi = false;
 	}
 	
 	void initVoices(){
-		//float lambdaf = 100.f * APP->engine->getSampleTime();
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].setBrightness(0.f);
 		for (int i = 0; i < 16; i++) {
@@ -377,18 +364,8 @@ struct MIDIpolyMPE : Module {
 		}
 		rotateIndex = -1;
 		cachedNotes.clear();
-	}
-	
-	///////////////////////////////////////////////////////////////////////////////////////
-	//	void onAdd() override{
-	//		initVoices();
-	//		for ( int i = 0 ; i < 8 ; i++ ){
-	//			outputInfos[MM_OUTPUT + i]->name =  ccLongNames[paramsMap[midiCCs + i]];
-	//		}
-	//	}
-	//	/////////////////////////////////////////////////////////////////////////////////////////
-	
-	////
+	}	
+
 	void initParamsSettings(){
 		paramsMap[_noSelection] = 0;
 		paramsMap[polyModeId] = ROTATE_MODE;
@@ -423,8 +400,23 @@ struct MIDIpolyMPE : Module {
 		//
 		// Module::onRandomize(e);
 	}
+	
+	void setFilters(){
+		float lambdaf = 500.f * APP->engine->getSampleTime();
+		for (int i = 0; i < 16; i++) {
+			MPExFilter[i].lambda = lambdaf;
+			MPEyFilter[i].lambda = lambdaf;
+			MPEzFilter[i].lambda = lambdaf;
+		}
+		for (int i=0; i < 8; i++){
+			MCCsFilter[i].lambda = lambdaf;
+		}
+		mrPBendFilter.lambda = lambdaf;
+	}
+	
 	void onSampleRateChange() override {
 		PROCESS_RATE = static_cast<int>(APP->engine->getSampleRate() * 0.0005); //.5ms
+		setFilters();
 		resetVoices();
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////
@@ -1247,15 +1239,15 @@ struct PolyModeDisplay : TransparentWidget {
 	}
 	MIDIpolyMPE *module;
 	float mdfontSize = 13.f;
-	std::string sMode = "";
-	std::string sVo = "";
-	std::string sPBM = "";
-	std::string snoteMin = "";
-	std::string snoteMax = "";
-	std::string svelMin = "";
-	std::string svelMax = "";
-	std::string yyDisplay = "";
-	std::string zzDisplay = "";
+	std::string sMode;
+	std::string sVo;
+	std::string sPBM;
+	std::string snoteMin;
+	std::string snoteMax;
+	std::string svelMin;
+	std::string svelMax;
+	std::string yyDisplay;
+	std::string zzDisplay;
 	std::shared_ptr<Font> font;
 	std::string polyModeStr[9] = {
 		"M. P. E.",
@@ -1407,8 +1399,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			//MIDI
 			MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(xPos,yPos));
 			dDisplay->box.size = {136.f, 40.f};
-			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
+			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);//, &module->cursorIx);
 			addChild(dDisplay);
+
+//			SelectedDisplay *editingVal = createWidget<SelectedDisplay>(Vec(xPos,yPos));
+//			editingVal->testval= &module->Z_ptr;
+//			addChild(editingVal);
 			//Midi w Menu
 			//			transparentMidiButton* midiButton = createWidget<transparentMidiButton>(Vec(xPos,yPos));
 			//			 midiButton->setMidiPort(&module->midiInput);
@@ -1521,9 +1517,9 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				addChild(MccLCD);
 			}
 			//dataEntry
-			DataEntyOnLed *dataEntyOnLed = createWidget<DataEntyOnLed>(Vec(21.5f,107.5f));
-			dataEntyOnLed->cursorIx = &module->cursorIx;
-			addChild(dataEntyOnLed);
+			DataEntryOnLed *dataEntryOnLed = createWidget<DataEntryOnLed>(Vec(21.5f,107.5f));
+			dataEntryOnLed->cursorIx = &module->cursorIx;
+			addChild(dataEntryOnLed);
 		}///end if module
 		yPos = 110.5f;
 		xPos = 57.f;

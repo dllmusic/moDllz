@@ -25,6 +25,6 @@ void init(Plugin *p) {
 	p->addModel(modelMIDIpolyMPE);
 	//p->addModel(modelMIDIdualCV);
 	//p->addModel(modelPolyGlider);
-	//	p->addModel(modelKn8b);
+	//p->addModel(modelKn8b);
 	//	p->addModel(modelXBender);
 }

@@ -23,7 +23,9 @@
 #include "moDllz.hpp"
 #endif /* moDllzComp_hpp */
 using namespace rack;
-/////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////// MIDIpolyMPE ///////////////////////////////////////////
+
 struct paramLCD : OpaqueWidget {
 	paramLCD(){}
 	int intptr = 0;
@@ -97,12 +99,10 @@ struct PlusMinusValLCD : paramLCD{
 };
 ///Value Test LCD
 struct ValueTestLCD : TransparentWidget{
-	ValueTestLCD() {
-		font = APP->window->loadFont(mFONT_FILE);
-	}
+	ValueTestLCD() {}
 	std::shared_ptr<Font> font;
-	float floatptr = 0;
-	float *testval = &floatptr;
+	//int floatptr = 0;
+	int *testval = nullptr;
 	float mdfontSize = 14.f;
 	void drawLayer(const DrawArgs &args, int layer) override;
 };
@@ -122,10 +122,11 @@ struct DataEntryKnob : RoundKnob {
 	void onLeave(const LeaveEvent& e) override {
 		//// no tooltip destroy
 	}
+	//void onButton(const event::Button &e) override;
 };
 ///Data Knob LED
-struct DataEntyOnLed : TransparentWidget {
-	DataEntyOnLed(){
+struct DataEntryOnLed : TransparentWidget {
+	DataEntryOnLed(){
 		box.size.x = 107.f;
 		box.size.y = 42.f;
 	}
@@ -136,21 +137,44 @@ struct DataEntyOnLed : TransparentWidget {
 	void onButton(const event::Button &e) override;
 };
 
-struct transparentMidiButton : MidiButton {
-	transparentMidiButton();
-	float mdfontSize = 12.f;
-	//	float xcenter = 0.f;
-	//	char drawframe = 0;
-	std::shared_ptr<Font> font;
-	NVGcolor okColor = nvgRGB(0x88,0x88,0x88);
-	NVGcolor unsetColor = nvgRGB(0xff,0,0);
-	
-	void drawLayer(const DrawArgs &args, int layer) override;
-	void onButton(const event::Button &e) override;
-};
+///ZoomDisplay
+//struct SelectedDisplay : TransparentWidget {
+//	SelectedDisplay(){
+//		box.size.x = 136.f;
+//		box.size.y = 40.f;
+//	}
+//	//std::string testing = "cc96";
+//	int dummyInit = 0;
+//	int *cursorIx = &dummyInit;
+//	//std::string *stringVal = &testing;
+//	
+//	int **testval = nullptr;
+//	float mdfontSize = 24.f;
+//	std::shared_ptr<Font> font;
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//	void onButton(const event::Button &e) override;
+//};
+
+//struct transparentMidiButton : MidiButton {
+//	transparentMidiButton();
+//	float mdfontSize = 12.f;
+//	//	float xcenter = 0.f;
+//	//	char drawframe = 0;
+//	std::shared_ptr<Font> font;
+//	NVGcolor okColor = nvgRGB(0x88,0x88,0x88);
+//	NVGcolor unsetColor = nvgRGB(0xff,0,0);
+//	
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//	void onButton(const event::Button &e) override;
+//};
+
+
+
+
+
 
 ///////////////////////
-// custom components
+// gen components
 ///////////////////////
 
 ///knob44
@@ -190,11 +214,20 @@ struct moDllzKnob26 : RoundKnob {
 //
 struct moDllzKnob22 : RoundKnob {
 	moDllzKnob22() {
-		//  box.size = Vec(32, 32);
 		minAngle = -0.83*M_PI;
 		maxAngle = 0.83*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob22_fg.svg")));
 		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob22_bg.svg")));
+		shadow->opacity = 0.f;
+	}
+};
+
+struct moDllzKnob18 : RoundKnob {
+	moDllzKnob18() {
+		minAngle = -0.83*M_PI;
+		maxAngle = 0.83*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob18_fg.svg")));
+		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob18_bg.svg")));
 		shadow->opacity = 0.f;
 	}
 };
@@ -299,26 +332,20 @@ struct moDllzSwitchLed : SvgSwitch {
 ///Horizontal switch with Led
 struct moDllzSwitchLedH : SvgSwitch {
 	moDllzSwitchLedH() {
-		// box.size = Vec(18, 10);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchLedH_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchLedH_1.svg")));
 		shadow->opacity = 0.f;
 	}
-	//void randomize() override{
-	//}
 };
-/////Horizontal switch Triple with Led
-//struct moDllzSwitchLedHT : SvgSwitch {
-//	moDllzSwitchLedHT() {
-//		// box.size = Vec(24, 10);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedHT_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedHT_1.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchLedHT_2.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
+/////Horizontal switch - Triple
+struct moDllzSwitchTH : SvgSwitch {
+	moDllzSwitchTH() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchTH_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchTH_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchTH_2.svg")));
+		shadow->opacity = 0.f;
+	}
+};
 //
 /// Transp Light over led switches
 struct TranspOffRedLight : ModuleLightWidget {
@@ -332,6 +359,13 @@ struct VoiceChRedLed : ModuleLightWidget {
 	VoiceChRedLed() {
 		box.size = Vec(2.f,2.f);
 		addBaseColor(nvgRGB(0xff, 0x00, 0x00));//borderColor = nvgRGBA(0, 0, 0, 0x60);
+	}
+};
+
+struct VoiceChGreenLed : ModuleLightWidget {
+	VoiceChGreenLed() {
+		box.size = Vec(2.f,2.f);
+		addBaseColor(nvgRGB(0x00, 0xff, 0x00));//borderColor = nvgRGBA(0, 0, 0, 0x60);
 	}
 };
 
@@ -401,14 +435,6 @@ struct moDllzSwitchT : SvgSwitch {
 //	//}
 //};
 //
-struct RouteOut : SvgSwitch {
-	RouteOut() {
-		// box.size = Vec(26, 12);
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/chn1_8.svg")));
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/chn9_16.svg")));
-		shadow->opacity = 0.f;
-	}
-};
 /////Momentary Button
 //struct moDllzMoButton : SvgSwitch {
 //	moDllzMoButton() {

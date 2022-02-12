@@ -148,7 +148,7 @@ void MIDIdisplay::reDisplay(){
 }
 ///////////////////////////////////////////////////////////////////////////////////////
 void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
-	if (layer != 1) return;
+	if (layer != 1) return ;// || *cursorIx > 0) return;
 	font = APP->window->loadFont(mFONT_FILE);
 	if (!((font && font->handle >= 0) || midiInput)) return;
 		if (i_mpeMode != *mpeMode) {
@@ -160,7 +160,7 @@ void MIDIdisplay::drawLayer(const DrawArgs& args, int layer){
 			if (isdevice && (midiInput->getDeviceName(midiInput->deviceId) != *mdeviceJ)) searchdev = true;
 			if (searchdev) {
 				showchannel = false;
-				if (*mdeviceJ != ""){/// if previously saved
+				if (!(mdeviceJ->empty())){/// if previously saved
 					textColor = nvgRGB(0xFF,0x64,0x64);
 					midiInput->setDriverId(*mdriverJ);
 					mdevice = *mdeviceJ;
@@ -218,6 +218,7 @@ void MIDIdisplay::onButton(const ButtonEvent &e) {
 }
 ///////////////////////////////////////////////////////////////////////////////////////
 void MIDIscreen::setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,unsigned char *midiActiv, int *mdriver, std::string *mdevice, int *mchannel, bool *resetMidi){
+	//}, int *cursorIx){
 	clearChildren();
 	MIDIdisplay *md = createWidget<MIDIdisplay>(Vec(10.f,0.f));
 	md->midiInput = port;
@@ -231,6 +232,7 @@ void MIDIscreen::setMidiPort(midi::Port *port,bool *mpeMode,int *mpeChn,unsigned
 	md->mchannelJ = mchannel;
 	md->resetMidi = resetMidi;
 	md->searchdev = true;
+	//md->cursorIx = cursorIx;
 	addChild(md);
 	DispBttnL *drvBttnL = createWidget<DispBttnL>(Vec(1.f,1.f));
 	drvBttnL->md = md;
