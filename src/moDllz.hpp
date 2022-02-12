@@ -33,9 +33,9 @@ extern Plugin *pluginInstance;
 
 // Forward-declare each Model, defined in each module source file
 extern Model *modelMIDIpolyMPE;
-//extern Model *modelMIDIdualCV;
-//extern Model *modelPolyGlider;
-//extern Model *modelKn8b;
-//extern Model *modelXBender;
+// extern Model *modelMIDIdualCV;
+// extern Model *modelPolyGlider;
+// extern Model *modelKn8b;
+// extern Model *modelXBender;
 
 

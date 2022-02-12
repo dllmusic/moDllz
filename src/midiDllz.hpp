@@ -37,7 +37,6 @@ struct MIDIdisplay : OpaqueWidget {
 	bool showchannel = true;
 	bool isdevice = false;
 	bool searchdev = false;
-	//int *cursorIx = &initpointer_1;
 	std::string *mdeviceJ;
 	std::string mdriver = "initalizing";
 	std::string mdevice;

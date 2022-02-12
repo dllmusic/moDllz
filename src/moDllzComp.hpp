@@ -168,11 +168,6 @@ struct DataEntryOnLed : TransparentWidget {
 //	void onButton(const event::Button &e) override;
 //};
 
-
-
-
-
-
 ///////////////////////
 // gen components
 ///////////////////////

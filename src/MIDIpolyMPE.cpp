@@ -396,9 +396,6 @@ struct MIDIpolyMPE : Module {
 	}
 	
 	void onRandomize(const RandomizeEvent& e) override {
-		// ...
-		//
-		// Module::onRandomize(e);
 	}
 	
 	void setFilters(){

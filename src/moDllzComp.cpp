@@ -97,10 +97,7 @@ void ValueTestLCD::drawLayer(const DrawArgs &args, int layer) {
 	if (layer != 1) return;
 	font = APP->window->loadFont(mFONT_FILE);
 	if (!(font && font->handle >= 0)) return;
-	
-//	std::stringstream ss;
-//	ss << std::fixed << std::setprecision(1) << *testval;
-//	std::string strout = ss.str();
+
 	std::string strout = std::to_string(*testval);
 	nvgFontSize(args.vg, mdfontSize);
 	nvgFontFaceId(args.vg, font->handle);
