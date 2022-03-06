@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="10" height="20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:6;">
+     <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(9.69824e-07,8,-8,9.69824e-07,5,1)"><stop offset="0" style="stop-color:#888;stop-opacity:1"/><stop offset="1" style="stop-color:#111;stop-opacity:1"/></linearGradient>
+    </defs>
+    <g id="signs">
+        <g id="Switch">
+            <g id="hole">
+                <path d="M10,5C10,2.24 7.76,0 5,0C2.24,0 0,2.24 0,5L0,15C0,17.76 2.24,20 5,20C7.76,20 10,17.76 10,15L10,5Z" style="fill:#222;"/>
+                <path d="M10,5C10,2.24 7.76,0 5,0C2.24,0 0,2.24 0,5L0,15C0,17.76 2.24,20 5,20C7.76,20 10,17.76 10,15L10,5ZM9,5L9,15C9,17.208 7.208,19 5,19C2.792,19 1,17.208 1,15C1,15 1,5 1,5C1,2.792 2.792,1 5,1C7.208,1 9,2.792 9,5Z" style="fill:#444;"/>
+            </g>
+            <circle id="tip1" cx="5" cy="5" r="4" style="fill:url(#_Linear1);"/>
+        </g>
+        <path d="M2.5,14L7.5,14" style="fill:none;stroke:#eee;stroke-width:1.5px;"/>
+        <path d="M5,16.5L5,11.5" style="fill:none;stroke:#eee;stroke-width:1.5px;"/>
+    </g>
+
+</svg>

@@ -69,7 +69,6 @@ struct MIDIccLCD : paramLCD{
 		sNames[132].assign("chAT+");
 	}
 	std::string sNames[133];
-
 	void drawLayer(const DrawArgs &args, int layer) override;
 };
 ////MIDIccs ParamLCD
@@ -95,15 +94,6 @@ struct RelVelLCD : paramLCD{
 /// + - value  ParamLCD Button
 struct PlusMinusValLCD : paramLCD{
 	PlusMinusValLCD() {}
-	void drawLayer(const DrawArgs &args, int layer) override;
-};
-///Value Test LCD
-struct ValueTestLCD : TransparentWidget{
-	ValueTestLCD() {}
-	std::shared_ptr<Font> font;
-	//int floatptr = 0;
-	int *testval = nullptr;
-	float mdfontSize = 14.f;
 	void drawLayer(const DrawArgs &args, int layer) override;
 };
 ///Data KNOB
@@ -137,6 +127,25 @@ struct DataEntryOnLed : TransparentWidget {
 	void onButton(const event::Button &e) override;
 };
 
+
+///Knob8 LCD
+//struct Kn8bLCD : TransparentWidget{
+//	Kn8bLCD() {
+//	}
+//	std::shared_ptr<Font> font;
+//	int id = 0;
+//	int *chOffset = nullptr;
+//	float *valLcd = nullptr;
+//	float *outLcd = nullptr;
+//	bool *active = nullptr;
+//	unsigned char *operation = nullptr;
+//	unsigned char *displaymode = nullptr;
+//	std::string modetxt[4] = {"+","","x","x"};
+//	float mdfontSize = 14.f;
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//};
+
+
 ///ZoomDisplay
 //struct SelectedDisplay : TransparentWidget {
 //	SelectedDisplay(){
@@ -167,6 +176,29 @@ struct DataEntryOnLed : TransparentWidget {
 //	void drawLayer(const DrawArgs &args, int layer) override;
 //	void onButton(const event::Button &e) override;
 //};
+
+///Value Test LCD
+struct ValueTestLCD : TransparentWidget{
+	ValueTestLCD() {}
+	std::shared_ptr<Font> font;
+	unsigned char *intVal = nullptr;
+	float *floatVal = nullptr;
+	float mdfontSize = 14.f;
+	void drawLayer(const DrawArgs &args, int layer) override;
+};
+
+/////
+//ui::Tooltip* tooltip = new ui::Tooltip;
+//tooltip->text = text;
+//return tooltip;
+//}
+//
+//void onEnter(const EnterEvent& e) override {
+//setTooltip(createTooltip());
+//}
+
+
+///////////////
 
 ///////////////////////
 // gen components
@@ -222,6 +254,16 @@ struct moDllzKnob18 : RoundKnob {
 		minAngle = -0.83*M_PI;
 		maxAngle = 0.83*M_PI;
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob18_fg.svg")));
+		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob18_bg.svg")));
+		shadow->opacity = 0.f;
+	}
+};
+
+struct moDllzKnob18CV : RoundKnob {//18 CV Trim
+	moDllzKnob18CV() {
+		minAngle = -0.83*M_PI;
+		maxAngle = 0.83*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob18CV_fg.svg")));
 		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/moDllzKnob18_bg.svg")));
 		shadow->opacity = 0.f;
 	}
@@ -296,34 +338,56 @@ struct TTrimSnap : moDllzTTrim{
 /////switch
 struct moDllzSwitch : SvgSwitch {
 	moDllzSwitch() {
-		// box.size = Vec(10, 20);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitch_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitch_1.svg")));
 		shadow->opacity = 0.f;
 	}
-	//void randomize() override{
-	//}
 };
+
 /////Horizontal switch
 struct moDllzSwitchH : SvgSwitch {
 	moDllzSwitchH() {
-		// box.size = Vec(20, 10);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchH_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchH_1.svg")));
 		shadow->opacity = 0.f;
 	}
-	//void randomize() override{
-	//}
 };
 /////Switch with Led
 struct moDllzSwitchLed : SvgSwitch {
 	moDllzSwitchLed() {
-		// box.size = Vec(10, 18);
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchLed_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchLed_1.svg")));
 		shadow->opacity = 0.f;
 	}
 };
+
+/// SWITCH+LED
+//struct SwitchLight : ModuleLightWidget {
+//	SwitchLight() {
+//		box.size = Vec(8.f,8.f);
+//		addBaseColor(nvgRGB(0xff, 0xff, 0xff));
+//	}
+//};
+//
+//struct moDllzSwitchWithLed : moDllzSwitchLed {
+//	moDllzSwitchWithLed(){
+//		Ld = new SwitchLight;
+//		Ld->box.pos = {1.f,1.f};
+//		//Ld->setBrightnesses(5.f);
+//	}
+	
+//	SwitchLight Ld;
+//	void step() override {
+//		engine::ParamQuantity* pq = paramWidget->getParamQuantity();
+//		if (pq){
+//			Ld->setBrightness(pq * 10.f);
+//		}
+//		moDllzSwitchLed::step();
+//		SwitchLight::step();
+//	}
+	
+//};
+
 ///Horizontal switch with Led
 struct moDllzSwitchLedH : SvgSwitch {
 	moDllzSwitchLedH() {

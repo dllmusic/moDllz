@@ -23,6 +23,25 @@
 				"Multiple",
 				"Polyphonic"
 			]
+		},
+		{
+			"slug": "PolyGlider",
+			"name": "PolyGlider",
+			"description": "Slew limiter ~ Portamento ~ Glide",
+			"tags": [
+				"Polyphonic",
+				"Slew limiter",
+				"Envelope Follower"
+			]
+		},
+		{
+			"slug": "Kn8b",
+			"name": "Kn8b",
+			"description": "8 Knob tweaker",
+			"tags": [
+				"Utility",
+				"Polyphonic"
+			]
 		}
 	]
 }

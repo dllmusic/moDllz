@@ -24,7 +24,7 @@ void init(Plugin *p) {
 	pluginInstance = p;
 	p->addModel(modelMIDIpolyMPE);
 	// p->addModel(modelMIDIdualCV);
-	// p->addModel(modelPolyGlider);
-	// p->addModel(modelKn8b);
+	p->addModel(modelPolyGlider);
+	p->addModel(modelKn8b);
 	// p->addModel(modelXBender);
 }

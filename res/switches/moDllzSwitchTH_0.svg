@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="24" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(9.69824e-07,8,-8,9.69824e-07,5,1)"><stop offset="0" style="stop-color:#fff;stop-opacity:1"/><stop offset="1" style="stop-color:#555;stop-opacity:1"/></linearGradient>
+    </defs>
+    <g id="moDllzSwitchT_H">
+        <path id="hole" d="M24,5C24,2.24 21.76,0 19,0L5,0C2.24,0 0,2.24 0,5C0,7.76 2.24,10 5,10L19,10C21.76,10 24,7.76 24,5Z" style="fill:#222;"/>
+        <path d="M24,5C24,2.24 21.76,0 19,0L5,0C2.24,0 0,2.24 0,5C0,7.76 2.24,10 5,10L19,10C21.76,10 24,7.76 24,5ZM23,5C23,7.208 21.208,9 19,9L5,9C2.792,9 1,7.208 1,5C1,2.792 2.792,1 5,1L19,1C21.208,1 23,2.792 23,5Z" style="fill:#444;"/>
+        <circle id="tip0" cx="5" cy="5" r="4" style="fill:url(#_Linear1);"/>
+    </g>
+    <defs>
+
+</svg>

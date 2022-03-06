@@ -22,7 +22,7 @@
 
 struct MIDIpolyMPE : Module {
 	
-	float TEST_FLOAT = 0.f;
+	//float TEST_FLOAT = 0.f;
 	
 	enum ParamIds {
 		MINUSONE_PARAM,
@@ -866,7 +866,6 @@ struct MIDIpolyMPE : Module {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////CONFIG DATA KNOB
 	void configDataKnob(float min, float max, float val){
-		TEST_FLOAT = val;
 		paramQuantities[DATAKNOB_PARAM]->minValue = min;
 		paramQuantities[DATAKNOB_PARAM]->maxValue = max;
 		paramQuantities[DATAKNOB_PARAM]->defaultValue = val; //doubleclick restore prev value
@@ -880,7 +879,6 @@ struct MIDIpolyMPE : Module {
 		paramQuantities[DATAKNOB_PARAM]->maxValue = 1000.f;
 		paramQuantities[DATAKNOB_PARAM]->defaultValue = 1000.f;
 		paramQuantities[DATAKNOB_PARAM]->reset();
-		TEST_FLOAT = 1000.f;
 	}
 	//// DATA PLUS MINUS
 	void dataPlusMinus(int val){
@@ -1378,6 +1376,31 @@ struct PolyModeDisplay : TransparentWidget {
 	}
 };
 
+struct dataKnob : DataEntryKnob {
+	dataKnob(){};
+	MIDIpolyMPE *module;
+	
+//	void onChange(const ChangeEvent& e) override{
+//		if (!module) return;
+//		DataEntryKnob::onChange(e);
+//		engine::ParamQuantity* pq = getParamQuantity();
+//		if (pq){
+////
+////			module->knobVal[ix] = pq->getSmoothValue();
+////			module->updateKnobVal(ix);
+//		}
+//	}
+	void onAction(const ActionEvent& e) override {
+		if ((!module) || (module->cursorIx < 1)) return;
+		module->onFocus = 1;
+	}
+};
+
+
+
+
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////// MODULE WIDGET ////////
 /////////////////////////////////////////////////
@@ -1398,10 +1421,6 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			dDisplay->box.size = {136.f, 40.f};
 			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);//, &module->cursorIx);
 			addChild(dDisplay);
-
-//			SelectedDisplay *editingVal = createWidget<SelectedDisplay>(Vec(xPos,yPos));
-//			editingVal->testval= &module->Z_ptr;
-//			addChild(editingVal);
 			//Midi w Menu
 			//			transparentMidiButton* midiButton = createWidget<transparentMidiButton>(Vec(xPos,yPos));
 			//			 midiButton->setMidiPort(&module->midiInput);
@@ -1521,7 +1540,20 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		yPos = 110.5f;
 		xPos = 57.f;
 		////DATA KNOB + -
-		addParam(createParam<DataEntryKnob>(Vec(xPos, yPos), module, MIDIpolyMPE::DATAKNOB_PARAM));
+		
+		dataKnob * knb = new dataKnob;
+		knb->box.pos = Vec(xPos, yPos);
+		knb->module = module;
+		knb->app::ParamWidget::module = module;
+		knb->app::ParamWidget::paramId = MIDIpolyMPE::DATAKNOB_PARAM;
+		knb->initParamQuantity();
+		addParam(knb);
+		
+		
+		
+		
+		
+		//addParam(createParam<DataEntryKnob>(Vec(xPos, yPos), module, MIDIpolyMPE::DATAKNOB_PARAM));
 		//+ - Buttons
 		yPos = 117.f;
 		xPos = 24.f;

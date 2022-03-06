@@ -96,9 +96,15 @@ void PlusMinusValLCD::drawLayer(const DrawArgs &args, int layer) {
 void ValueTestLCD::drawLayer(const DrawArgs &args, int layer) {
 	if (layer != 1) return;
 	font = APP->window->loadFont(mFONT_FILE);
+	std::string strout;
 	if (!(font && font->handle >= 0)) return;
-
-	std::string strout = std::to_string(*testval);
+	if (intVal != nullptr) {
+		strout = std::to_string(*intVal);
+	}else if (floatVal != nullptr) {
+		std::stringstream stream;
+		stream << std::fixed << std::setprecision(6) << *floatVal;
+		strout = stream.str();
+	}
 	nvgFontSize(args.vg, mdfontSize);
 	nvgFontFaceId(args.vg, font->handle);
 	nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -110,6 +116,12 @@ void ValueTestLCD::drawLayer(const DrawArgs &args, int layer) {
 	nvgTextBox(args.vg, 0.f, 12.f,box.size.x, strout.c_str(), NULL);
 }
 
+//	nvgBeginPath(args.vg);
+//	nvgRoundedRect(args.vg, 0.f, 0.f, box.size.x, box.size.y,3.f);
+//	nvgFillColor(args.vg, nvgRGB(0, 0, 0));
+//	nvgFill(args.vg);
+
+//}
 ///Selected Display
 //void SelectedDisplay::drawLayer(const DrawArgs &args, int layer) {
 //	if (layer != 1 || *cursorIx < 1) return;
@@ -193,5 +205,62 @@ void DataEntryOnLed::onButton(const event::Button &e) {
 //			std::string mchannel  = port ? port->getChannelName(port->getChannel()) : "Channel 1";
 //			nvgText(args.vg, xcenter, 37.5f, mchannel.c_str(), NULL);
 //		}
+//	}
+//}
+
+///Kn8b LCD
+//
+//void Kn8bLCD::drawLayer(const DrawArgs &args, int layer) {
+//	if (layer != 1) return;
+//	font = APP->window->loadFont(mFONT_FILE);
+//	if (!(font && font->handle >= 0)) return;
+//	
+//	std::string strout;
+//	strout= std::to_string(id + 1 + *chOffset);
+//	nvgFontFaceId(args.vg, font->handle);
+//	nvgFontSize(args.vg, mdfontSize - 2.f);
+//	nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
+//	nvgFillColor(args.vg, nvgRGB(0xee, 0xee, 0xee));
+//	nvgTextBox(args.vg, 0.f, 10.f,20.f, strout.c_str(), NULL);
+//	nvgFontSize(args.vg, mdfontSize);
+//	nvgTextAlign(args.vg, NVG_ALIGN_RIGHT);
+//	if (!*active){
+//		strout = "ch.off";
+//		nvgFillColor(args.vg, nvgRGB(0x44, 0x00, 0x00));
+//		nvgTextBox(args.vg, 0.f, 12.f,box.size.x, strout.c_str(), NULL);
+//		return;
+//	}
+//	std::stringstream stream;
+//	switch (*displaymode) {
+//		case 1: {//input -> Lcd
+//			stream << std::fixed << std::setprecision(3) << *outLcd;
+//			strout = stream.str() + "v";
+//			nvgFillColor(args.vg, nvgRGB(0x44, 0x99, 0xff));
+//			nvgTextBox(args.vg, 0.f, 12.f,box.size.x-10.f, strout.c_str(), NULL);
+//			stream.str(std::string());
+//			stream << std::fixed << std::setprecision(3) << *valLcd;
+//			strout = modetxt[*operation * 2 + static_cast<int>(*valLcd < 0.f)] + stream.str();
+//			nvgFillColor(args.vg, nvgRGB(0xff, 0xaa, 0x77));
+//			nvgTextBox(args.vg, 0.f, 25.f,box.size.x, strout.c_str(), NULL);
+//		} break;
+//		case 2: {///out
+//			stream << std::fixed << std::setprecision(3) << *outLcd;
+//			strout = stream.str() + "v";
+//			nvgFillColor(args.vg, nvgRGB(0xff, 0xff, 0x00));
+//			nvgTextBox(args.vg, 0.f, 18.5f,box.size.x, strout.c_str(), NULL);
+//		} break;
+//		case 3: {//thru knobs
+//			{
+//			stream << std::fixed << std::setprecision(3) << *valLcd;
+//			strout = modetxt[*operation * 2 + static_cast<int>(*valLcd < 0.f)] + stream.str();
+//			nvgFillColor(args.vg, nvgRGB(0xff, 0xaa, 0x77));
+//			nvgTextBox(args.vg, 0.f, 12.f,box.size.x- 10.f, strout.c_str(), NULL);
+//			stream.str(std::string());
+//			stream << std::fixed << std::setprecision(3) << *outLcd;
+//			strout = stream.str() + "v";
+//			nvgFillColor(args.vg, nvgRGB(0xff, 0xff, 0x00));
+//			nvgTextBox(args.vg, 0.f, 25.f,box.size.x, strout.c_str(), NULL);
+//			}
+//		} break;
 //	}
 //}
