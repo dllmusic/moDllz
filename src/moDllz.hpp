@@ -26,7 +26,7 @@
 
 //#define FONT_FILE asset::plugin(pluginInstance, "res/fonts/bold_led_board-7.ttf")
 #define mFONT_FILE asset::plugin(pluginInstance, "res/fonts/Gidolinya-Regular.ttf")
-//#define mFONT_FILE asset::system("res/fonts/ShareTechMono-Regular.ttf")
+
 using namespace rack;
 
 extern Plugin *pluginInstance;

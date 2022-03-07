@@ -294,8 +294,8 @@ struct PolyGliderWidget : ModuleWidget {
 		addParam(createParam<moDllzKnobM>(Vec(70.f, Ypos), module, PolyGlider::FALL_PARAM));
 		/// CV Knobs
 		Ypos = 94.f;
-		addParam(createParam<moDllzKnob22>(Vec(43.5f, Ypos), module, PolyGlider::RISECV_PARAM));
-		addParam(createParam<moDllzKnob22>(Vec(74.5f, Ypos), module, PolyGlider::FALLCV_PARAM));
+		addParam(createParam<moDllzKnob18CV>(Vec(43.5f, Ypos), module, PolyGlider::RISECV_PARAM));
+		addParam(createParam<moDllzKnob18CV>(Vec(74.5f, Ypos), module, PolyGlider::FALLCV_PARAM));
 		/// Glides CVs inputs
 		Ypos = 91.5f;
 		addInput(createInput<moDllzPolyI>(Vec(13.5f, Ypos),  module, PolyGlider::RISECV_INPUT));
@@ -323,7 +323,7 @@ struct PolyGliderWidget : ModuleWidget {
 		addInput(createInput<moDllzPortI>(Vec(20.f, Ypos),  module, PolyGlider::THRESHCV_INPUT));
 		addParam(createParam<moDllzKnob22>(Vec(58.5f, Ypos +.5f), module, PolyGlider::THRESH_PARAM));
 		addParam(createParam<moDllzSwitch>(Vec(101.f, Ypos +1.5f), module, PolyGlider::THRESHMODE_PARAM));
-		addChild(createLight<VoiceChRedLed>(Vec(105.f, Ypos + 10.f), module, PolyGlider::NOTHRESH_LIGHT));
+		addChild(createLight<VoiceChRedLed>(Vec(105.f+ 8.f, Ypos + 10.f), module, PolyGlider::NOTHRESH_LIGHT));
 		/// Wait
 		Ypos = 296.f;
 		addInput(createInput<moDllzPortI>(Vec(20.f, Ypos),  module, PolyGlider::WAITCV_INPUT));

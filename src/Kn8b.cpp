@@ -134,8 +134,8 @@ struct Kn8b :  Module {
 	}
 	
 	void process(const ProcessArgs &args) override {
-		if (ProcessFrame++ < PROCESS_RATE) return;
-		ProcessFrame = 0;
+//		if (ProcessFrame++ < PROCESS_RATE) return;
+//		ProcessFrame = 0;
 		int numCvIn = std::max(inputs[CV_INPUT].getChannels(), static_cast<int>(cvcnnctd));
 		for (int i = 0; i< numCvIn; i++){
 			cvVal[i] = inputs[CV_INPUT].getVoltage(i);
@@ -235,7 +235,7 @@ struct Kn8b :  Module {
 	}
 	
 	void updateCalcVal(int i){
-		float opin = operation[i] * incnnctd + (1.f - incnnctd);// 0+ or 1x if connected 0 disc
+		float opin = operation[i] * incnnctd;// + (1.f - incnnctd);// 0+ or 1x if connected 0 disc
 		float op = (1.f - opin) * 5.f + opin; //5 + or 1 x
 		float cv = (1.f - cvcnnctd) * trimVal * 5.f + cvcnnctd * cvVal[i] * trimVal;
 		calcVal[i] = op * (knobVal[i] + polarity[i]) + cv;
@@ -403,14 +403,15 @@ struct Kn8bLCD : TransparentWidget{
 	Kn8b *module = nullptr;
 	std::shared_ptr<Font> font;
 	int id = 0;
+	//int frameDisplay = 0;
 	std::string modetxt[4] = {"+","","x","x"};
 	float mdfontSize = 14.f;
 	
-	NVGcolor colorOut = nvgRGB(0xee, 0xff, 0xee);
-	NVGcolor colorIn = nvgRGB(0x77, 0xcc, 0xff);
+	NVGcolor colorOut = nvgRGB(0xee, 0xee, 0xee);
+	NVGcolor colorIn = nvgRGB(0x44, 0xdd, 0xff);
 	NVGcolor colorCv = nvgRGB(0xdd, 0xdd, 0x00);
-	NVGcolor colorNoConn = nvgRGB(0x88, 0x88, 0x00);
-
+	NVGcolor colorNoConn = nvgRGB(0x88, 0x88, 0x88);
+	NVGcolor opColor[2] = {nvgRGB(0xff, 0x99, 0x66), nvgRGB(0xff, 0x44, 0x44)};
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if ((!module) || (layer != 1)) return;
 		font = APP->window->loadFont(mFONT_FILE);
@@ -475,58 +476,71 @@ struct Kn8bLCD : TransparentWidget{
 		nvgFontSize(args.vg, mdfontSize);
 		nvgTextAlign(args.vg, NVG_ALIGN_RIGHT);
 		std::stringstream stream;
-		
+		float lineW = box.size.x-1.f;
+		float ypos = 19.f;
 		switch (module->active[ix]) {
 			case 1: {////////////// NOT CONNECTED
-				stream << std::fixed << std::setprecision(3) << module->cvVal[ix];
-				strout = stream.str() + "v";
-				nvgFontSize(args.vg, mdfontSize + 1.f);
-				nvgFillColor(args.vg, colorCv);
-				nvgTextBox(args.vg, 0.f, 12.f,box.size.x-1.f, strout.c_str(), NULL);
+				if (module->cvcnnctd > 0.f){
+					stream << std::fixed << std::setprecision(3) << module->cvVal[ix];
+					strout = stream.str() + "v";
+					nvgFontSize(args.vg, mdfontSize + 1.f);
+					nvgFillColor(args.vg, colorCv);
+					nvgTextBox(args.vg, 0.f, 12.f, lineW, strout.c_str(), NULL);
+					ypos = 26.f;
+				}
 				stream.str(std::string());
 				stream << std::fixed << std::setprecision(3) << module->outV[ix];
 				strout = stream.str() + "v";
 				nvgFontSize(args.vg, mdfontSize + 1.f);
 				nvgFillColor(args.vg, colorNoConn);
-				nvgTextBox(args.vg, 0.f, 26.f,box.size.x-1.f, strout.c_str(), NULL);
+				nvgTextBox(args.vg, 0.f, ypos, lineW, strout.c_str(), NULL);
 			} break;
 			case 2: {//input -> Lcd  /////IN V
 				stream << std::fixed << std::setprecision(3) << module->inV[ix];
 				strout = stream.str() + "v";
 				nvgFontSize(args.vg, mdfontSize + 1.f);
 				nvgFillColor(args.vg, colorIn);
-				nvgTextBox(args.vg, 0.f, 12.f,box.size.x-1.f, strout.c_str(), NULL);
+				nvgTextBox(args.vg, 0.f, 12.f, lineW, strout.c_str(), NULL);
 				stream.str(std::string());///// Knob
 				stream << std::fixed << std::setprecision(3) << module->calcVal[ix];
 				strout = modetxt[operation * 2 + static_cast<int>(module->calcVal[ix] < 0.f)] + stream.str();
 				nvgFontSize(args.vg, mdfontSize);
 				nvgFillColor(args.vg, nvgRGB(0xff, 0xaa * (1-operation), 0x77));
-				nvgTextBox(args.vg, 0.f, 26.f,box.size.x-1.f, strout.c_str(), NULL);
+				nvgTextBox(args.vg, 0.f, 26.f, lineW, strout.c_str(), NULL);
 			} break;
 			case 3: {//////////////OUT V
+				if (module->cvcnnctd > 0.f){
+					stream << std::fixed << std::setprecision(3) << module->cvVal[ix];
+					strout = stream.str() + "v";
+					nvgFontSize(args.vg, mdfontSize + 1.f);
+					nvgFillColor(args.vg, colorCv);
+					nvgTextBox(args.vg, 0.f, 12.f, lineW, strout.c_str(), NULL);
+					ypos = 26.f;
+				}
+				stream.str(std::string());
 				stream << std::fixed << std::setprecision(3) << module->outV[ix];
 				strout = stream.str() + "v";
 				nvgFontSize(args.vg, mdfontSize + 1.f);
 				nvgFillColor(args.vg, colorOut);
-				nvgTextBox(args.vg, 0.f, 19.f,box.size.x-1.f, strout.c_str(), NULL);
+				nvgTextBox(args.vg, 0.f, ypos, lineW, strout.c_str(), NULL);
 			} break;
 			case 4: {//thru knobs /////IN V
 				nvgFontSize(args.vg, mdfontSize - 2.f);
 				stream << std::fixed << std::setprecision(3) << module->inV[ix];
 				strout = stream.str() + "v";
 				nvgFillColor(args.vg, colorIn);
-				nvgTextBox(args.vg, 0.f, 9.f,box.size.x- 1.f, strout.c_str(), NULL);
+				nvgTextBox(args.vg, 0.f, 9.f, lineW, strout.c_str(), NULL);
 				stream.str(std::string());/////////////// Knob
 				stream << std::fixed << std::setprecision(3) << module->calcVal[ix];
 				strout = modetxt[operation * 2 + static_cast<int>(module->calcVal[ix]< 0.f)] + stream.str();
-				nvgFillColor(args.vg, nvgRGB(0xff, 0xaa * (1-operation), 0x77));
-				nvgTextBox(args.vg, 0.f, 18.5f,box.size.x- 1.f, strout.c_str(), NULL);
+				nvgFillColor(args.vg, opColor[operation]);
+				nvgTextBox(args.vg, 0.f, 18.5f, lineW, strout.c_str(), NULL);
 				stream.str(std::string());///////////OUT V
 				stream << std::fixed << std::setprecision(3) << module->outV[ix];
 				strout = stream.str() + "v";
 				nvgFontSize(args.vg, mdfontSize);
 				nvgFillColor(args.vg, colorOut);
-				nvgTextBox(args.vg, 0.f, 31.f,box.size.x- 1.f, strout.c_str(), NULL);
+				nvgTextBox(args.vg, 0.f, 31.f, lineW, strout.c_str(), NULL);
 			} break;
 		}
 	}
