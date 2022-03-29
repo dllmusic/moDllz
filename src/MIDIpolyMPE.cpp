@@ -395,8 +395,7 @@ struct MIDIpolyMPE : Module {
 		RP_ptr = &zero;
 	}
 	
-	void onRandomize(const RandomizeEvent& e) override {
-	}
+	void onRandomize(const RandomizeEvent& e) override {}
 	
 	void setFilters(){
 		float lambdaf = 500.f * APP->engine->getSampleTime();

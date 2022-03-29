@@ -181,7 +181,7 @@ struct DataEntryOnLed : TransparentWidget {
 struct ValueTestLCD : TransparentWidget{
 	ValueTestLCD() {}
 	std::shared_ptr<Font> font;
-	unsigned char *intVal = nullptr;
+	int *intVal = nullptr;
 	float *floatVal = nullptr;
 	float mdfontSize = 14.f;
 	void drawLayer(const DrawArgs &args, int layer) override;
@@ -294,11 +294,11 @@ struct TTrimSnap : moDllzTTrim{
 //		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_bg.svg")));
 //		shadow->opacity = 0.f;
 //	}
-//	void onDragEnd(const DragEndEvent &e) override {
+//	void onChange(const ChangeEvent &e) override {
 //		if (e.button != GLFW_MOUSE_BUTTON_LEFT)
 //			return;
 //		this->resetAction();
-//		SvgKnob::onDragEnd(e);
+//		SvgKnob::onChange(e);
 //	}
 //	void onEnter(const EnterEvent& e) override {
 //		//// no tooltip
@@ -425,6 +425,15 @@ struct VoiceChGreenLed : ModuleLightWidget {
 	VoiceChGreenLed() {
 		box.size = Vec(2.f,2.f);
 		addBaseColor(nvgRGB(0x00, 0xff, 0x00));//borderColor = nvgRGBA(0, 0, 0, 0x60);
+	}
+};
+
+struct RedLed3 : ModuleLightWidget {
+	RedLed3() {
+		box.size = Vec(3.f,3.f);
+		addBaseColor(nvgRGB(0xff, 0x00, 0x00));
+		this->borderColor = nvgRGBA(0, 0, 0, 0x60);
+		this->bgColor = nvgRGB(0x33, 0x33, 0x33);
 	}
 };
 
@@ -685,4 +694,12 @@ struct moDllzPolyO : SvgPort {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/ports/moDllzPolyO.svg")));
 		shadow->opacity = 0.f;
 	}
+};
+
+struct SvgBuffered : widget::Widget {
+	widget::FramebufferWidget* fb;
+	widget::SvgWidget* sw;
+
+	SvgBuffered();
+	void setSvg(std::shared_ptr<window::Svg> svg);
 };

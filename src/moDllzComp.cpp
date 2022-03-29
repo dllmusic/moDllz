@@ -264,3 +264,17 @@ void DataEntryOnLed::onButton(const event::Button &e) {
 //		} break;
 //	}
 //}
+SvgBuffered::SvgBuffered() {
+	fb = new widget::FramebufferWidget;
+	addChild(fb);
+
+	sw = new widget::SvgWidget;
+	fb->addChild(sw);
+}
+
+
+void SvgBuffered::setSvg(std::shared_ptr<window::Svg> svg) {
+	sw->setSvg(svg);
+	fb->box.size = sw->box.size;
+	box.size = sw->box.size;
+}
