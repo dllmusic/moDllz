@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="23" height="23" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-<defs>
-        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-0.0178074,-19.9644,19.9288,-0.0177757,11.5,21.4822)"><stop offset="0" style="stop-color:#ddd;stop-opacity:1"/><stop offset="1" style="stop-color:#666;stop-opacity:1"/></linearGradient>
+   <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(4.5581e-13,-9.49153,9.49153,4.5581e-13,11.5,11.4915)"><stop offset="0" style="stop-color:#999;stop-opacity:1"/><stop offset="1" style="stop-color:#555;stop-opacity:1"/></linearGradient>
+        <linearGradient id="_Linear2" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(6.15505,1.0853,-2.57173,14.585,4.47671,15.3387)"><stop offset="0" style="stop-color:#999;stop-opacity:1"/><stop offset="1" style="stop-color:#ccc;stop-opacity:1"/></linearGradient>
+        <linearGradient id="_Linear3" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-6.03704,1.61762,3.83311,14.3054,18.8311,14.712)"><stop offset="0" style="stop-color:#999;stop-opacity:1"/><stop offset="1" style="stop-color:#ccc;stop-opacity:1"/></linearGradient>
     </defs>
-    <g id="Port">
-        <circle id="back" cx="11.5" cy="11.5" r="11.5" style="fill:none;"/>
-        <ellipse id="ring" cx="11.5" cy="11.5" rx="10" ry="9.982" style="fill:url(#_Linear1);stroke:#333;stroke-width:0.5px;"/>
-        <circle id="hole" cx="11.5" cy="11.5" r="5.5" style="stroke:#444;stroke-width:1.5px;"/>
+    <g id="PortIn">
+        <rect id="bck23x23" x="0" y="0" width="23" height="23" style="fill:none;"/>
+        <g id="rim">
+            <circle id="ring" cx="11.5" cy="11.5" r="10" style="fill:#999;"/>
+            <path d="M21.5,11.492C21.495,5.972 17.02,1.5 11.5,1.5C5.98,1.5 1.505,5.972 1.5,11.492L21.5,11.492Z" style="fill:url(#_Linear1);"/>
+            <path d="M8.072,20.897C9.167,21.296 10.323,21.5 11.488,21.5C12.653,21.5 13.81,21.296 14.904,20.897L13.386,16.722C12.778,16.943 12.136,17.057 11.488,17.057C10.841,17.057 10.198,16.943 9.59,16.722L8.072,20.897Z" style="fill:#ccc;"/>
+            <path d="M3.99,18.1L5.345,10.415L11.5,11.5L9.764,21.348C7.436,20.938 5.438,19.751 3.99,18.1Z" style="fill:url(#_Linear2);"/>
+            <path d="M19.557,17.421L17.537,9.882L11.5,11.5L14.088,21.159C16.371,20.547 18.258,19.191 19.557,17.421Z" style="fill:url(#_Linear3);"/>
+            <path id="edge" d="M11.5,1.5C17.019,1.5 21.5,5.981 21.5,11.5C21.5,17.019 17.019,21.5 11.5,21.5C5.981,21.5 1.5,17.019 1.5,11.5C1.5,5.981 5.981,1.5 11.5,1.5ZM11.5,2C16.743,2 21,6.257 21,11.5C21,16.743 16.743,21 11.5,21C6.257,21 2,16.743 2,11.5C2,6.257 6.257,2 11.5,2Z" style="fill:#222;"/>
+        </g>
+        <circle id="hole" cx="11.5" cy="11.5" r="6.5"/>
+        <path d="M11.5,5C15.087,5 18,7.913 18,11.5C18,15.087 15.087,18 11.5,18C7.913,18 5,15.087 5,11.5C5,7.913 7.913,5 11.5,5ZM11.5,6.5C14.26,6.5 16.5,8.74 16.5,11.5C16.5,14.26 14.26,16.5 11.5,16.5C8.74,16.5 6.5,14.26 6.5,11.5C6.5,8.74 8.74,6.5 11.5,6.5Z" style="fill:#333;"/>
     </g>
 </svg>

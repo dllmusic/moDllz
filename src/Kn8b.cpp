@@ -28,6 +28,7 @@ struct Kn8b :  Module {
 		BIPOLAR_PARAM,
 		SUM_PARAM,
 		PROD_PARAM,
+		TRIMMODE_PARAM,
 		NUM_PARAMS
 	};
 	enum OutputIds {
@@ -37,9 +38,11 @@ struct Kn8b :  Module {
 	enum InputIds {
 		MAIN_INPUT,
 		CV_INPUT,
+		CVTRIM_INPUT,
 		NUM_INPUTS
 	};
 	enum LightIds {
+		TRIM_LIGHT,
 		NUM_LIGHTS
 	};
 	
@@ -58,9 +61,12 @@ struct Kn8b :  Module {
 	float trimVal = 0.f;
 	float incnnctd = 0.f;
 	float cvcnnctd = 0.f;
+	float cvtrimcnnctd = 0.f;
+	float trimop = 0.f;
 	bool incable = false;
 	bool outcable = false;
 	bool cvcable = false;
+	bool cvtrimcable = false;
 	int numInCh = 0;
 	int numOutCh = 8;
 	int prevNumCh = 8;
@@ -127,11 +133,12 @@ struct Kn8b :  Module {
 		configSwitch(BIPOLAR_PARAM, 0.f, 1.f, 0.f,"Set Knobs to Bipolar");
 		configSwitch(SUM_PARAM, 0.f, 1.f, 0.f,"Set to Input + Knobs");
 		configSwitch(PROD_PARAM, 0.f, 1.f, 0.f,"Set to Input x Knobs");
+		configSwitch(TRIMMODE_PARAM, 0.f, 1.f, 0.f,"Main Knob mode",{"Trim","Scale"});
 		configInput(MAIN_INPUT, "to Knobs");
 		configInput(CV_INPUT, "Knobs CV");
 		configOutput(MAIN_OUTPUT, "Knobs");
 		configBypass(MAIN_INPUT , MAIN_OUTPUT);
-		configParam(MAINKNOB_PARAM,-1.f, 1.f, 0.f,"Trim","x(-5/5|0/10)v");
+		configParam(MAINKNOB_PARAM,-1.f, 1.f, 0.f,"Main Knob","x(-5/5|0/10)v");
 		for (int i = 0 ; i < 8; i++){
 			configParam(KNOB_PARAM + i, -1.f, 1.f, 0.f,"Knob "+std::to_string(i + 1),"v",0.f,5.f);
 		}
@@ -174,19 +181,18 @@ struct Kn8b :  Module {
 	}
 	
 	void process(const ProcessArgs &args) override{
-		if (prevNumCh != numOutCh) {
-			lcdClearMode(numOutCh - 1);
-			prevNumCh = numOutCh;
-		}
 		if (vca) {
 			numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 			numOutCh = numInCh;
 			outputs[MAIN_OUTPUT].setChannels(numOutCh);
+			float cvtrim = inputs[CVTRIM_INPUT].getVoltage() * 0.1f;
+			float calcTrim = cvtrimcnnctd * (trimVal + 1.f) * trimop * cvtrim + cvtrimcnnctd * (trimVal + 1.f) + (1.f - trimop) * cvtrim + (1.f - cvtrimcnnctd) * (trimVal + 1.f);
+			lights[TRIM_LIGHT].setBrightness(std::abs(calcTrim));
 			for (int i = 0; i< numInCh; i++){
 				lcdmode[i] = 1;
 				cvVal[i] = inputs[CV_INPUT].getVoltage(i);
 				inV[i] = inputs[MAIN_INPUT].getVoltage(i);
-				calcVal[i] = cvVal[i] * .1f * (trimVal + 1.f) * (knobVal[i] + 1.f);
+				calcVal[i] = cvVal[i] * .1f * calcTrim * (knobVal[i] + 1.f);
 				outV[i] = inV[i] * calcVal[i];
 				outputs[MAIN_OUTPUT].setVoltage(math::clamp(outV[i], -5.f,5.f), i);
 				float vo = std::abs(outV[i]) * 12.f;
@@ -200,7 +206,7 @@ struct Kn8b :  Module {
 		ProcessFrame = 0;
 		if (outcable) {
 			outputs[MAIN_OUTPUT].setChannels(numOutCh);
-			if (cvcable) updateCalcValCv();
+			if (cvcable || cvtrimcable) updateCalcValCv();
 			if (incable) {
 				numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 				int io = 0;
@@ -231,7 +237,7 @@ struct Kn8b :  Module {
 			}
 		}else{/// no outputs. Display only
 			if (incable) {
-				if (cvcable) updateCalcValCv();
+				if (cvcable || cvtrimcable) updateCalcValCv();
 				numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 				for (int i = 0 ; i < std::min(numInCh,numOutCh) ; i++){
 					inV[i] = inputs[MAIN_INPUT].getVoltage(i);
@@ -244,39 +250,73 @@ struct Kn8b :  Module {
 				}
 			}
 		}
+		if (prevNumCh != numOutCh) {
+			lcdClearMode(numOutCh - 1);
+			prevNumCh = numOutCh;
+		}
 	}
 	
 	void onPortChange(const PortChangeEvent& e) override{
 		if (e.type == Port::INPUT) {
-			if (e.portId == MAIN_INPUT){
-				for (int i = 0; i < 8 ; i++){
-					knobsInfo(i);
-				}
-				incable = e.connecting;
-				if (e.connecting){
-					incnnctd = 1.f;
-				}else{
-					paramQuantities[VCA_PARAM]->setValue(0.f);
-					incnnctd = 0.f;
-					for (int i = 0; i< 16 ; i++){
-						inV[i] = 0.f;
+			switch (e.portId) {
+				case (MAIN_INPUT) :{
+					for (int i = 0; i < 8 ; i++){
+						knobsInfo(i);
 					}
-				}
-			}else{//CV input
-				cvcable = e.connecting;
-				if (e.connecting){
-					cvcnnctd =  1.f;
-					configMainKnob(1.f,0.f,"v+");
-				}else{
-					paramQuantities[VCA_PARAM]->setValue(0.f);
-					cvcnnctd =  0.f;
-					configMainKnob(5.f,0.f,"v+");
-				}
+					incable = e.connecting;
+					if (incable){
+						incnnctd = 1.f;
+					}else{
+						paramQuantities[VCA_PARAM]->setValue(0.f);
+						incnnctd = 0.f;
+						for (int i = 0; i< 16 ; i++){
+							inV[i] = 0.f;
+						}
+					}
+				}break;
+				case (CV_INPUT) :{
+					cvcable = e.connecting;
+					if (cvcable){
+						cvcnnctd =  1.f;
+						//configMainKnob(1.f,0.f,"v+");
+					}else{
+						paramQuantities[VCA_PARAM]->setValue(0.f);
+						cvcnnctd =  0.f;
+						//configMainKnob(5.f,0.f,"v+");
+					}
+				}break;
+				case (CVTRIM_INPUT) :{
+					cvtrimcable = e.connecting;
+					cvtrimcnnctd = (cvtrimcable)? 1.f : 0.f;
+				}break;
 			}
 		}else{
 			outcable = e.connecting;
 		}
 		Module::onPortChange(e);
+	}
+	
+	void updateCalcValCv(){
+		float cvtrim = inputs[CVTRIM_INPUT].getVoltage() * 0.1f;
+		float calcTrim = cvtrimcnnctd * trimVal * cvtrim + (1.f - cvtrimcnnctd) * trimVal;
+		int numCvIn = std::max(inputs[CV_INPUT].getChannels(), 1);
+		for (int i = 0; i< numOutCh; i++){
+			cvVal[i] = inputs[CV_INPUT].getVoltage(i % numCvIn);
+			float calcvalknob = calcKnob[i] + cvVal[i] * .1f;
+			calcVal[i] = trimop * calcvalknob * calcTrim + (1.f - trimop) * (calcvalknob + calcTrim * 5.f);
+		}
+		lights[TRIM_LIGHT].setBrightness(std::abs(calcTrim));
+	}
+	
+	void updateKnobVal(int i){
+		float opin = operation[i] * incnnctd;// + (1.f - incnnctd);// 0+ or 1x if connected 0 disc
+		float op = (1.f - opin) * 5.f + opin; //5 + or 1 x
+		calcKnob[i] = op * (knobVal[i] + polarity[i]);
+		calcVal[i] = trimop * calcKnob[i] * trimVal + (1.f - trimop) * (calcKnob[i] + trimVal * 5.f);;
+	}
+	
+	float inThruOp(int i){
+		return  (1.f - operation[i]) * (inV[i] + calcVal[i]) + operation[i] * inV[i] * calcVal[i];
 	}
 	
 	void knobsPage(){
@@ -318,55 +358,49 @@ struct Kn8b :  Module {
 		}
 	}
 	
-	void updateCalcValCv(){
-		int numCvIn = std::max(inputs[CV_INPUT].getChannels(), 1);
-		for (int i = 0; i< numCvIn; i++){
-			cvVal[i] = inputs[CV_INPUT].getVoltage(i);
-			calcVal[i] = calcKnob[i] + cvVal[i] * .1f * trimVal;
-		}
-	}
-	
-	void updateKnobVal(int i){
-		float opin = operation[i] * incnnctd;// + (1.f - incnnctd);// 0+ or 1x if connected 0 disc
-		float op = (1.f - opin) * 5.f + opin; //5 + or 1 x
-		calcKnob[i] = op * (knobVal[i] + polarity[i]);
-		calcVal[i] = calcKnob[i] + (1.f - cvcnnctd) * trimVal * 5.f;
-	}
-	
-	float inThruOp(int i){
-		// op == 0 sum (calcVal[i] + inV[i])
-		// op == 1 prod (calcVal[i] * inV[i])
-		return  (1.f - operation[i]) * (inV[i] + calcVal[i]) + operation[i] * inV[i] * calcVal[i];
-	}
 	void vcaMode(bool onoff){
 		vca = onoff;
 		if (vca){
-			numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
+			//numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 			numOutCh = numInCh;
-			for (int i = numOutCh - 1 ; i < 16; i++){
+			for (int i = numOutCh; i < 16; i++){
 				lcdmode[i] = 0;
 			}
-			for (int i = 0; i< std::max(numOutCh,8) ; i++){
+			for (int i = 0; i< std::min(numOutCh,8) ; i++){
 				int pid = KNOB_PARAM + i;
 				paramQuantities[pid]->displayMultiplier = 1.f;
 				paramQuantities[pid]->displayOffset = 1.f;
 				paramQuantities[pid]->unit= "x CV";
 				paramQuantities[pid]->setSmoothValue(0.f);
 			}
-			configMainKnob(1.f,1.f,"x CV");
+			configMainKnob(2);//vca
 			paramQuantities[MAINKNOB_PARAM]->setSmoothValue(0.f);
 		}else{
 			for (int i = 0; i< 8; i++){
 				knobsInfo(i);
 			}
-			if (cvcable) configMainKnob(1.f,0.f,"x CV");
-			else configMainKnob(5.f,0.f,"v+");
+			configMainKnob(trimop);
 		}
 	}
-	void configMainKnob(float dm, float df, std::string ut){
-		paramQuantities[MAINKNOB_PARAM]->displayMultiplier = dm;
-		paramQuantities[MAINKNOB_PARAM]->displayOffset = df;
-		paramQuantities[MAINKNOB_PARAM]->unit= ut;
+	void configMainKnob(int mode){
+		switch (mode){
+			case 0 : {
+				paramQuantities[MAINKNOB_PARAM]->displayMultiplier = 5.f;
+				paramQuantities[MAINKNOB_PARAM]->displayOffset = 0.f;
+				paramQuantities[MAINKNOB_PARAM]->unit= "v+";
+			}break;
+			case 1 : {
+				paramQuantities[MAINKNOB_PARAM]->displayMultiplier = 1.f;
+				paramQuantities[MAINKNOB_PARAM]->displayOffset = 0.f;
+				paramQuantities[MAINKNOB_PARAM]->unit= "x";
+			}break;
+			case 2 : {//vca
+				paramQuantities[MAINKNOB_PARAM]->displayMultiplier = 1.f;
+				paramQuantities[MAINKNOB_PARAM]->displayOffset = 1.f;
+				paramQuantities[MAINKNOB_PARAM]->unit= "vca";
+			}break;
+				
+		}
 	}
 };
 
@@ -431,12 +465,12 @@ struct btn_vca : SvgSwitch {
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if ((!module) || (!module->vca) || (layer != 1)) return;
 		nvgFillColor(args.vg, nvgRGBA(0xff, 0x00, 0x00, 0x16));
-		for (int i = 0 ; i<8 ;i++){
+		for (int i = 0 ; i<6 ;i++){
 			float fi = static_cast<float>(i);
-			float xfi = 4.5f - fi;
-			float yfi = 3.f - fi;
-			float xbi = 9.f + fi*2.f;
-			float ybi = 6.f + fi*2.f;
+			float xfi = 1.7f - fi;
+			float yfi = 2.2f - fi;
+			float xbi = 12.7f + fi * 2.f;
+			float ybi = 7.6f + fi * 2.f;
 			nvgBeginPath(args.vg);
 			nvgRoundedRect(args.vg, xfi, yfi, xbi, ybi ,2.f + fi * 0.5f) ;
 			nvgFill(args.vg);
@@ -444,9 +478,9 @@ struct btn_vca : SvgSwitch {
 		font = APP->window->loadFont(dFONT_FILE);
 		if (!(font && font->handle >= 0)) return;
 		nvgFontFaceId(args.vg, font->handle);
-		nvgFontSize(args.vg, 11.f);
-		nvgFillColor(args.vg, nvgRGBA(0xff, 0xff, 0xff, 0xaa));
-		nvgText(args.vg,2.35f,10.f,"VCA",NULL);
+		nvgFontSize(args.vg, 10.f);
+		nvgFillColor(args.vg, nvgRGBA(0xff, 0, 0, 0x66));
+		nvgText(args.vg,1.75f,9.75f,"VCA",NULL);
 	}
 	void onChange(const ChangeEvent& e) override {
 		if (!module) return;
@@ -455,7 +489,7 @@ struct btn_vca : SvgSwitch {
 			return;
 		}
 		engine::ParamQuantity* pq = getParamQuantity();
-		if (pq) module->vcaMode(static_cast<bool>(pq->getValue()));
+		if (pq) module->vcaMode(pq->getValue()>0);
 		SvgSwitch::onChange(e);
 	}
 };
@@ -511,6 +545,24 @@ struct btn_prod : SvgSwitch {
 		SvgSwitch::onDragEnd(e);
 	}
 };
+//trim mode
+struct Trim_mode : moDllzSwitch {
+	Kn8b *module = nullptr;
+
+	void onChange(const ChangeEvent& e) override {
+		if (!module) return;
+		engine::ParamQuantity* pq = getParamQuantity();
+		if (pq) {
+			module->trimop = pq->getValue();
+			for (int i = 0; i< module->numOutCh; i++){
+				module->updateKnobVal(i);
+			}
+			if(!module->vca) module->configMainKnob(module->trimop);
+		}
+		moDllzSwitch::onChange(e);
+	}
+};
+
 ////LCD
 struct Kn8bLCD : TransparentWidget{
 	Kn8bLCD() {}
@@ -537,7 +589,7 @@ struct Kn8bLCD : TransparentWidget{
 		int ix = id + module->chOffset;
 		std::string strout;
 		strout= std::to_string(id + 1 + module->chOffset);
-		nvgScissor(args.vg, 0.f, 0.f, 60.f, 33.f);
+		nvgScissor(args.vg, 0.f, 0.f, 74.f, 33.f);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgFontSize(args.vg, mdfontSize - 2.f);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -559,7 +611,7 @@ struct Kn8bLCD : TransparentWidget{
 			nvgFill(args.vg);
 			nvgBeginPath(args.vg);
 			nvgFillColor(args.vg, colorVcaS);
-			float ov = std::abs(module->outV[ix]) * 12.f;//5v max * 12 = 60 pix
+			float ov = std::abs(module->outV[ix]) * 14.f;//5v max * 14 = 70 pix
 			if(ov > qvVal) {
 				qvVal = ov;
 				minusVal = 0.01f;
@@ -648,7 +700,7 @@ struct Kn8bLCD : TransparentWidget{
 	}
 	void text2screen(NVGcontext *ctx, NVGcolor tcol, float liney, std::string sto){
 		nvgFillColor(ctx, tcol);
-		nvgTextBox(ctx, 0.f, liney, box.size.x-1.f, sto.c_str(), NULL);
+		nvgTextBox(ctx, 0.f, liney, box.size.x-2.f, sto.c_str(), NULL);
 	}
 	std::string fstring(float v){
 		std::stringstream stream;
@@ -688,15 +740,11 @@ struct Kn8bWidget : ModuleWidget {
 	Kn8bWidget(Kn8b *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Kn8b.svg")));
-		if (!module){
-			app::SvgScrew *prepanel = new app::SvgScrew;
-			prepanel->setSvg(Svg::load(asset::plugin(pluginInstance, "res/modules/Kn8b_pre.svg")));
-			addChild(prepanel);
-			for (int i = 0 ; i < 8; i++){
-				
-			}
-			return;
-		}
+//		if (!module){
+//			app::SvgScrew *prepanel = new app::SvgScrew;
+//			prepanel->setSvg(Svg::load(asset::plugin(pluginInstance, "res/modules/Kn8b_pre.svg")));
+//			addChild(prepanel);
+//		}
 		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 0)));
 		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
@@ -705,13 +753,13 @@ struct Kn8bWidget : ModuleWidget {
 		
 		for (int i = 0 ; i < 8; i++){
 			Kn8bLCD *MccLCD = createWidget<Kn8bLCD>(Vec(40.f,yPos));
-			MccLCD->box.size = {60.f, 33.f};
+			MccLCD->box.size = {74.f, 33.f};
 			MccLCD->module = module;
 			MccLCD->id = i;
 			addChild(MccLCD);
 			
 			Knob26x * knb = new Knob26x;
-			knb->box.pos = Vec(7.f, yPos + 3.5f);
+			knb->box.pos = Vec(8.f, yPos + 3.5f);
 			knb->module = module;
 			knb->id = i;
 			knb->app::ParamWidget::module = module;
@@ -720,8 +768,33 @@ struct Kn8bWidget : ModuleWidget {
 			addParam(knb);
 			yPos += 35.f;
 		}
-		yPos = 300.f;
-		float xPos = 41.f;
+		
+		yPos = 301.5;
+		addInput(createInput<moDllzPolyI>(Vec(9.5f, yPos),  module, Kn8b::CV_INPUT));
+		addInput(createInput<moDllzPortI>(Vec(36.f, yPos),  module, Kn8b::CVTRIM_INPUT));
+		
+		{
+			Knob26G* knb = new Knob26G;
+			knb->box.pos = Vec(66.5f, yPos + 1.5f);
+			knb->module = module;
+			knb->app::ParamWidget::module = module;
+			knb->app::ParamWidget::paramId = Kn8b::MAINKNOB_PARAM;
+			knb->initParamQuantity();
+			knb->addChild(createLight<RedLed2>(Vec(-4.f, 13.f), module, Kn8b::TRIM_LIGHT));
+			addParam(knb);
+		}
+		
+		{///Trim mode
+			Trim_mode *sw = createWidget<Trim_mode>(Vec(105.f, yPos + 2.5f));
+			sw->module = module;
+			sw->app::ParamWidget::module = module;
+			sw->app::ParamWidget::paramId = Kn8b::TRIMMODE_PARAM;
+			sw->initParamQuantity();
+			addParam(sw);
+		}
+		
+		yPos = 334.f;
+		float xPos = 34.f;
 		{
 			btn_unipolar *bt = createWidget<btn_unipolar>(Vec(xPos,yPos));
 			bt->module = module;
@@ -739,7 +812,7 @@ struct Kn8bWidget : ModuleWidget {
 			addParam(bt);
 		}
 		{
-			btn_sum *bt = createWidget<btn_sum>(Vec(xPos + 20.f,yPos));
+			btn_sum *bt = createWidget<btn_sum>(Vec(xPos + 18.f,yPos));
 			bt->module = module;
 			bt->app::ParamWidget::module = module;
 			bt->app::ParamWidget::paramId = Kn8b::SUM_PARAM;
@@ -747,7 +820,7 @@ struct Kn8bWidget : ModuleWidget {
 			addParam(bt);
 		}
 		{
-			btn_prod *bt = createWidget<btn_prod>(Vec(xPos + 20.f,yPos + 14.f));
+			btn_prod *bt = createWidget<btn_prod>(Vec(xPos + 18.f,yPos + 14.f));
 			bt->module = module;
 			bt->app::ParamWidget::module = module;
 			bt->app::ParamWidget::paramId = Kn8b::PROD_PARAM;
@@ -755,7 +828,7 @@ struct Kn8bWidget : ModuleWidget {
 			addParam(bt);
 		}
 		{
-			btn_page *bt = createWidget<btn_page>(Vec(xPos + 40.f,yPos));
+			btn_page *bt = createWidget<btn_page>(Vec(xPos + 36.f,yPos));
 			bt->module = module;
 			bt->app::ParamWidget::module = module;
 			bt->app::ParamWidget::paramId = Kn8b::PAGE_PARAM;
@@ -763,28 +836,18 @@ struct Kn8bWidget : ModuleWidget {
 			addParam(bt);
 		}
 		{
-			btn_vca *bt = createWidget<btn_vca>(Vec(xPos + 40.f,yPos + 14.f));
+			btn_vca *bt = createWidget<btn_vca>(Vec(xPos + 36.f,yPos + 14.f));
 			bt->module = module;
 			bt->app::ParamWidget::module = module;
 			bt->app::ParamWidget::paramId = Kn8b::VCA_PARAM;
 			bt->initParamQuantity();
 			addParam(bt);
 		}
-		yPos = 299.f;
-		addInput(createInput<moDllzPolyI>(Vec(8.5f, yPos),  module, Kn8b::CV_INPUT));
 		
 		yPos = 331.5f;
-		{
-			Knob26G* knb = new Knob26G;
-			knb->box.pos = Vec(39.5f, yPos + 3.f);
-			knb->module = module;
-			knb->app::ParamWidget::module = module;
-			knb->app::ParamWidget::paramId = Kn8b::MAINKNOB_PARAM;
-			knb->initParamQuantity();
-			addParam(knb);
-		}
-		addInput(createInput<moDllzPolyI>(Vec(8.5f, yPos),  module, Kn8b::MAIN_INPUT));
-		addOutput(createOutput<moDllzPolyO>(Vec(73.5f, yPos),  module, Kn8b::MAIN_OUTPUT));
+
+		addInput(createInput<moDllzPolyI>(Vec(6.f, yPos),  module, Kn8b::MAIN_INPUT));
+		addOutput(createOutput<moDllzPolyO>(Vec(91.f, yPos),  module, Kn8b::MAIN_OUTPUT));
 		//			{
 		//				ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
 		//				MccLCD->box.size = {60.f, 15.f};

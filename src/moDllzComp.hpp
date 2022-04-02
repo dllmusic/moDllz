@@ -437,6 +437,28 @@ struct RedLed3 : ModuleLightWidget {
 	}
 };
 
+struct RedLed2 : ModuleLightWidget {
+	RedLed2() {
+		box.size = Vec(2.f,2.f);
+		addBaseColor(nvgRGB(0xff, 0x00, 0x00));
+		this->borderColor = nvgRGBA(0, 0, 0, 0x60);
+		this->bgColor = nvgRGB(0x33, 0x33, 0x33);
+	}
+};
+
+/////Round Push
+struct roundPush15 : SvgSwitch {
+	roundPush15() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/buttons/roundPush.svg")));
+		//addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMoButton_1.svg")));
+		shadow->opacity = 0.f;
+		//led = new RedLed3;
+	}
+	//RedLed3 led;
+};
+
+
 //struct moDllzSwitchWithLed : moDllzSwitchLed {
 //	app::ModuleLightWidget* light;
 //	moDllzSwitchWithLed() {
