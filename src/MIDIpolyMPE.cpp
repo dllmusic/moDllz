@@ -19,11 +19,7 @@
 
 //#include "moDllz.hpp"
 #include "moDllzComp.hpp"
-
 struct MIDIpolyMPE : Module {
-	
-	//float TEST_FLOAT = 0.f;
-	
 	enum ParamIds {
 		MINUSONE_PARAM,
 		PLUSONE_PARAM,
@@ -54,7 +50,6 @@ struct MIDIpolyMPE : Module {
 	};
 	//////MIDI
 	midi::InputQueue midiInput;
-	
 	int MPEmasterCh = 0;// 0 ~ 15
 	unsigned char midiActivity = 0;
 	bool resetMidi = false;
@@ -94,14 +89,6 @@ struct MIDIpolyMPE : Module {
 		ENUMS(PM_midiCCs,8),
 		NumParaMapEnum
 	};
-	
-	//	struct dataParam {
-	//		int map = 0;
-	//		float mix = 0.f;
-	//		float max = 0.f;
-	//		float val = 0.f;
-	//	};
-	
 	float dataMin[ParaMapEnum::NumParaMapEnum];
 	float dataMax[ParaMapEnum::NumParaMapEnum];
 	int dataMap [ParaMapEnum::NumParaMapEnum];
@@ -140,9 +127,7 @@ struct MIDIpolyMPE : Module {
 	bool RPcanedit = false;
 	int ProcessFrame = 0;
 	int onFocus = 0;
-	bool updateDataKnob = false;
 	///pointers for displayed names index
-
 	int NOTEAFT = 129;
 	int Detune130 = 130;
 	int Yroli = 131;
@@ -154,10 +139,6 @@ struct MIDIpolyMPE : Module {
 	int *Z_ptr = &NOTEAFT;
 	int *Y_ptr = &Yhaken;
 	int *RP_ptr = &zero;
-
-	int dataKnobQuant = 0;
-	float dataKnobVal = 0.f;
-	
 	int PROCESS_RATE = static_cast<int>(APP->engine->getSampleRate() * 0.0005); //.5ms
 	const int Focus_SEC =  10 * 2000;///^^^ sec * 2000 (process rate .5 ms)
 	const int dataSetup_SEC = 500; //250ms to set dataKnob when selecting param without triggering change
@@ -358,7 +339,7 @@ struct MIDIpolyMPE : Module {
 					outputInfos[Y_OUTPUT]->name = "MPE Y 14bit";
 					outputInfos[Z_OUTPUT]->name = "MPE Z 14bit";
 				}break;
-
+					
 			}
 			outputInfos[RVEL_OUTPUT]->name = "Channel PitchBend";
 			nVoChMPE = 16;
@@ -662,7 +643,7 @@ struct MIDIpolyMPE : Module {
 					if (hold[channel]) {
 						gates[channel] = false;
 					}
-					//					/// check for cachednotes on MPE buffers...
+					/// check for cached notes on MPE buffers...
 					else {
 						if (!cachedMPE[channel].empty()) {
 							notes[channel] = cachedMPE[channel].back();
@@ -710,7 +691,7 @@ struct MIDIpolyMPE : Module {
 						break;
 					}
 				}
-				//rvels[i] = vel;
+				//rvels[i] = vel;...///better don't re-stack vel
 			} break;
 			case UNISON_MODE: {
 				if (vel > 128) vel = 64;
@@ -819,19 +800,6 @@ struct MIDIpolyMPE : Module {
 				}
 				hold[i] = false;
 			}
-			//			/////// revise
-			//			if (dataMap[PM_polyModeId] == RESTACK_MODE) {
-			//				for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-			//					if (i < (int) cachedNotes.size()) {
-			//						notes[i] = cachedNotes[i];
-			//						gates[i] = true;
-			//					}
-			//					else {
-			//						gates[i] = false;
-			//					}
-			//				hold[i] = false;
-			//				}
-			//			}
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -869,7 +837,6 @@ struct MIDIpolyMPE : Module {
 					uint8_t channel = msg.getChannel();
 					if (channel == MPEmasterCh){
 						PM_midiCCsValues[128] = msg.getNote();
-						//chAfTch = msg.getNote();
 					}else if (dataMap[PM_polyModeId] > 0){
 						mpez[channel] =  msg.getNote() * 128 + mpePlusLB[channel];
 						mpePlusLB[channel] = 0;
@@ -880,19 +847,13 @@ struct MIDIpolyMPE : Module {
 							mpey[channel] = msg.getNote() * 128;
 					}
 				}else{
-					//chAfTch = msg.getNote();
 					PM_midiCCsValues[128] = msg.getNote();
 				}
 				midiActivity = msg.getNote();
 			} break;
 				// pitch Bend
 			case 0xe:{
-				//				if (learnId > 0) {// learn pitch bend ???
-				//					dataMap[learnId] = 128;
-				//					onFocus = 1;
-				//					return;
-				//				}////////////////////////////////////////
-				//				else
+				/// (learnId > 0)  / / learn pitch bend ...
 				if (dataMap[PM_polyModeId] < ROTATE_MODE){
 					uint8_t channel = msg.getChannel();
 					if (channel == MPEmasterCh){
@@ -949,72 +910,55 @@ struct MIDIpolyMPE : Module {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////CONFIG DATA KNOB
 	void configDataKnob(){
-		paramQuantities[DATAKNOB_PARAM]->minValue = 0.f;
-		paramQuantities[DATAKNOB_PARAM]->maxValue = 1.f;
-		float valset= (static_cast<float>(dataMap[cursorIx]) -  dataMin[cursorIx])/ (dataMax[cursorIx] - dataMin[cursorIx]);
-		dataKnobQuant = dataMap[cursorIx];
-		dataKnobVal = valset;
-		onFocus = Focus_SEC + dataSetup_SEC;
-		paramQuantities[DATAKNOB_PARAM]->setSmoothValue(valset);
+		onFocus = Focus_SEC + dataSetup_SEC;//(250ms >focus_SEC) : doesn't trigger data update
+		paramQuantities[DATAKNOB_PARAM]->minValue = dataMin[cursorIx] - 0.5f;
+		paramQuantities[DATAKNOB_PARAM]->maxValue = dataMax[cursorIx] + 0.5f;
+		paramQuantities[DATAKNOB_PARAM]->setSmoothValue(static_cast<float>(dataMap[cursorIx]));
 	}
-	
 	void disableDataKnob(){
-		paramQuantities[DATAKNOB_PARAM]->minValue = 1000.f;//1000 so it's different to any value
+		paramQuantities[DATAKNOB_PARAM]->minValue = 1000.f;//1000 different to any value
 		paramQuantities[DATAKNOB_PARAM]->maxValue = 1000.f;
 		paramQuantities[DATAKNOB_PARAM]->defaultValue = 1000.f;
 		paramQuantities[DATAKNOB_PARAM]->reset();
 	}
-	
+	///SET NEW VALUE
 	void setNewValue(float newval){
-		float range = dataMax[cursorIx] - dataMin[cursorIx] + 0.99f;
-		int updatedval = static_cast<int>(range * newval + dataMin[cursorIx] + 512.f) - 512;//+ 512.f to trim down negatives
-		if (updatedval != dataMap[cursorIx]) {
-			updateValue(updatedval);
-			dataKnobQuant = updatedval;
-			dataKnobVal = newval;
+		int updatedval = static_cast<int>(newval);
+		if (updatedval != dataMap[cursorIx]){
+			dataMap[cursorIx] = newval;
+			switch (cursorIx){
+				case PM_noteMin:
+					dataMin[PM_noteMax] = static_cast<float>(newval);
+					break;
+				case PM_noteMax:
+					dataMax[PM_noteMin] = static_cast<float>(newval);
+					break;
+				case PM_velMin:
+					dataMin[PM_velMax] = static_cast<float>(newval);
+					break;
+				case PM_velMax:
+					dataMax[PM_velMin] = static_cast<float>(newval);
+					break;
+				case PM_polyModeId:
+				case PM_numVoCh:
+					resetVoices();
+					break;
+			}
+			onFocus = Focus_SEC;
 		}
 	}
-
-	void updateValue(int newval){
-		dataMap[cursorIx] = newval;
-		switch (cursorIx){
-			case PM_noteMin:
-				dataMin[PM_noteMax] = static_cast<float>(newval);
-			break;
-			case PM_noteMax:
-				dataMax[PM_noteMin] = static_cast<float>(newval);
-			break;
-			case PM_velMin:
-				dataMin[PM_velMax] = static_cast<float>(newval);
-			break;
-			case PM_velMax:
-				dataMax[PM_velMin] = static_cast<float>(newval);
-			break;
-			case PM_polyModeId:
-			case PM_numVoCh:
-			
-			resetVoices();
-			break;
-		}
-		onFocus = Focus_SEC;
-	}
-	
 	//// DATA PLUS MINUS
 	void dataPlusMinus(int val){
 		if ((val > 0) && ((dataMap[cursorIx] + val) > (static_cast<int>(dataMax[cursorIx])))) return;
 		if ((val < 0) && ((dataMap[cursorIx] + val) < (static_cast<int>(dataMin[cursorIx])))) return;
-		onFocus = Focus_SEC;
-		float range = dataMax[cursorIx] - dataMin[cursorIx];//; + 0.99f;
-		float updatedval = (dataMap[cursorIx] + static_cast<float>(val) - dataMin[cursorIx]) / range;
+		float updatedval = static_cast<float>(dataMap[cursorIx] + val);
 		paramQuantities[DATAKNOB_PARAM]->setSmoothValue(updatedval);
 	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////   P  R  O  C  E  S  S   /////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////   P  R  O  C  E  S  S   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void process(const ProcessArgs &args) override {
 		if (ProcessFrame++ < PROCESS_RATE) return;
 		ProcessFrame = 0;
@@ -1092,17 +1036,15 @@ struct MIDIpolyMPE : Module {
 				return;
 			}
 		}
-
+		
 	}
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	////////   PROCESS END  ///////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////   PROCESS END  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 };
 //// Main Display ///////////////////////////////////////////////////////////////////////////////////////
 struct PolyModeDisplay : TransparentWidget {
-	PolyModeDisplay(){
-		//font = APP->window->loadFont(mFONT_FILE);
-	}
+//	PolyModeDisplay(){}
 	MIDIpolyMPE *module;
 	float mdfontSize = 13.f;
 	std::string sMode;
@@ -1133,7 +1075,6 @@ struct PolyModeDisplay : TransparentWidget {
 	int timedFocus = 0;
 	const unsigned char hiInk = 0xff;
 	const unsigned char base = 0xdd;
-	
 	const unsigned char alphabck = 0x64;
 	unsigned char redSel = 0x7f;
 	NVGcolor baseG = nvgRGB(0xdd, 0xdd, 0xdd);
@@ -1258,7 +1199,7 @@ struct PolyModeDisplay : TransparentWidget {
 };
 
 struct LCDbutton : OpaqueWidget {
-	LCDbutton(){}
+	//LCDbutton(){}
 	MIDIpolyMPE *module = nullptr;
 	int buttonId = 0;
 	int *buttonIdMap = &buttonId;
@@ -1268,7 +1209,6 @@ struct LCDbutton : OpaqueWidget {
 	unsigned char tcol = 0xdd; //base color x x x
 	unsigned char redSel = 0xcc; // sel red.
 	int flashFocus = 0;
-	
 	float mdfontSize = 13.f;
 	std::shared_ptr<Font> font;
 	std::string sDisplay = "";
@@ -1324,7 +1264,7 @@ struct MIDIccLCDbutton : LCDbutton{
 		sNames[132].assign("Press");
 		sNames[133].assign("cc74+");
 		sNames[134].assign("chAT+");
-
+		
 	}
 	std::string sNames[135];
 	void drawLayer(const DrawArgs &args, int layer) override{
@@ -1334,7 +1274,6 @@ struct MIDIccLCDbutton : LCDbutton{
 	}
 };
 struct MPEYdetuneLCDbutton : MIDIccLCDbutton{
-	MPEYdetuneLCDbutton() {}
 	int buttonId2 = 0;
 	void drawLayer(const DrawArgs &args, int layer) override{
 		if (layer != 1) return;
@@ -1357,7 +1296,6 @@ struct MPEYdetuneLCDbutton : MIDIccLCDbutton{
 };
 
 struct MPEzLCDbutton : MIDIccLCDbutton{
-	MPEzLCDbutton() {}
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if (layer != 1) return;
 		sDisplay = sNames[*module->Z_ptr];
@@ -1366,7 +1304,6 @@ struct MPEzLCDbutton : MIDIccLCDbutton{
 };
 
 struct RelVelLCDbutton : LCDbutton{
-	RelVelLCDbutton() {}
 	std::string pNames[2] = {"RelVel","chPB"};
 	std::string roliNames[2] = {"Lift","chGlide"};
 	void drawLayer(const DrawArgs &args, int layer) override {
@@ -1377,7 +1314,6 @@ struct RelVelLCDbutton : LCDbutton{
 };
 
 struct PlusMinusLCDbutton : LCDbutton{
-	PlusMinusLCDbutton() {}
 	void drawLayer(const DrawArgs &args, int layer) override{
 		if (layer != 1) return;
 		std::stringstream ss;
@@ -1400,28 +1336,17 @@ struct dataKnob : RoundKnob {
 	MIDIpolyMPE *module;
 	void onEnter(const EnterEvent& e) override {}//// no tooltip
 	void onLeave(const LeaveEvent& e) override {}//// no tooltip destroy
-//	void onDragStart(const DragStartEvent& e) override{
-//		if (module->cursorIx < 1) return;
-//		RoundKnob::onDragStart(e);
-//	};
+	void onButton(const ButtonEvent& e) override {
+		
+		if (e.action == GLFW_PRESS && e.button == GLFW_MOUSE_BUTTON_RIGHT && module->cursorIx < 1) return;
+		RoundKnob::onButton(e);
+	}
 	void onChange(const ChangeEvent& e) override{
 		if (!module) return;
 		RoundKnob::onChange(e);
 		if ((module->cursorIx < 1) || (module->onFocus > module->Focus_SEC)) return;
-			engine::ParamQuantity* pq = getParamQuantity();
-			if (pq){
-				module->setNewValue(pq->getSmoothValue());
-//				float newval = pq->getSmoothValue();
-//				float step =  0.5f + module->dataMax[module->cursorIx] - module->dataMin[module->cursorIx];
-//				int updatedval = static_cast<int>(step * newval + module->dataMin[module->cursorIx]);
-//				if (updatedval != module->dataKnobQuant){
-//					module->dataKnobQuant = updatedval;
-//					module->updateValue(updatedval);
-//					module->dataKnobVal = newval;
-//					module->onFocus = module->Focus_SEC;
-//				}
-				
-			}
+		engine::ParamQuantity* pq = getParamQuantity();
+		if (pq)module->setNewValue(pq->getSmoothValue());
 	}
 	//// "press" the knob to close edit ...or recall last edit
 	void onAction(const ActionEvent& e) override {
@@ -1457,16 +1382,7 @@ struct DataEntryOnLed : TransparentWidget {
 			nvgStroke(args.vg);
 		}
 	}
-	void onButton(const event::Button &e) override{
-		//*cursorIx = 0;
-		e.stopPropagating();
-		return;
-	}
 };
-
-
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////// MODULE WIDGET ////////
 /////////////////////////////////////////////////
@@ -1474,7 +1390,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 	MIDIpolyMPEWidget(MIDIpolyMPE *module) {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance,"res/modules/MIDIpolyMPE.svg")));
-		//		//Screws
+		//Screws
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 0.f)));
 		addChild(createWidget<ScrewBlack>(Vec(135.f, 0.f)));
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
@@ -1485,13 +1401,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			//MIDI
 			MIDIscreen *dDisplay = createWidget<MIDIscreen>(Vec(xPos,yPos));
 			dDisplay->box.size = {136.f, 40.f};
-			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);//, &module->cursorIx);
+			dDisplay->setMidiPort (&module->midiInput, &module->MPEmode, &module->MPEmasterCh, &module->midiActivity, &module->mdriverJx, &module->mdeviceJx, &module->mchannelJx, &module->resetMidi);
 			addChild(dDisplay);
-			//Midi w Menu
-			//			transparentMidiButton* midiButton = createWidget<transparentMidiButton>(Vec(xPos,yPos));
-			//			 midiButton->setMidiPort(&module->midiInput);
-			//			 addChild(midiButton);
-			
+			//Midi button w Menu
+			//transparentMidiButton* midiButton = createWidget<transparentMidiButton>(Vec(xPos,yPos));
+					//midiButton->setMidiPort(&module->midiInput);
+					//addChild(midiButton);
 			//PolyModes LCD
 			xPos = 7.f;
 			yPos = 61.f;
@@ -1633,16 +1548,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-				if (module){ //////TEST VALUE TOP
-					ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-					MccLCD->box.size = {70.f, 15.f};
-					MccLCD->intVal = &module->dataKnobQuant;
-					addChild(MccLCD);
-					ValueTestLCD *MccLCD2 = createWidget<ValueTestLCD>(Vec(72.f,0.f));
-					MccLCD2->box.size = {70.f, 15.f};
-					MccLCD2->floatVal = &module->dataKnobVal;
-					addChild(MccLCD2);
-				}
+		//		if (module){ //////TEST VALUE TOP
+		//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
+		//			MccLCD->box.size = {70.f, 15.f};
+		//			MccLCD->intVal = &module->dataKnobQuant;
+		//			addChild(MccLCD);
+		//		}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");
