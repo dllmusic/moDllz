@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="15" height="15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+	    <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(9.18485e-16,15,-15,9.18485e-16,7.5,2.84217e-14)"><stop offset="0" style="stop-color:#000;stop-opacity:1"/><stop offset="1" style="stop-color:#444;stop-opacity:1"/></linearGradient>
+        <linearGradient id="_Linear2" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(9.08048e-16,-14.8295,14.8295,9.08048e-16,7.5,15)"><stop offset="0" style="stop-color:#000;stop-opacity:1"/><stop offset="1" style="stop-color:#444;stop-opacity:1"/></linearGradient>
+    </defs>
+    <g id="RoundPush">
+        <g id="RoundPush1" serif:id="RoundPush">
+            <circle cx="7.5" cy="7.5" r="7.5" style="fill:url(#_Linear1);"/>
+            <path d="M7.5,0C11.639,0 15,3.361 15,7.5C15,11.639 11.639,15 7.5,15C3.361,15 0,11.639 0,7.5C0,3.361 3.361,0 7.5,0ZM7.5,2C10.536,2 13,4.464 13,7.5C13,10.536 10.536,13 7.5,13C4.464,13 2,10.536 2,7.5C2,4.464 4.464,2 7.5,2Z" style="fill:url(#_Linear2);"/>
+        </g>
+    </g>
+
+</svg>

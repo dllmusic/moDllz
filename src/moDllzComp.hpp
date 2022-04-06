@@ -26,107 +26,106 @@ using namespace rack;
 
 ///////////////////// MIDIpolyMPE ///////////////////////////////////////////
 
-struct paramLCD : OpaqueWidget {
-	paramLCD(){}
-	int intptr = 0;
-	bool boolptr = true;
-	int buttonId = 0;
-	int *cursorIx = &intptr;
-	int *param_val = &intptr;
-	int *onFocus = &intptr;
-	int *learnId = &intptr;
-	bool *updateKnob = &boolptr;
-	bool *canedit = &boolptr;
-	bool canlearn = false;
-
-	unsigned char tcol = 0xdd; //base color x x x
-	unsigned char redSel = 0xcc; // sel red.
-	int flashFocus = 0;
-
-	float mdfontSize = 13.f;
-	std::shared_ptr<Font> font;
-	std::string sDisplay = "";
-
-	void drawLayer(const DrawArgs &args, int layer) override;
-	void onButton(const event::Button &e) override;
-};
-
-//// MIDIcc ParamLCD Button
-struct MIDIccLCD : paramLCD{
-	MIDIccLCD() {
-		for (int i = 0 ; i < 128; i++){
-			sNames[i].assign("cc" + std::to_string(i));
-		}
-		sNames[1].assign("Mod");
-		sNames[2].assign("BrC");
-		sNames[7].assign("Vol");
-		sNames[10].assign("Pan");
-		sNames[11].assign("Expr");
-		sNames[64].assign("Sust");
-		sNames[128].assign("chAT");
-		sNames[129].assign("nteAT");
-		sNames[131].assign("cc74+");
-		sNames[132].assign("chAT+");
-	}
-	std::string sNames[133];
-	void drawLayer(const DrawArgs &args, int layer) override;
-};
-////MIDIccs ParamLCD
-struct PTR_paramLCD : MIDIccLCD{
-	PTR_paramLCD(){}
-	int **ptr_param_val = &param_val;
-	void drawLayer(const DrawArgs &args, int layer) override;
-};
-/// mpeY / Detune  ParamLCD Button
-struct MPEYdetuneLCD : MIDIccLCD{
-	MPEYdetuneLCD() {}
-	int **ptr_param_val = &param_val;
-	int *detune_val = &intptr;
-	void drawLayer(const DrawArgs &args, int layer) override;
-};
-//// MPE RelVel / PBend ParamLCD Button
-struct RelVelLCD : paramLCD{
-	RelVelLCD() {}
-	int **ptr_param_val = &param_val;
-	std::string pNames[2] = {"RelVel","chPB"};
-	void drawLayer(const DrawArgs &args, int layer) override;
-};
-/// + - value  ParamLCD Button
-struct PlusMinusValLCD : paramLCD{
-	PlusMinusValLCD() {}
-	void drawLayer(const DrawArgs &args, int layer) override;
-};
+//struct paramLCD : OpaqueWidget {
+//	paramLCD(){}
+//	int intptr = 0;
+//	bool boolptr = true;
+//	int buttonId = 0;
+//	int *buttonIdMap = &buttonId;
+//	int *cursorIx = &intptr;
+//	int *param_val = &intptr;
+//	int *onFocus = &intptr;
+//	int *learnId = &intptr;
+//	bool *updateKnob = &boolptr;
+//	bool *canedit = &boolptr;
+//	bool canlearn = false;
+//	unsigned char tcol = 0xdd; //base color x x x
+//	unsigned char redSel = 0xcc; // sel red.
+//	int flashFocus = 0;
+//
+//	float mdfontSize = 13.f;
+//	std::shared_ptr<Font> font;
+//	std::string sDisplay = "";
+//
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//	void onButton(const event::Button &e) override;
+//};
+//
+////// MIDIcc ParamLCD Button
+//struct MIDIccLCD : paramLCD{
+//	MIDIccLCD() {
+//		for (int i = 0 ; i < 128; i++){
+//			sNames[i].assign("cc" + std::to_string(i));
+//		}
+//		sNames[1].assign("Mod");
+//		sNames[2].assign("BrC");
+//		sNames[7].assign("Vol");
+//		sNames[10].assign("Pan");
+//		sNames[11].assign("Expr");
+//		sNames[64].assign("Sust");
+//		sNames[128].assign("chAT");
+//		sNames[129].assign("nteAT");
+//		sNames[131].assign("cc74+");
+//		sNames[132].assign("chAT+");
+//	}
+//	std::string sNames[133];
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//};
+//////MIDIccs ParamLCD
+//struct PTR_paramLCD : MIDIccLCD{
+//	PTR_paramLCD(){}
+//	int **ptr_param_val = &param_val;
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//};
+///// mpeY / Detune  ParamLCD Button
+//struct MPEYdetuneLCD : MIDIccLCD{
+//	MPEYdetuneLCD() {}
+//	int buttonId2 = 0;
+//	int polyModePoly = 0;
+//	int *polyModeId_val = &intptr;
+//	int **ptr_param_val = &param_val;
+//	int *detune_val = &intptr;
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//	void onButton(const event::Button &e) override;
+//};
+////// MPE RelVel / PBend ParamLCD Button
+//struct RelVelLCD : paramLCD{
+//	RelVelLCD() {}
+//	int **ptr_param_val = &param_val;
+//	std::string pNames[2] = {"RelVel","chPB"};
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//};
+///// + - value  ParamLCD Button
+//struct PlusMinusValLCD : paramLCD{
+//	PlusMinusValLCD() {}
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//};
 ///Data KNOB
-struct DataEntryKnob : RoundKnob {
-	DataEntryKnob() {
-		minAngle = -0.75*M_PI;
-		maxAngle = 0.75*M_PI;
-		snap = true;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_fg.svg")));
-		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_bg.svg")));
-		shadow->opacity = 0.f;
-	}
-	void onEnter(const EnterEvent& e) override {
-		//// no tooltip
-	};
-	void onLeave(const LeaveEvent& e) override {
-		//// no tooltip destroy
-	}
-	//void onButton(const event::Button &e) override;
-};
+//struct DataEntryKnob : RoundKnob {
+//	DataEntryKnob() {
+////		minAngle = -0.75*M_PI;
+////		maxAngle = 0.75*M_PI;
+////		snap = true;
+////		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_fg.svg")));
+////		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_bg.svg")));
+////		shadow->opacity = 0.f;
+//	}
+//	void onEnter(const EnterEvent& e) override {}//// no tooltip
+//	void onLeave(const LeaveEvent& e) override {}//// no tooltip destroy
+//	//void onButton(const event::Button &e) override;
+//};
 ///Data Knob LED
-struct DataEntryOnLed : TransparentWidget {
-	DataEntryOnLed(){
-		box.size.x = 107.f;
-		box.size.y = 42.f;
-	}
-	int dummyInit = 0;
-	int *cursorIx = &dummyInit;
-
-	void drawLayer(const DrawArgs &args, int layer) override;
-	void onButton(const event::Button &e) override;
-};
-
+//struct DataEntryOnLed : TransparentWidget {
+//	DataEntryOnLed(){
+//		box.size.x = 107.f;
+//		box.size.y = 42.f;
+//	}
+//	int dummyInit = 0;
+//	int *cursorIx = &dummyInit;
+//
+//	void drawLayer(const DrawArgs &args, int layer) override;
+//	void onButton(const event::Button &e) override;
+//};
 
 ///Knob8 LCD
 //struct Kn8bLCD : TransparentWidget{
