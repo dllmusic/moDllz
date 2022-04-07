@@ -601,23 +601,30 @@ struct Kn8bLCD : TransparentWidget{
 		if (module->vca){
 			nvgBeginPath(args.vg);
 			nvgFillColor(args.vg, colorVca);
-			nvgTextBox(args.vg, 0.f, 10.f, 12.f, strout.c_str(), NULL);
+			nvgTextAlign(args.vg, NVG_ALIGN_LEFT);
+			nvgTextBox(args.vg, 1.f, 10.f, 12.f, strout.c_str(), NULL);
 			float knbval = module->knobVal[ix] + module->trimVal;
 			nvgTextAlign(args.vg, NVG_ALIGN_RIGHT);
-			text2screen(args.vg, opColor[1], 11.f, fstring(knbval));
-			text2screen(args.vg, colorVca, 22.f, fstring(module->calcVal[ix]));
-			float xval = module->calcVal[ix] * 60.f;
-			nvgRect(args.vg, 0.f, 24.f , xval, 6.f);
+			nvgFillColor(args.vg, opColor[1]);
+			nvgTextBox(args.vg, 10.f, 12.f, 30.f, fstring(knbval).c_str(), NULL);
+			nvgFillColor(args.vg, colorVca);
+			nvgTextBox(args.vg, 42.f, 12.f, 30.f, fstring(module->calcVal[ix]).c_str(), NULL);
+			float xval = module->calcVal[ix] * 72.f;
+			//nvgFillColor(args.vg, colorVcaS);
+			nvgRect(args.vg, 1.f, 18.f , xval, 2.f);
 			nvgFill(args.vg);
-			nvgBeginPath(args.vg);
-			nvgFillColor(args.vg, colorVcaS);
-			float ov = std::abs(module->outV[ix]) * 14.f;//5v max * 14 = 70 pix
+			float ov = std::abs(module->outV[ix]) * 14.4f;//5v max = 72 pix
 			if(ov > qvVal) {
 				qvVal = ov;
 				minusVal = 0.01f;
 			}
-			nvgRect(args.vg, 0.f, 30.f, qvVal, 2.f);
-			nvgFill(args.vg);
+			int steps = static_cast<int>(0.5f + qvVal / 4.f);
+			for (int i = 0; i< steps; i++){
+				nvgBeginPath(args.vg);
+				nvgFillColor(args.vg, nvgRGB( 14 * i, 255 - 14 * i, 0));
+				nvgRect(args.vg, 1.f + i * 4.f, 23.f, 3.5f, 6.f);
+				nvgFill(args.vg);
+			}
 			if (qvVal > 0.f){
 				qvVal -= minusVal;
 				minusVal *= 2.f;
@@ -752,7 +759,7 @@ struct Kn8bWidget : ModuleWidget {
 		float yPos = 18.5f;
 		
 		for (int i = 0 ; i < 8; i++){
-			Kn8bLCD *MccLCD = createWidget<Kn8bLCD>(Vec(40.f,yPos));
+			Kn8bLCD *MccLCD = createWidget<Kn8bLCD>(Vec(41.f,yPos));
 			MccLCD->box.size = {74.f, 33.f};
 			MccLCD->module = module;
 			MccLCD->id = i;
