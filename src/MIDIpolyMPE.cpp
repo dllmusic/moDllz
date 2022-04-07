@@ -19,7 +19,10 @@
 
 //#include "moDllz.hpp"
 #include "moDllzComp.hpp"
+
 struct MIDIpolyMPE : Module {
+//	int testInt;
+//	float testFloat;
 	enum ParamIds {
 		MINUSONE_PARAM,
 		PLUSONE_PARAM,
@@ -65,7 +68,8 @@ struct MIDIpolyMPE : Module {
 		ROTATE_MODE,
 		REUSE_MODE,
 		RESET_MODE,
-		RESTACK_MODE,
+		REASSIGN_MODE,
+		SHARE_MODE,
 		DUAL_MODE,
 		UNISON_MODE,
 		UNISONLWR_MODE,
@@ -99,7 +103,7 @@ struct MIDIpolyMPE : Module {
 		uint8_t aftertouch = 0;
 	};
 	NoteData noteData[128];
-	std::vector<uint8_t> cachedNotes;// Stolen notes (UNISON_MODE and RESTACK_MODE cache all played)
+	std::vector<uint8_t> cachedNotes;// Stolen notes (UNISON_MODE and REASSIGN_MODE cache all played)
 	std::vector<uint8_t> cachedMPE[16];// MPE stolen notes
 	uint8_t notes[16] = {0};
 	uint8_t vels[16] = {0};
@@ -352,6 +356,7 @@ struct MIDIpolyMPE : Module {
 			}
 			nVoChMPE = 1;
 		}else {
+			if (dataMap[PM_polyModeId]==DUAL_MODE) dataMap[PM_numVoCh] = ((dataMap[PM_numVoCh] + 1) /2) * 2;
 			MPEmode = false;
 			Y_ptr = &Detune130;
 			Z_ptr = &NOTEAFT;//129 : note_aftertouch
@@ -549,82 +554,36 @@ struct MIDIpolyMPE : Module {
 				if (!reuse) rotateIndex = getPolyIndex(rotateIndex);
 			} break;
 			case RESET_MODE:
-			case RESTACK_MODE: {
+			case REASSIGN_MODE: {
 				rotateIndex = getPolyIndex(-1);
 			} break;
-//			case DUAL_MODE: {
-//				rotateIndex = getPolyIndex(rotateIndex);
-//
-//			}return;/////  R E T U R N !!!!!!!
-			case DUAL_MODE: {
-				uint8_t noteupper = 0;
-				uint8_t notelower = 120;
+			case SHARE_MODE: {
 				cachedNotes.push_back(note);
-				for (uint8_t & el : cachedNotes) {
-					if (el > noteupper) noteupper = el;
-					if (el < notelower) notelower = el;
-				}
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
-				//for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-				if (!gates[0] || notes[0]!= notelower){
-					notes[0] = notelower;
-					vels[0] = vel;
-					gates[0] = true;
-					hold[0] = pedal;
-					drift[0] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-					if (retrignow) reTrigger[0].trigger(1e-3);
-				}
-				if (!gates[1] || notes[1]!= noteupper){
-					notes[1] = noteupper;
-					vels[1] = vel;
-					gates[1] = true;
-					hold[1] = pedal;
-					drift[1] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-					if (retrignow) reTrigger[1].trigger(1e-3);
-				}
-				return;/////  R E T U R N !!!!!!!
-			}break;
+				mapShare(retrignow, true, vel);
+			} goto midiActivity;//break;
+			case DUAL_MODE: {
+				cachedNotes.push_back(note);
+				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
+				mapDual(retrignow, true, vel);
+			} goto midiActivity;//break;
 			case UNISON_MODE: {
 				cachedNotes.push_back(note);
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
-				for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-					notes[i] = note;
-					vels[i] = vel;
-					gates[i] = true;
-					hold[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-					if (retrignow) reTrigger[i].trigger(1e-3);
-				}
-				return;/////  R E T U R N !!!!!!!
-			}break;
+				mapUnison(retrignow, note, vel);
+			} goto midiActivity;//break;
 			case UNISONLWR_MODE: {
 				cachedNotes.push_back(note);
 				uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
 				bool retrignow = ((params[RETRIG_PARAM].getValue() > 0.f) && (lnote < notes[0]));
-				for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-					notes[i] = lnote;
-					vels[i] = vel;
-					gates[i] = true;
-					hold[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-					if (retrignow) reTrigger[i].trigger(1e-3);
-				}
-				return;/////  R E T U R N !!!!!!!
-			} break;
+				mapUnison(retrignow, lnote, vel);
+			} goto midiActivity;//break;
 			case UNISONUPR_MODE:{
 				cachedNotes.push_back(note);
 				uint8_t unote = *max_element(cachedNotes.begin(),cachedNotes.end());
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f) && (unote > notes[0]);
-				for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-					notes[i] = unote;
-					vels[i] = vel;
-					gates[i] = true;
-					hold[i] = pedal;
-					drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-					if (retrignow) reTrigger[i].trigger(1e-3);
-				}
-				return;/////  R E T U R N !!!!!!!
-			} break;
+				mapUnison(retrignow, unote, vel);
+			} goto midiActivity;//break;
 			default: break;
 		}
 		notes[rotateIndex] = note;
@@ -634,6 +593,7 @@ struct MIDIpolyMPE : Module {
 		if (params[RETRIG_PARAM].getValue() > 0.f) reTrigger[rotateIndex].trigger(1e-3);
 		hold[rotateIndex] = pedal;
 		drift[rotateIndex] = static_cast<float>((rand() % 1000 - 500) * dataMap[PM_detune]) / 1200000.f;
+	midiActivity:
 		midiActivity = vel;
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -685,7 +645,7 @@ struct MIDIpolyMPE : Module {
 					rvels[channel] = vel;
 				}
 			} break;
-			case RESTACK_MODE: {
+			case REASSIGN_MODE: {
 				for( int i = 0 ; i < dataMap[PM_numVoCh] ; i++){
 					if (notes[i] == note) {
 						if (hold[i]){/// don't restack if pedal hold
@@ -718,107 +678,108 @@ struct MIDIpolyMPE : Module {
 					}
 				}//rvels[i] = vel;...///better don't re-stack vel
 			} break;
+			case SHARE_MODE:{
+				if (vel > 128) vel = 64;
+				if (!cachedNotes.empty()) {
+					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f);
+					mapShare(retrignow, false, vel);
+				}else emptyVoices(vel);
+			}break;
 			case DUAL_MODE: {
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
-					uint8_t noteupper = 0;
-					uint8_t notelower = 120;
-					
-					for (uint8_t & el : cachedNotes) {
-						if (el > noteupper) noteupper = el;
-						if (el < notelower) notelower = el;
-					}
-					//bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
-					bool retrignow = false;
-					//for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-					if (notes[0]!= notelower){
-						retrignow = (params[RETRIG_PARAM].getValue() > 1.f);
-						notes[0] = notelower;
-						vels[0] = vel;
-						gates[0] = true;
-						hold[0] = pedal;
-						drift[0] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-						if (retrignow) reTrigger[0].trigger(1e-3);
-					}
-					retrignow = false;
-					if (notes[1]!= noteupper){
-						retrignow = (params[RETRIG_PARAM].getValue() > 1.f);
-						notes[1] = noteupper;
-						vels[1] = vel;
-						gates[1] = true;
-						hold[1] = pedal;
-						drift[1] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
-						if (retrignow) reTrigger[1].trigger(1e-3);
-					}
-				}else {
-					//for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						gates[0] = false;
-						rvels[0] = vel;
-					gates[1] = false;
-					rvels[1] = vel;
-					//}
-				}
+					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f);
+					mapDual(retrignow, false, vel);
+				}else emptyVoices(vel);
 			}break;
 			case UNISON_MODE: {
 				if (!cachedNotes.empty()) {
 					uint8_t backnote = cachedNotes.back();
 					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f) && (backnote != notes[0]);
-					for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						notes[i] = backnote;
-						gates[i] = true;
-						rvels[i] = vel;
-						if (retrignow) reTrigger[i].trigger(1e-3);
-					}
-				}else {
-					for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						gates[i] = false;
-						rvels[i] = vel;
-					}
-				}
+					mapUnison(retrignow, backnote, vel);
+				}else emptyVoices(vel);
 			} break;
 			case UNISONLWR_MODE: {
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
-					//Retrigger recovered notes ?
 					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f) && (lnote != notes[0]);
-					for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						notes[i] = lnote;
-						gates[i] = true;
-						rvels[i] = vel;
-						if (retrignow) reTrigger[i].trigger(1e-3);
-					}
-				}
-				else {
-					for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						gates[i] = false;
-						rvels[i] = vel;
-					}
-				}
+					mapUnison(retrignow, lnote, vel);
+				}else emptyVoices(vel);
 			} break;
 			case UNISONUPR_MODE: {
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					uint8_t unote = *max_element(cachedNotes.begin(),cachedNotes.end());
-					//Retrigger recovered notes ?
 					bool retrignow = (params[RETRIG_PARAM].getValue() == 2.f) && (unote != notes[0]);
-					for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						notes[i] = unote;
-						gates[i] = true;
-						rvels[i] = vel;
-						if (retrignow) reTrigger[i].trigger(1e-3);
-					}
-				}
-				else {
-					for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-						gates[i] = false;
-						rvels[i] = vel;
-					}
-				}
+					mapUnison(retrignow, unote, vel);
+				}else emptyVoices(vel);
 			} break;
 		}
 		midiActivity = vel;
 	}
+	////
+	void mapDual(bool retrig, bool keyon, uint8_t vel){
+		uint8_t noteupper = 0;
+		uint8_t notelower = 120;
+		for (uint8_t & el : cachedNotes) {
+			if (el > noteupper) noteupper = el;
+			if (el < notelower) notelower = el;
+		}
+		for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
+			if (notes[i]!= notelower || (keyon && !gates[i])){
+				notes[i] = notelower;
+				vels[i] = vel;
+				gates[i] = true;
+				hold[i] = pedal;
+				drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
+				if (retrig) reTrigger[i].trigger(1e-3);
+			}
+			i++;
+			if (notes[i]!= noteupper || (keyon && !gates[i])){
+				notes[i] = noteupper;
+				vels[i] = vel;
+				gates[i] = true;
+				hold[i] = pedal;
+				drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
+				if (retrig) reTrigger[i].trigger(1e-3);
+			}
+		}
+	}
+	
+	void mapShare(bool retrig, bool keyon, uint8_t vel){
+		uint8_t notecached = 0;
+		int cachesize = cachedNotes.size();
+		for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
+			notecached = cachedNotes[i % cachesize];
+			if (notes[i]!= notecached || (keyon && !gates[i])){
+				notes[i] = notecached;
+				vels[i] = vel;
+				gates[i] = true;
+				hold[i] = pedal;
+				drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
+				if (retrig) reTrigger[i].trigger(1e-3);
+			}
+		}
+	}
+	void mapUnison(bool retrig, uint8_t noteu, uint8_t vel){
+		for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
+			notes[i] = noteu;
+			vels[i] = vel;
+			gates[i] = true;
+			hold[i] = pedal;
+			drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
+			if (retrig) reTrigger[i].trigger(1e-3);
+		}
+	}
+	
+	void emptyVoices(uint8_t rvel){
+		for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
+			gates[i] = false;
+			rvels[i] = rvel;
+		}
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////////
 	void pressPedal() {
 		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) {
@@ -856,7 +817,7 @@ struct MIDIpolyMPE : Module {
 		}else{
 			for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
 				if (hold[i] && !cachedNotes.empty()) {
-					if  (dataMap[PM_polyModeId] < RESTACK_MODE){
+					if  (dataMap[PM_polyModeId] < REASSIGN_MODE){
 						notes[i] = cachedNotes.back();
 						cachedNotes.pop_back();
 						bool retrignow = gates[i] && (params[RETRIG_PARAM].getValue() == 2.f);
@@ -969,8 +930,8 @@ struct MIDIpolyMPE : Module {
 	/////CONFIG DATA KNOB
 	void configDataKnob(){
 		onFocus = Focus_SEC + dataSetup_SEC;//(250ms >focus_SEC) : doesn't trigger data update
-		paramQuantities[DATAKNOB_PARAM]->minValue = dataMin[cursorIx] - 0.5f;
-		paramQuantities[DATAKNOB_PARAM]->maxValue = dataMax[cursorIx] + 0.5f;
+		paramQuantities[DATAKNOB_PARAM]->minValue = dataMin[cursorIx];// - knobborder;
+		paramQuantities[DATAKNOB_PARAM]->maxValue = dataMax[cursorIx] + 0.9f;
 		paramQuantities[DATAKNOB_PARAM]->setSmoothValue(static_cast<float>(dataMap[cursorIx]));
 	}
 	void disableDataKnob(){
@@ -983,19 +944,19 @@ struct MIDIpolyMPE : Module {
 	void setNewValue(float newval){
 		int updatedval = static_cast<int>(newval);
 		if (updatedval != dataMap[cursorIx]){
-			dataMap[cursorIx] = newval;
+			dataMap[cursorIx] = updatedval;
 			switch (cursorIx){
 				case PM_noteMin:
-					dataMin[PM_noteMax] = static_cast<float>(newval);
+					dataMin[PM_noteMax] = static_cast<float>(updatedval);
 					break;
 				case PM_noteMax:
-					dataMax[PM_noteMin] = static_cast<float>(newval);
+					dataMax[PM_noteMin] = static_cast<float>(updatedval);
 					break;
 				case PM_velMin:
-					dataMin[PM_velMax] = static_cast<float>(newval);
+					dataMin[PM_velMax] = static_cast<float>(updatedval);
 					break;
 				case PM_velMax:
-					dataMax[PM_velMin] = static_cast<float>(newval);
+					dataMax[PM_velMin] = static_cast<float>(updatedval);
 					break;
 				case PM_polyModeId:
 				case PM_numVoCh:
@@ -1007,6 +968,7 @@ struct MIDIpolyMPE : Module {
 			}
 			onFocus = Focus_SEC;
 		}
+		//testInt = updatedval;
 	}
 	//// DATA PLUS MINUS
 	void dataPlusMinus(int val){
@@ -1118,7 +1080,7 @@ struct PolyModeDisplay : TransparentWidget {
 	std::string yyDisplay;
 	std::string zzDisplay;
 	std::shared_ptr<Font> font;
-	std::string polyModeStr[12] = {
+	std::string polyModeStr[13] = {
 		"M. P. E.",
 		"M.P.E. ROLI",
 		"M.P.E. Haken Continuum",
@@ -1126,11 +1088,12 @@ struct PolyModeDisplay : TransparentWidget {
 		"R O T A T E",
 		"R E U S E",
 		"R E S E T",
-		"R E S T A C K",
-		"lo << D U A L >> hi",
+		"R E A S S I G N",
+		"S H A R E",
+		"(lower) D U A L (upper)",
 		"U N I S O N",
-		"U N I S O N Lower",
-		"U N I S O N Upper",
+		"(lower) U N I S O N",
+		"U N I S O N (upper)",
 	};
 	std::string noteName[12] = {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
 	int drawFrame = 0;
@@ -1607,12 +1570,16 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-		//		if (module){ //////TEST VALUE TOP
-		//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-		//			MccLCD->box.size = {70.f, 15.f};
-		//			MccLCD->intVal = &module->dataKnobQuant;
-		//			addChild(MccLCD);
-		//		}
+//				if (module){ //////TEST VALUE TOP
+//					ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
+//					MccLCD->box.size = {70.f, 15.f};
+//					MccLCD->intVal = &module->testInt;
+//					addChild(MccLCD);
+//					ValueTestLCD *MccLCDf = createWidget<ValueTestLCD>(Vec(72.f,0.f));
+//					MccLCDf->box.size = {70.f, 15.f};
+//					MccLCDf->floatVal = &module->testFloat;
+//					addChild(MccLCDf);
+//				}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");
