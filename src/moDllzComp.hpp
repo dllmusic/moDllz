@@ -419,6 +419,12 @@ struct VoiceChRedLed : ModuleLightWidget {
 		addBaseColor(nvgRGB(0xff, 0x00, 0x00));//borderColor = nvgRGBA(0, 0, 0, 0x60);
 	}
 };
+struct VoiceChWhiteLed : ModuleLightWidget {
+	VoiceChWhiteLed() {
+		box.size = Vec(2.f,2.f);
+		addBaseColor(nvgRGB(0xff, 0xff, 0xff));//borderColor = nvgRGBA(0, 0, 0, 0x60);
+	}
+};
 
 struct VoiceChGreenLed : ModuleLightWidget {
 	VoiceChGreenLed() {

@@ -116,6 +116,8 @@ struct MIDIpolyMPE : Module {
 	uint8_t PM_midiCCsValues[129] = {0};
 	uint8_t noteMinIx = 0;
 	uint8_t noteMaxIx = 0;
+	int outofbounds = 0;
+	int outboundTimer = 0;
 	bool gates[16] = {false};
 	bool hold[16] = {false};
 	float xpitch[16] = {0.f};
@@ -356,7 +358,7 @@ struct MIDIpolyMPE : Module {
 			}
 			nVoChMPE = 1;
 		}else {
-			if (dataMap[PM_polyModeId]==DUAL_MODE) dataMap[PM_numVoCh] = ((dataMap[PM_numVoCh] + 1) /2) * 2;
+			if ((dataMap[PM_polyModeId]==DUAL_MODE) && (dataMap[PM_numVoCh] < 2)) dataMap[PM_numVoCh] = 2;
 			MPEmode = false;
 			Y_ptr = &Detune130;
 			Z_ptr = &NOTEAFT;//129 : note_aftertouch
@@ -523,7 +525,27 @@ struct MIDIpolyMPE : Module {
 			}return;/////// R E T U R N ////////////
 		}
 		///////// escape if notes out of range
-		if ((note < dataMap[PM_noteMin]) || (note > dataMap[PM_noteMax]) || (vel < dataMap[PM_velMin]) || (vel > dataMap[PM_velMax])) return;/////// R E T U R N ////////////
+		if (note < dataMap[PM_noteMin]){
+			outofbounds = 1;
+			outboundTimer = 0;
+			return;/////// R E T U R N ////////////
+		}
+		if (note > dataMap[PM_noteMax]){
+			outofbounds = 2;
+			outboundTimer = 0;
+			return;/////// R E T U R N ////////////
+		}
+		if (vel < dataMap[PM_velMin]){
+			outofbounds = 3;
+			outboundTimer = 0;
+			return;/////// R E T U R N ////////////
+		}
+		if (vel > dataMap[PM_velMax]){
+			outofbounds = 4;
+			outboundTimer = 0;
+			return;/////// R E T U R N ////////////
+		}
+		outofbounds = 0;
 		/////////////////
 		switch (dataMap[PM_polyModeId]) {// Set notes and gates
 			case MPE_MODE:
@@ -726,7 +748,7 @@ struct MIDIpolyMPE : Module {
 			if (el > noteupper) noteupper = el;
 			if (el < notelower) notelower = el;
 		}
-		for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
+		for (int i = 0; i < dataMap[PM_numVoCh]; i+=2) {
 			if (notes[i]!= notelower || (keyon && !gates[i])){
 				notes[i] = notelower;
 				vels[i] = vel;
@@ -735,7 +757,8 @@ struct MIDIpolyMPE : Module {
 				drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
 				if (retrig) reTrigger[i].trigger(1e-3);
 			}
-			i++;
+		}
+		for (int i = 1; i < dataMap[PM_numVoCh]; i+=2) {
 			if (notes[i]!= noteupper || (keyon && !gates[i])){
 				notes[i] = noteupper;
 				vels[i] = vel;
@@ -1082,18 +1105,18 @@ struct PolyModeDisplay : TransparentWidget {
 	std::shared_ptr<Font> font;
 	std::string polyModeStr[13] = {
 		"M. P. E.",
-		"M.P.E. ROLI",
-		"M.P.E. Haken Continuum",
+		"M. P. E. ROLI",
+		"M. P. E. Haken Continuum",
 		"C H A N N E L",
 		"R O T A T E",
 		"R E U S E",
 		"R E S E T",
 		"R E A S S I G N",
-		"S H A R E",
-		"(lower) D U A L (upper)",
+		"S T A C K + S H A R E",
+		"lower << D U A L >> upper",
 		"U N I S O N",
-		"(lower) U N I S O N",
-		"U N I S O N (upper)",
+		"lower << U N I S O N",
+		"U N I S O N >> upper",
 	};
 	std::string noteName[12] = {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
 	int drawFrame = 0;
@@ -1106,6 +1129,7 @@ struct PolyModeDisplay : TransparentWidget {
 	NVGcolor baseG = nvgRGB(0xdd, 0xdd, 0xdd);
 	NVGcolor redR = nvgRGB(0xff, 0x00, 0x00);
 	NVGcolor itemColor[8];
+	float outboundX[5] = {0.f, 23.5f,52.5f,93.f,113.f};//xPos note min,max .. vel min, max
 	bool canlearn = true;
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if (layer != 1) return;/////// R E T U R N ////////////
@@ -1189,6 +1213,16 @@ struct PolyModeDisplay : TransparentWidget {
 		nvgTextBox(args.vg, 93.f, 37.f, 20.f, sPM_velMin.c_str(), NULL);
 		nvgFillColor(args.vg, itemColor[7]);//max
 		nvgTextBox(args.vg, 113.f, 37.f, 20.f, sPM_velMax.c_str(), NULL);
+		
+		if (module->outofbounds > 0){
+			nvgBeginPath(args.vg);
+			nvgRoundedRect(args.vg, outboundX[module->outofbounds], 28.f, 20.f, 12.f, 3.f);
+			nvgFillColor(args.vg, nvgRGBA(0xff,0,0,128 - module->outboundTimer));
+			nvgFill(args.vg);
+			if (module->outboundTimer++ > 80){
+				module->outofbounds = 0;
+			}
+		}
 	}
 	void onButton(const event::Button &e) override {
 		if ((e.button == GLFW_MOUSE_BUTTON_LEFT) && (e.action == GLFW_PRESS)){
@@ -1201,7 +1235,7 @@ struct PolyModeDisplay : TransparentWidget {
 					else if (e.pos.x < 68.f) cmap = MIDIpolyMPE::PM_noteMax;
 					else if (e.pos.x < 113.3f) cmap = MIDIpolyMPE::PM_velMin;
 					else cmap = MIDIpolyMPE::PM_velMax;
-					dolearn = 1;
+					dolearn = cmap;
 				}break;
 				case 2: {/// second line
 					cmap = (module->dataMap[MIDIpolyMPE::PM_polyModeId] < MIDIpolyMPE::ROTATE_MODE)? MIDIpolyMPE::PM_pbMPE : MIDIpolyMPE::PM_numVoCh;
@@ -1532,7 +1566,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		yPos = 101.f;
 		xPos = 13.f;
 		for (int i = 0; i < 16; i++){
-			addChild(createLight<VoiceChRedLed>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
+			addChild(createLight<VoiceChWhiteLed>(Vec(xPos + i * 8.f, yPos), module, MIDIpolyMPE::CH_LIGHT + i));
 		}
 		yPos = 170.5f;
 		xPos = 81.f;

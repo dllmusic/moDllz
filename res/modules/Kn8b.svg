@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="120px" height="380px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:6;">
+<svg width="120" height="380" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:6;">
+<defs>
+        <linearGradient id="_Linear2" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1.71368e-14,-352.348,775.301,5.97688e-14,60,365)"><stop offset="0" style="stop-color:#000;stop-opacity:0.1"/><stop offset="1" style="stop-color:#768c9b;stop-opacity:0.1"/></linearGradient>
+</defs>
     <rect id="Kn8b-W" serif:id="Kn8b W" x="0" y="0" width="120" height="380" style="fill:none;"/>
     <clipPath id="_clip1">
         <rect x="0" y="0" width="120" height="380"/>
@@ -163,6 +166,17 @@
                 <path d="M19.133,297.2L18.2,298.133L22.867,302.8L23.8,301.867L19.133,297.2Z" style="fill:#768c9b;"/>
                 <path d="M22.867,297.2L18.2,301.867L19.133,302.8L23.8,298.133L22.867,297.2Z" style="fill:#768c9b;"/>
             </g>
+            <rect id="Shadow" x="-0" y="15" width="120" height="350" style="fill:url(#_Linear2);"/>
+            <ellipse cx="21" cy="38.008" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="73" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="107.992" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="142.985" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="177.977" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="212.969" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="247.962" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="21" cy="283.008" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
+            <ellipse cx="79.5" cy="319.008" rx="13" ry="13.008" style="fill-opacity:0.1;"/>
         </g>
     </g>
+
 </svg>

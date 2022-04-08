@@ -136,6 +136,7 @@ struct Kn8b :  Module {
 		configSwitch(TRIMMODE_PARAM, 0.f, 1.f, 0.f,"Main Knob mode",{"Trim","Scale"});
 		configInput(MAIN_INPUT, "to Knobs");
 		configInput(CV_INPUT, "Knobs CV");
+		configInput(CVTRIM_INPUT, "Trim CV");
 		configOutput(MAIN_OUTPUT, "Knobs");
 		configBypass(MAIN_INPUT , MAIN_OUTPUT);
 		configParam(MAINKNOB_PARAM,-1.f, 1.f, 0.f,"Main Knob","x(-5/5|0/10)v");
