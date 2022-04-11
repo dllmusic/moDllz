@@ -182,6 +182,10 @@ struct Kn8b :  Module {
 	}
 	
 	void process(const ProcessArgs &args) override{
+		if (prevNumCh != numOutCh) {
+			lcdClearMode(numOutCh - 1);
+			prevNumCh = numOutCh;
+		}
 		if (vca) {
 			numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 			numOutCh = numInCh;
@@ -250,10 +254,6 @@ struct Kn8b :  Module {
 					lcdmode[i] = 1;
 				}
 			}
-		}
-		if (prevNumCh != numOutCh) {
-			lcdClearMode(numOutCh - 1);
-			prevNumCh = numOutCh;
 		}
 	}
 	
@@ -684,15 +684,15 @@ struct Kn8bLCD : TransparentWidget{
 				text2screen(args.vg, colorNoConn, ypos, fstring(module->calcVal[ix]) + "v");
 			} break;
 			case 2: {//input -> Lcd  /////IN V
-				text2screen(args.vg, colorIn, 12.f, fstring(module->inV[ix]) + "v");
+				text2screen(args.vg, colorIn, 14.f, fstring(module->inV[ix]) + "v");
 				strout = modetxt[operation * 2 + static_cast<int>(module->calcVal[ix]< 0.f)] + fstring(module->calcVal[ix]);
-				text2screen(args.vg, opColor[operation] , 26.f, strout);
+				text2screen(args.vg, opColor[operation] , 28.f, strout);
 			} break;
 			case 3: {//////////////OUT V
 				ypos = 19.f;
 				if (module->cvcnnctd > 0.f){
-					text2screen(args.vg, colorCv, 12.f, fstring(module->cvVal[ix]) + "v");
-					ypos = 26.f;
+					text2screen(args.vg, colorCv, 14.f, fstring(module->cvVal[ix]) + "v");
+					ypos = 28.f;
 				}
 				text2screen(args.vg, colorOut, ypos, fstring(module->outV[ix]) + "v");
 			} break;

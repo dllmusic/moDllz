@@ -1,7 +1,7 @@
 {
 	"slug": "moDllz",
 	"name": "moDllz",
-	"version": "2.0.4",
+	"version": "2.0.5",
 	"license": "GPL-3.0-or-later",
 	"brand": "moDllz",
 	"author": "Pablo DeLaLoza",
@@ -19,8 +19,6 @@
 			"tags": [
 				"MIDI",
 				"External",
-				"Utility",
-				"Multiple",
 				"Polyphonic"
 			]
 		},
@@ -41,6 +39,7 @@
 			"tags": [
 				"Utility",
 				"Polyphonic",
+				"Attenuator",
 				"VCA"
 			]
 		}

@@ -24,158 +24,6 @@
 #endif /* moDllzComp_hpp */
 using namespace rack;
 
-///////////////////// MIDIpolyMPE ///////////////////////////////////////////
-
-//struct paramLCD : OpaqueWidget {
-//	paramLCD(){}
-//	int intptr = 0;
-//	bool boolptr = true;
-//	int buttonId = 0;
-//	int *buttonIdMap = &buttonId;
-//	int *cursorIx = &intptr;
-//	int *param_val = &intptr;
-//	int *onFocus = &intptr;
-//	int *learnId = &intptr;
-//	bool *updateKnob = &boolptr;
-//	bool *canedit = &boolptr;
-//	bool canlearn = false;
-//	unsigned char tcol = 0xdd; //base color x x x
-//	unsigned char redSel = 0xcc; // sel red.
-//	int flashFocus = 0;
-//
-//	float mdfontSize = 13.f;
-//	std::shared_ptr<Font> font;
-//	std::string sDisplay = "";
-//
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//	void onButton(const event::Button &e) override;
-//};
-//
-////// MIDIcc ParamLCD Button
-//struct MIDIccLCD : paramLCD{
-//	MIDIccLCD() {
-//		for (int i = 0 ; i < 128; i++){
-//			sNames[i].assign("cc" + std::to_string(i));
-//		}
-//		sNames[1].assign("Mod");
-//		sNames[2].assign("BrC");
-//		sNames[7].assign("Vol");
-//		sNames[10].assign("Pan");
-//		sNames[11].assign("Expr");
-//		sNames[64].assign("Sust");
-//		sNames[128].assign("chAT");
-//		sNames[129].assign("nteAT");
-//		sNames[131].assign("cc74+");
-//		sNames[132].assign("chAT+");
-//	}
-//	std::string sNames[133];
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//};
-//////MIDIccs ParamLCD
-//struct PTR_paramLCD : MIDIccLCD{
-//	PTR_paramLCD(){}
-//	int **ptr_param_val = &param_val;
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//};
-///// mpeY / Detune  ParamLCD Button
-//struct MPEYdetuneLCD : MIDIccLCD{
-//	MPEYdetuneLCD() {}
-//	int buttonId2 = 0;
-//	int polyModePoly = 0;
-//	int *polyModeId_val = &intptr;
-//	int **ptr_param_val = &param_val;
-//	int *detune_val = &intptr;
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//	void onButton(const event::Button &e) override;
-//};
-////// MPE RelVel / PBend ParamLCD Button
-//struct RelVelLCD : paramLCD{
-//	RelVelLCD() {}
-//	int **ptr_param_val = &param_val;
-//	std::string pNames[2] = {"RelVel","chPB"};
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//};
-///// + - value  ParamLCD Button
-//struct PlusMinusValLCD : paramLCD{
-//	PlusMinusValLCD() {}
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//};
-///Data KNOB
-//struct DataEntryKnob : RoundKnob {
-//	DataEntryKnob() {
-////		minAngle = -0.75*M_PI;
-////		maxAngle = 0.75*M_PI;
-////		snap = true;
-////		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_fg.svg")));
-////		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_bg.svg")));
-////		shadow->opacity = 0.f;
-//	}
-//	void onEnter(const EnterEvent& e) override {}//// no tooltip
-//	void onLeave(const LeaveEvent& e) override {}//// no tooltip destroy
-//	//void onButton(const event::Button &e) override;
-//};
-///Data Knob LED
-//struct DataEntryOnLed : TransparentWidget {
-//	DataEntryOnLed(){
-//		box.size.x = 107.f;
-//		box.size.y = 42.f;
-//	}
-//	int dummyInit = 0;
-//	int *cursorIx = &dummyInit;
-//
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//	void onButton(const event::Button &e) override;
-//};
-
-///Knob8 LCD
-//struct Kn8bLCD : TransparentWidget{
-//	Kn8bLCD() {
-//	}
-//	std::shared_ptr<Font> font;
-//	int id = 0;
-//	int *chOffset = nullptr;
-//	float *valLcd = nullptr;
-//	float *outLcd = nullptr;
-//	bool *active = nullptr;
-//	unsigned char *operation = nullptr;
-//	unsigned char *displaymode = nullptr;
-//	std::string modetxt[4] = {"+","","x","x"};
-//	float mdfontSize = 14.f;
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//};
-
-
-///ZoomDisplay
-//struct SelectedDisplay : TransparentWidget {
-//	SelectedDisplay(){
-//		box.size.x = 136.f;
-//		box.size.y = 40.f;
-//	}
-//	//std::string testing = "cc96";
-//	int dummyInit = 0;
-//	int *cursorIx = &dummyInit;
-//	//std::string *stringVal = &testing;
-//	
-//	int **testval = nullptr;
-//	float mdfontSize = 24.f;
-//	std::shared_ptr<Font> font;
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//	void onButton(const event::Button &e) override;
-//};
-
-//struct transparentMidiButton : MidiButton {
-//	transparentMidiButton();
-//	float mdfontSize = 12.f;
-//	//	float xcenter = 0.f;
-//	//	char drawframe = 0;
-//	std::shared_ptr<Font> font;
-//	NVGcolor okColor = nvgRGB(0x88,0x88,0x88);
-//	NVGcolor unsetColor = nvgRGB(0xff,0,0);
-//	
-//	void drawLayer(const DrawArgs &args, int layer) override;
-//	void onButton(const event::Button &e) override;
-//};
-
 ///Value Test LCD
 struct ValueTestLCD : TransparentWidget{
 	ValueTestLCD() {}
@@ -196,9 +44,6 @@ struct ValueTestLCD : TransparentWidget{
 //setTooltip(createTooltip());
 //}
 
-
-///////////////
-
 ///////////////////////
 // gen components
 ///////////////////////
@@ -214,19 +59,6 @@ struct moDllzKnobM : RoundKnob {
 		shadow->opacity = 0.f;
 	}
 };
-//
-/////knob32
-//struct moDllzKnob32 : SvgKnob {
-//	moDllzKnob32() {
-//		// box.size = Vec(32, 32);
-//		minAngle = -0.83*M_PI;
-//		maxAngle = 0.83*M_PI;
-//		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzKnob32.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
 //
 struct moDllzKnob26 : RoundKnob {
 	moDllzKnob26() {
@@ -283,57 +115,6 @@ struct TTrimSnap : moDllzTTrim{
 	}
 };
 
-
-//struct springDataKnobB : RoundKnob {
-//	springDataKnobB() {
-//		minAngle = -0.75*M_PI;
-//		maxAngle = 0.75*M_PI;
-//		snap = true;
-//		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_fg.svg")));
-//		bg->setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/knobs/dataKnob_bg.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	void onChange(const ChangeEvent &e) override {
-//		if (e.button != GLFW_MOUSE_BUTTON_LEFT)
-//			return;
-//		this->resetAction();
-//		SvgKnob::onChange(e);
-//	}
-//	void onEnter(const EnterEvent& e) override {
-//		//// no tooltip
-//	};
-//	void onLeave(const LeaveEvent& e) override {
-//		//// no tooltip destroy
-//	}
-//};
-//
-/////SnapSelector32
-//struct moDllzSelector32 : SvgKnob {
-//	moDllzSelector32() {
-//		// box.size = Vec(32, 32);
-//		minAngle = -0.85*M_PI;
-//		maxAngle = 0.85*M_PI;
-//		snap = true;
-//		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSnap32.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-//struct moDllzSmSelector : SvgKnob{
-//	moDllzSmSelector() {
-//	// box.size = Vec(36, 36);
-//		minAngle = -0.5*M_PI;
-//		maxAngle = 0.5*M_PI;
-//		snap = true;
-//		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSmSelector.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
 /////switch
 struct moDllzSwitch : SvgSwitch {
 	moDllzSwitch() {
@@ -359,33 +140,6 @@ struct moDllzSwitchLed : SvgSwitch {
 		shadow->opacity = 0.f;
 	}
 };
-
-/// SWITCH+LED
-//struct SwitchLight : ModuleLightWidget {
-//	SwitchLight() {
-//		box.size = Vec(8.f,8.f);
-//		addBaseColor(nvgRGB(0xff, 0xff, 0xff));
-//	}
-//};
-//
-//struct moDllzSwitchWithLed : moDllzSwitchLed {
-//	moDllzSwitchWithLed(){
-//		Ld = new SwitchLight;
-//		Ld->box.pos = {1.f,1.f};
-//		//Ld->setBrightnesses(5.f);
-//	}
-	
-//	SwitchLight Ld;
-//	void step() override {
-//		engine::ParamQuantity* pq = paramWidget->getParamQuantity();
-//		if (pq){
-//			Ld->setBrightness(pq * 10.f);
-//		}
-//		moDllzSwitchLed::step();
-//		SwitchLight::step();
-//	}
-	
-//};
 
 ///Horizontal switch with Led
 struct moDllzSwitchLedH : SvgSwitch {
@@ -419,10 +173,10 @@ struct VoiceChRedLed : ModuleLightWidget {
 		addBaseColor(nvgRGB(0xff, 0x00, 0x00));//borderColor = nvgRGBA(0, 0, 0, 0x60);
 	}
 };
-struct VoiceChWhiteLed : ModuleLightWidget {
-	VoiceChWhiteLed() {
+struct VoiceChBlueLed : ModuleLightWidget {
+	VoiceChBlueLed() {
 		box.size = Vec(2.f,2.f);
-		addBaseColor(nvgRGB(0xff, 0xff, 0xff));//borderColor = nvgRGBA(0, 0, 0, 0x60);
+		addBaseColor(nvgRGB(0x00, 0x88, 0xff));//borderColor = nvgRGBA(0, 0, 0, 0x60);
 	}
 };
 
@@ -456,53 +210,9 @@ struct roundPush15 : SvgSwitch {
 	roundPush15() {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/buttons/roundPush.svg")));
-		//addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMoButton_1.svg")));
 		shadow->opacity = 0.f;
-		//led = new RedLed3;
 	}
-	//RedLed3 led;
 };
-
-
-//struct moDllzSwitchWithLed : moDllzSwitchLed {
-//	app::ModuleLightWidget* light;
-//	moDllzSwitchWithLed() {
-//
-//		light = new RedLight;;
-//		this->addChild(light);
-//		light.setBrightness(10.f);
-//	}
-//		app::ModuleLightWidget* getLight() {
-//			return light;
-//		}
-//	void step() override {
-//		moDllzSwitchLed::step();
-//		redLed->box.pos = this->box.pos
-//		.plus(this->box.size.div(2))
-//		.plus(this->getParamQuantity()->getSmoothValue() * this->box.size.x);
-//	}
-//};
-//template <typename TBase, typename TLightBase = RedLight>
-//struct LightSlider : TBase {
-//	app::ModuleLightWidget* light;
-//
-//	LightSlider() {
-//		light = new TLightBase;
-//		this->addChild(light);
-//	}
-//
-//	app::ModuleLightWidget* getLight() {
-//		return light;
-//	}
-//
-//	void step() override {
-//		TBase::step();
-//		// Move center of light to center of handle
-//		light->box.pos = this->handle->box.pos
-//			.plus(this->handle->box.size.div(2))
-//			.minus(light->box.size.div(2));
-//	}
-//};
 
 ///switch TriState
 struct moDllzSwitchT : SvgSwitch {
@@ -513,159 +223,9 @@ struct moDllzSwitchT : SvgSwitch {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switches/moDllzSwitchT_2.svg")));
 		shadow->opacity = 0.f;
 	}
-	//void randomize() override{
-	//}
 };
 //
-/////switch TriState Horizontal
-//struct moDllzSwitchTH : SvgSwitch {
-//	moDllzSwitchTH() {
-//		// box.size = Vec(30, 10);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchTH_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchTH_1.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzSwitchTH_2.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-/////Momentary Button
-//struct moDllzMoButton : SvgSwitch {
-//	moDllzMoButton() {
-//		momentary = true;
-//		// box.size = Vec(48, 27);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMoButton_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMoButton_1.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-/////Momentary Label Clear Button
-//struct moDllzClearButton : SvgSwitch {
-//	moDllzClearButton() {
-//		momentary = true;
-//		// box.size = Vec(38, 13);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzClearButton.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-/////Momentary Round Button
-//struct moDllzRoundButton : SvgSwitch {
-//	moDllzRoundButton() {
-//		momentary = true;
-//		// box.size = Vec(14, 14);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzRoundButton.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-/////Momentary PulseUp
-//struct moDllzPulseUp : SvgSwitch {
-//	moDllzPulseUp() {
-//		momentary = true;
-//		// box.size = Vec(12, 12);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzPulse2Up.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-/////Momentary PulseDown
-//struct moDllzPulseDwn : SvgSwitch {
-//	moDllzPulseDwn() {
-//		momentary = true;
-//		// box.size = Vec(12, 12);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzPulse2Dwn.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-/////MuteGate
-//struct moDllzMuteG : SvgSwitch {
-//	moDllzMuteG() {
-//		momentary = true;
-//		// box.size = Vec(67, 12);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMuteG.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-/////MuteGateP
-//struct moDllzMuteGP : SvgSwitch {
-//	moDllzMuteGP() {
-//		momentary = true;
-//		// box.size = Vec(26, 11);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/moDllzMuteGP.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-/////MIDIPanic
-//struct moDllzMidiPanic : SvgSwitch {
-//	moDllzMidiPanic() {
-//		momentary = true;
-//		// box.size = Vec(38, 12);
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/midireset3812.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//
-///// Cursor  Buttons L R
-//struct moDllzcursorL : SvgSwitch {
-//	moDllzcursorL() {
-//		momentary = true;
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorL_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorL_1.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//struct moDllzcursorR : SvgSwitch {
-//	moDllzcursorR() {
-//		momentary = true;
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorR_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cursorR_1.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-///// UpDown + - Buttons
-//struct minusButton : SvgSwitch {
-//	minusButton() {
-//		momentary = true;
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/minusButton_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/minusButton_1.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
-//struct plusButton : SvgSwitch {
-//	plusButton() {
-//		momentary = true;
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/plusButton_0.svg")));
-//		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/plusButton_1.svg")));
-//		shadow->opacity = 0.f;
-//	}
-//	//void randomize() override{
-//	//}
-//};
+
 struct minusButtonB : SvgSwitch {
 	minusButtonB() {
 		momentary = true;
