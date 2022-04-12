@@ -81,6 +81,7 @@ struct MIDIpolyMPE : Module {
 		PM_polyModeId,
 		PM_numVoCh,
 		PM_stealMode,
+		PM_spread,
 		PM_noteMin,
 		PM_noteMax,
 		PM_velMin,
@@ -102,6 +103,7 @@ struct MIDIpolyMPE : Module {
 		STEAL_NEWEST,
 		STEAL_LOWEST,
 		STEAL_HIGHEST,
+		STEAL_NO,
 		NUM_STEALMODES
 	};
 	float dataMin[ParaMapEnum::NUM_ParaMapEnum];
@@ -131,6 +133,7 @@ struct MIDIpolyMPE : Module {
 	bool hold[16] = {false};
 	float xpitch[16] = {0.f};
 	float drift[16] = {0.f};
+	float spread[16] = {0.f};
 	bool pedal = false;
 	int rotateIndex = 0;
 	int stealIndex = 0;
@@ -140,6 +143,7 @@ struct MIDIpolyMPE : Module {
 	int cursorIxLast = 1;
 	int selectedmidich = 0;
 	bool MPEmode = false;
+	bool UNImode = false;
 	bool Ycanedit = true;
 	bool Zcanedit = true;
 	bool RPcanedit = false;
@@ -196,7 +200,7 @@ struct MIDIpolyMPE : Module {
 		ccLongNames[64].assign("cc64 Sustain Pedal");
 		ccLongNames[128].assign("Channel Aftertouch");
 		ccLongNames[129].assign("Note Aftertouch");
-		ccLongNames[130].assign("Detuned");
+		ccLongNames[130].assign("Random Detuned");
 		ccLongNames[131].assign("Slide");//Roli
 		ccLongNames[132].assign("Press");//Roli
 		ccLongNames[133].assign("Y Axis 14bit");
@@ -237,6 +241,7 @@ struct MIDIpolyMPE : Module {
 		json_object_set_new(rootJ, "mpeYcc", json_integer(dataMap[PM_mpeYcc]));
 		json_object_set_new(rootJ, "mpeZcc", json_integer(dataMap[PM_mpeZcc]));
 		json_object_set_new(rootJ, "detune", json_integer(dataMap[PM_detune]));
+		json_object_set_new(rootJ, "spread", json_integer(dataMap[PM_spread]));
 		json_object_set_new(rootJ, "trnsps", json_integer(dataMap[PM_transpose]));
 		json_object_set_new(rootJ, "noteMin", json_integer(dataMap[PM_noteMin]));
 		json_object_set_new(rootJ, "noteMax", json_integer(dataMap[PM_noteMax]));
@@ -297,6 +302,8 @@ struct MIDIpolyMPE : Module {
 		if (PM_mpeZccJ) dataMap[PM_mpeZcc] = json_integer_value(PM_mpeZccJ);
 		json_t *PM_detuneJ = json_object_get(rootJ, "detune");
 		if (PM_detuneJ) dataMap[PM_detune] = json_integer_value(PM_detuneJ);
+		json_t *PM_spreadJ = json_object_get(rootJ, "spread");
+		if (PM_spreadJ) dataMap[PM_spread] = json_integer_value(PM_spreadJ);
 		json_t *trnspsJ = json_object_get(rootJ, "trnsps");
 		if (trnspsJ) dataMap[PM_transpose] = json_integer_value(trnspsJ);
 		json_t *PM_noteMinJ = json_object_get(rootJ, "noteMin");
@@ -326,6 +333,7 @@ struct MIDIpolyMPE : Module {
 	
 	void resetVoices(){
 		initVoices();
+		UNImode = false;
 		switch (dataMap[PM_polyModeId]){
 			case MPE_MODE :/// normal MPE
 			case CHANNEL_MODE: {//w/o Master ch
@@ -369,10 +377,10 @@ struct MIDIpolyMPE : Module {
 				outputInfos[Z_OUTPUT]->name = "MPE Z 14bit";
 				outputInfos[RVEL_OUTPUT]->name = "Channel PitchBend";
 			}break;
-				
 			default: {
-				if ((dataMap[PM_polyModeId]==DUAL_MODE) && (dataMap[PM_numVoCh] < 2)) dataMap[PM_numVoCh] = 2;
 				MPEmode = false;
+				UNImode = !((dataMap[PM_polyModeId] < SHARE_MODE) || (dataMap[PM_polyModeId] > UNISONUPR_MODE));
+				if ((dataMap[PM_polyModeId]==DUAL_MODE) && (dataMap[PM_numVoCh] < 2)) dataMap[PM_numVoCh] = 2;
 				Y_ptr = &Detune130;
 				Z_ptr = &NOTEAFT;//129 : note_aftertouch
 				RP_ptr = &zero;//releaseVel
@@ -425,6 +433,9 @@ struct MIDIpolyMPE : Module {
 		dataMap[PM_stealMode] = 0;
 		dataMin[PM_stealMode] = 0.f;
 		dataMax[PM_stealMode] = 3.f;
+		dataMap[PM_spread] = 0;
+		dataMin[PM_spread] = 0.f;
+		dataMax[PM_spread] = 25.f;
 		dataMap[PM_pbDwn] = -12;
 		dataMin[PM_pbDwn] = -60.f;
 		dataMax[PM_pbDwn] = 60.f;
@@ -438,7 +449,7 @@ struct MIDIpolyMPE : Module {
 		dataMin[PM_mpeRvPb] = 0.f;
 		dataMax[PM_mpeRvPb] = 1.f;
 		dataMap[PM_detune] = 10;
-		dataMin[PM_detune] = -25.f;
+		dataMin[PM_detune] = 0.f;
 		dataMax[PM_detune] = 99.f;
 		dataMap[PM_transpose] = 0;
 		dataMin[PM_transpose] = -48.f;
@@ -511,7 +522,6 @@ struct MIDIpolyMPE : Module {
 		}
 		// All taken = send note to cache and steal voice
 		switch (dataMap[PM_stealMode]){
-			default:
 			case STEAL_OLDEST :{
 				stealIndex = (stealIndex + 1) % nVoCh;
 			}break;
@@ -536,6 +546,9 @@ struct MIDIpolyMPE : Module {
 					}
 				}
 			}break;
+			default:{///NO STEAL // R E T U R N
+				return -1;
+			}
 		}
 		cachedNotes.push_back(notes[stealIndex]);
 		return stealIndex;
@@ -549,43 +562,43 @@ struct MIDIpolyMPE : Module {
 				dataMap[PM_noteMin] = note;
 				if (dataMap[PM_noteMax] < note) dataMap[PM_noteMax] = note;
 				onFocus = 1;
-			}return;/////// R E T U R N ////////////
+			}break;
 			case PM_noteMax:{
 				dataMap[PM_noteMax] = note;
 				if (dataMap[PM_noteMin] > note) dataMap[PM_noteMin] = note;
 				onFocus = 1;
-			}return;/////// R E T U R N ////////////
+			}break;
 			case PM_velMin:{
 				dataMap[PM_velMin] = vel;
 				if (dataMap[PM_velMax] < vel) dataMap[PM_velMax] = vel;
 				onFocus = 1;
-			}return;/////// R E T U R N ////////////
+			}break;
 			case PM_velMax:{
 				dataMap[PM_velMax] = vel;
 				if (dataMap[PM_velMin] > vel) dataMap[PM_velMin] = vel;
 				onFocus = 1;
-			}return;/////// R E T U R N ////////////
+			}break;
 		}
 		///////// escape if notes out of range
 		if (note < dataMap[PM_noteMin]){
 			outofbounds = 1;
 			outboundTimer = 0;
-			return;/////// R E T U R N ////////////
+			goto midiActivity;
 		}
 		if (note > dataMap[PM_noteMax]){
 			outofbounds = 2;
 			outboundTimer = 0;
-			return;/////// R E T U R N ////////////
+			goto midiActivity;
 		}
 		if (vel < dataMap[PM_velMin]){
 			outofbounds = 3;
 			outboundTimer = 0;
-			return;/////// R E T U R N ////////////
+			goto midiActivity;
 		}
 		if (vel > dataMap[PM_velMax]){
 			outofbounds = 4;
 			outboundTimer = 0;
-			return;/////// R E T U R N ////////////
+			goto midiActivity;
 		}
 		outofbounds = 0;
 		/////////////////
@@ -604,7 +617,9 @@ struct MIDIpolyMPE : Module {
 				if (gates[channel]) cachedMPE[channel].push_back(notes[channel]);///if
 			} break;
 			case ROTATE_MODE: {
-				rotateIndex = getPolyIndex(rotateIndex);
+				int tryIndex = getPolyIndex(rotateIndex);
+				if (tryIndex < 0) goto midiActivity;
+				rotateIndex = tryIndex;
 			} break;
 			case REUSE_MODE: {
 				bool reuse = false;
@@ -615,11 +630,17 @@ struct MIDIpolyMPE : Module {
 						break;
 					}
 				}
-				if (!reuse) rotateIndex = getPolyIndex(rotateIndex);
+				if (!reuse) {
+					int tryIndex = getPolyIndex(rotateIndex);
+					if (tryIndex < 0) goto midiActivity;
+					rotateIndex = tryIndex;
+				}
 			} break;
 			case RESET_MODE:
 			case REASSIGN_MODE: {
-				rotateIndex = getPolyIndex(-1);
+				int tryIndex = getPolyIndex(-1);
+				if (tryIndex < 0) goto midiActivity;
+				rotateIndex = tryIndex;
 			} break;
 			case SHARE_MODE: {
 				cachedNotes.push_back(note);
@@ -656,7 +677,6 @@ struct MIDIpolyMPE : Module {
 		// Set notes and gates
 		if (params[RETRIG_PARAM].getValue() > 0.f) reTrigger[rotateIndex].trigger(1e-3);
 		hold[rotateIndex] = pedal;
-		//drift[rotateIndex] = static_cast<float>((rand() % 1000 - 500) * dataMap[PM_detune]) / 1200000.f;
 		detuneVoice(rotateIndex);
 	midiActivity:
 		midiActivity = vel;
@@ -786,12 +806,9 @@ struct MIDIpolyMPE : Module {
 	}
 	////
 	void detuneVoice(int v){
-		if (dataMap[PM_detune] > 0.f){
 			drift[v] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) * 8.3333e-6;
-		}else{
-			drift[v] = static_cast<float>(v * ( 1 - ((v % 2) * 2))) * dataMap[PM_detune] * 8.3333e-4;
-		}
 	}
+
 	////
 	void mapDual(bool retrig, bool keyon, uint8_t vel){
 		uint8_t noteupper = 0;
@@ -867,15 +884,9 @@ struct MIDIpolyMPE : Module {
 		}
 		pedal = true;
 		lights[SUSTHOLD_LIGHT].setBrightness(10.f);
-//		if (MPEmode) { ///MPE or MPE+
 			for (int i = 0; i < nVoCh; i++) {
 				hold[i] = gates[i];
 			}
-//		}else {
-//			for (int i = 0; i < dataMap[PM_numVoCh]; i++) {
-//				hold[i] = gates[i];
-//			}
-//		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////
 	void releasePedal() {
@@ -1044,6 +1055,11 @@ struct MIDIpolyMPE : Module {
 				case PM_mpeRvPb:
 					outputInfos[RVEL_OUTPUT]->name = (dataMap[PM_mpeRvPb] > 0)? "Channel PitchBend" : "Release Velocity";
 					break;
+				case PM_spread:
+					for (int i = 0; i < nVoCh; i++){
+						spread[i] = static_cast<float>(i * ( 1 - ((i % 2) * 2))) * newval * 8.3333e-4;
+					}
+					break;
 			}
 			onFocus = Focus_SEC;
 		}
@@ -1100,10 +1116,11 @@ struct MIDIpolyMPE : Module {
 				lights[CH_LIGHT + i].setBrightness(((i == rotateIndex)? 0.2f : 0.f) + (outGate * .08f));
 			}
 		} else {/// POLY MODE!!!
+			float unispread = static_cast<float>(UNImode);
 			for (int i = 0; i < nVoCh; i++) {
 				float outGate = ((gates[i] || hold[i]) && !reTrigger[i].process(args.sampleTime)) ? 10.f : 0.f;
 				outputs[GATE_OUTPUT].setVoltage(outGate, i);
-				float outPitch = ((notes[i] - 60 + dataMap[PM_transpose]) / 12.f) + pbVoice;
+				float outPitch = ((notes[i] - 60 + dataMap[PM_transpose]) / 12.f) + pbVoice + unispread * spread[i];
 				outputs[X_OUTPUT].setVoltage(outPitch, i);
 				outputs[Y_OUTPUT].setVoltage(outPitch + drift[i] , i);	//drifted out
 				outputs[VEL_OUTPUT].setVoltage(rescale(vels[i], 0, 127, 0.f, 10.f), i);
@@ -1111,7 +1128,7 @@ struct MIDIpolyMPE : Module {
 				outputs[Z_OUTPUT].setVoltage(rescale(noteData[notes[i]].aftertouch, 0, 127, 0.f, 10.f), i);
 				lights[CH_LIGHT+ i].setBrightness(((i == rotateIndex)? 0.2f : 0.f) + (outGate * .08f));
 			}
-		}
+		} 
 		for (int i = 0; i < 8; i++){
 			outputs[MM_OUTPUT + i].setVoltage(MCCsFilter[i].process(1.f ,rescale(PM_midiCCsValues[dataMap[PM_midiCCs + i]], 0, 127, 0.f, 10.f)));
 		}
@@ -1166,17 +1183,17 @@ struct PolyModeDisplay : TransparentWidget {
 		"R E U S E",
 		"R E S E T",
 		"R E A S S I G N",
-		"S T A C K + S H A R E",
-		"D U A L <<lower >>upper",
+		"S T A C K & S H A R E",
+		"D U A L <lower >upper",
 		"U N I S O N",
-		"U N I S O N <<lower",
-		"U N I S O N >>upper",
+		"U N I S O N <lower",
+		"U N I S O N >upper",
 		"M. P. E.",
 		"M. P. E. ROLI",
 		"M. P. E. Haken Continuum",
 		"C H A N N E L"
 	};
-	std::string stealStr[4] {"First","Last","Lower","Upper"};
+	std::string stealStr[5] {"Oldest","Last","Lower","Upper","No"};
 	std::string noteName[12] = {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
 	int drawFrame = 0;
 	int cursorIxI = 0;
@@ -1187,7 +1204,7 @@ struct PolyModeDisplay : TransparentWidget {
 	unsigned char redSel = 0x7f;
 	NVGcolor baseG = nvgRGB(0xdd, 0xdd, 0xdd);
 	NVGcolor redR = nvgRGB(0xff, 0x00, 0x00);
-	NVGcolor itemColor[9];
+	NVGcolor itemColor[10];
 	float outboundX[5] = {0.f, 23.5f,52.5f,93.f,113.f};//xPos note min,max .. vel min, max
 	bool canlearn = true;
 	void drawLayer(const DrawArgs &args, int layer) override {
@@ -1206,7 +1223,7 @@ struct PolyModeDisplay : TransparentWidget {
 		sPM_noteMax = noteName[module->dataMap[MIDIpolyMPE::PM_noteMax] % 12] + std::to_string((module->dataMap[MIDIpolyMPE::PM_noteMax] / 12) - 2);
 		sPM_velMin = std::to_string(module->dataMap[MIDIpolyMPE::PM_velMin]);
 		sPM_velMax = std::to_string(module->dataMap[MIDIpolyMPE::PM_velMax]);
-		for (int i = 0; i < 9 ; i++){
+		for (int i = 0; i < 10 ; i++){
 			itemColor[i] = baseG;
 		}
 		if ((cursorIxI < 1) || (cursorIxI > MIDIpolyMPE::PM_pbMPE)) goto noFocus;
@@ -1225,35 +1242,40 @@ struct PolyModeDisplay : TransparentWidget {
 				itemColor[1] = redR;
 			}break;
 			case MIDIpolyMPE::PM_numVoCh:{ //numVoices
-				float width = (module->dataMap[MIDIpolyMPE::PM_polyModeId] < MIDIpolyMPE::DUAL_MODE)? 67.f : 134.f;
-				nvgRoundedRect(args.vg, 1.f, 14.f, width, 12.f, 3.f);
+//				float width = (module->dataMap[MIDIpolyMPE::PM_polyModeId] < MIDIpolyMPE::DUAL_MODE)? 67.f : 134.f;
+				nvgRoundedRect(args.vg, 1.f, 14.f, 67.f, 12.f, 3.f);
 				canlearn = false;
 				itemColor[1] = redR;
+			}break;
+			case MIDIpolyMPE::PM_spread:{///PB MPE
+				nvgRoundedRect(args.vg, 1.f, 14.f, 134.f, 12.f, 3.f);
+				canlearn = false;
+				itemColor[2] = redR;
 			}break;
 			case MIDIpolyMPE::PM_stealMode:{ //stealMode
 				nvgRoundedRect(args.vg, 67.f, 14.f, 67.f, 12.f, 3.f);
 				canlearn = false;
-				itemColor[2] = redR;
+				itemColor[3] = redR;
 			}break;
 			case MIDIpolyMPE::PM_noteMin:{ //minNote
 				nvgRoundedRect(args.vg, 19.f, 28.f, 29.f, 12.f, 3.f);
-				itemColor[3] = redR;
 				itemColor[4] = redR;
+				itemColor[5] = redR;
 			}break;
 			case MIDIpolyMPE::PM_noteMax:{ //maxNote
 				nvgRoundedRect(args.vg, 48.f, 28.f, 29.f, 12.f, 3.f);
-				itemColor[3] = redR;
-				itemColor[5] = redR;
+				itemColor[4] = redR;
+				itemColor[6] = redR;
 			}break;
 			case MIDIpolyMPE::PM_velMin:{ //minVel
 				nvgRoundedRect(args.vg, 93.f, 28.f, 20.f, 12.f, 3.f);
-				itemColor[6] = redR;
 				itemColor[7] = redR;
+				itemColor[8] = redR;
 			}break;
 			case MIDIpolyMPE::PM_velMax:{ //maxVel
 				nvgRoundedRect(args.vg, 113.f, 28.f, 20.f, 12.f, 3.f);
-				itemColor[6] = redR;
-				itemColor[8] = redR;
+				itemColor[7] = redR;
+				itemColor[9] = redR;
 			}break;
 			default:{
 				goto noFocus;
@@ -1274,24 +1296,26 @@ struct PolyModeDisplay : TransparentWidget {
 		if (module->MPEmode){
 			nvgTextBox(args.vg, 1.f, 24.f, 134.f, ("voice ch PBend: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_pbMPE])).c_str(), NULL);
 		}else{
-			sVo = "Voices: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh]);
-			if (module->dataMap[MIDIpolyMPE::PM_polyModeId] < MIDIpolyMPE::DUAL_MODE){
-				nvgTextBox(args.vg, 1.f, 24.f, 67.f, sVo.c_str(), NULL);
-				nvgFillColor(args.vg, itemColor[2]);///steal
+			nvgTextBox(args.vg, 1.f, 24.f, 67.f, ("Voices: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh])).c_str(), NULL);
+			if (module->UNImode){
+				nvgFillColor(args.vg, itemColor[2]);///spread
+				nvgTextBox(args.vg, 67.f, 24.f, 67.f, ("Spread: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread]) + "¢").c_str(), NULL);
+			}else{
+				nvgFillColor(args.vg, itemColor[3]);///steal
 				nvgTextBox(args.vg, 67.f, 24.f, 67.f, ("Steal: " + stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]]).c_str(), NULL);
-			}else nvgTextBox(args.vg, 1.f, 24.f, 134.f, sVo.c_str(), NULL);
+			}
 		}
-		nvgFillColor(args.vg, itemColor[3]);//note
+		nvgFillColor(args.vg, itemColor[4]);//note
 		nvgTextBox(args.vg, 1.f, 37.f, 18.f, "nte:", NULL);
-		nvgFillColor(args.vg, itemColor[4]);//...min
+		nvgFillColor(args.vg, itemColor[5]);//...min
 		nvgTextBox(args.vg, 19.f, 37.f, 29.f, sPM_noteMin.c_str(), NULL);
-		nvgFillColor(args.vg, itemColor[5]);//...max
+		nvgFillColor(args.vg, itemColor[6]);//...max
 		nvgTextBox(args.vg, 48.f, 37.f, 29.f, sPM_noteMax.c_str(), NULL);
-		nvgFillColor(args.vg, itemColor[6]);//Vel
+		nvgFillColor(args.vg, itemColor[7]);//Vel
 		nvgTextBox(args.vg, 77.f, 37.f, 16.f, "vel:", NULL);
-		nvgFillColor(args.vg, itemColor[7]);//min
+		nvgFillColor(args.vg, itemColor[8]);//min
 		nvgTextBox(args.vg, 93.f, 37.f, 20.f, sPM_velMin.c_str(), NULL);
-		nvgFillColor(args.vg, itemColor[8]);//max
+		nvgFillColor(args.vg, itemColor[9]);//max
 		nvgTextBox(args.vg, 113.f, 37.f, 20.f, sPM_velMax.c_str(), NULL);
 		
 		if (module->outofbounds > 0){
@@ -1319,8 +1343,8 @@ struct PolyModeDisplay : TransparentWidget {
 				}break;
 				case 2: {/// second line
 					if (module->MPEmode) cmap = MIDIpolyMPE::PM_pbMPE;
-					else if ((module->dataMap[MIDIpolyMPE::PM_polyModeId] < MIDIpolyMPE::DUAL_MODE) && (e.pos.x > 67.f)) cmap = MIDIpolyMPE::PM_stealMode;
-					else cmap = MIDIpolyMPE::PM_numVoCh;
+					else if (e.pos.x < 67.f) cmap = MIDIpolyMPE::PM_numVoCh;
+					else cmap = (module->UNImode)? MIDIpolyMPE::PM_spread : MIDIpolyMPE::PM_stealMode;
 				}break;
 				case 1: {///first  line
 					cmap = MIDIpolyMPE::PM_polyModeId;
@@ -1413,15 +1437,15 @@ struct MIDIccLCDbutton : LCDbutton{
 };
 struct MPEYdetuneLCDbutton : MIDIccLCDbutton{
 	int buttonId2 = 0;
-	const std::string detunit[4] = {"","rn±","¢/ch","¢"};
+	//const std::string detunit[4] = {"","rn±","¢/ch","¢"};
 	void drawLayer(const DrawArgs &args, int layer) override{
 		if (layer != 1) return;/////// R E T U R N ////////////
 		if (*module->Y_ptr != 130){//ccs
 			sDisplay = sNames[*module->Y_ptr];
 		}else{
 			int det = module->dataMap[MIDIpolyMPE::PM_detune];
-			int uix =  static_cast<int> (det > 0);
-			sDisplay = detunit[uix] + std::to_string(std::abs(det)) + detunit[uix + 2];
+			//int uix =  static_cast<int> (det > 0);
+			sDisplay = "rn±" + std::to_string(det) + "¢";//+ detunit[uix + 2];
 		}
 		LCDbutton::drawLayer(args, layer);
 	}
@@ -1474,7 +1498,6 @@ struct dataKnob : RoundKnob {
 	void onEnter(const EnterEvent& e) override {}//// no tooltip
 	void onLeave(const LeaveEvent& e) override {}//// no tooltip destroy
 	void onButton(const ButtonEvent& e) override {
-		
 		if (e.action == GLFW_PRESS && e.button == GLFW_MOUSE_BUTTON_RIGHT && module->cursorIx < 1) return;/////// R E T U R N ////////////
 		RoundKnob::onButton(e);
 	}
