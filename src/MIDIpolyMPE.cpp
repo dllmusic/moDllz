@@ -393,6 +393,7 @@ struct MIDIpolyMPE : Module {
 				outputInfos[RVEL_OUTPUT]->name = "Release Velocity";
 			}
 		}
+		if (UNImode) spreadVoices();
 		for (int i=0; i < 8; i++){
 			PM_midiCCsValues[dataMap[PM_midiCCs + i]] = 0;
 		}
@@ -808,7 +809,11 @@ struct MIDIpolyMPE : Module {
 	void detuneVoice(int v){
 			drift[v] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) * 8.3333e-6;
 	}
-
+	void spreadVoices(){
+		for (int i = 0; i < nVoCh; i++){
+			spread[i] = static_cast<float>(i * ( 1 - ((i % 2) * 2)) * dataMap[PM_spread]) * 8.3333e-4;
+		}
+	}
 	////
 	void mapDual(bool retrig, bool keyon, uint8_t vel){
 		uint8_t noteupper = 0;
@@ -1056,9 +1061,7 @@ struct MIDIpolyMPE : Module {
 					outputInfos[RVEL_OUTPUT]->name = (dataMap[PM_mpeRvPb] > 0)? "Channel PitchBend" : "Release Velocity";
 					break;
 				case PM_spread:
-					for (int i = 0; i < nVoCh; i++){
-						spread[i] = static_cast<float>(i * ( 1 - ((i % 2) * 2))) * newval * 8.3333e-4;
-					}
+					spreadVoices();
 					break;
 			}
 			onFocus = Focus_SEC;
@@ -1299,7 +1302,7 @@ struct PolyModeDisplay : TransparentWidget {
 			nvgTextBox(args.vg, 1.f, 24.f, 67.f, ("Voices: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh])).c_str(), NULL);
 			if (module->UNImode){
 				nvgFillColor(args.vg, itemColor[2]);///spread
-				nvgTextBox(args.vg, 67.f, 24.f, 67.f, ("Spread: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread]) + "¢").c_str(), NULL);
+				nvgTextBox(args.vg, 67.f, 24.f, 67.f, ("Spread: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread]) + "ct").c_str(), NULL);
 			}else{
 				nvgFillColor(args.vg, itemColor[3]);///steal
 				nvgTextBox(args.vg, 67.f, 24.f, 67.f, ("Steal: " + stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]]).c_str(), NULL);
