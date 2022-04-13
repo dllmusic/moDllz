@@ -828,7 +828,6 @@ struct MIDIpolyMPE : Module {
 				vels[i] = vel;
 				gates[i] = true;
 				hold[i] = pedal;
-				//drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
 				detuneVoice(i);
 				if (retrig) reTrigger[i].trigger(1e-3);
 			}
@@ -839,7 +838,6 @@ struct MIDIpolyMPE : Module {
 				vels[i] = vel;
 				gates[i] = true;
 				hold[i] = pedal;
-				//drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
 				detuneVoice(i);
 				if (retrig) reTrigger[i].trigger(1e-3);
 			}
@@ -856,7 +854,6 @@ struct MIDIpolyMPE : Module {
 				vels[i] = vel;
 				gates[i] = true;
 				hold[i] = pedal;
-				//drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
 				detuneVoice(i);
 				if (retrig) reTrigger[i].trigger(1e-3);
 			}
@@ -868,7 +865,6 @@ struct MIDIpolyMPE : Module {
 			vels[i] = vel;
 			gates[i] = true;
 			hold[i] = pedal;
-			//drift[i] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) / 120000.f;
 			detuneVoice(i);
 			if (retrig) reTrigger[i].trigger(1e-3);
 		}
@@ -898,7 +894,7 @@ struct MIDIpolyMPE : Module {
 		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) return;/////// R E T U R N ////////////
 		pedal = false;
 		lights[SUSTHOLD_LIGHT].setBrightness(0.f);
-		// When pedal is released, recover cached notes for pressed keys if they were overtaked.
+		// When pedal is released, recover cached notes for pressed keys
 		if (MPEmode) {
 			for (int i = 0; i < nVoCh; i++) {
 				if (gates[i] && !cachedMPE[i].empty()) {
@@ -1219,9 +1215,6 @@ struct PolyModeDisplay : TransparentWidget {
 			timedFocus = 48;
 		}
 		sMode = polyModeStr[module->dataMap[MIDIpolyMPE::PM_polyModeId]];
-		
-//		sVo = (module->MPEmode)? "voice ch PBend: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_pbMPE]) : "Voices: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh]);
-//		sSteal = "Steal: "+ stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]];
 		sPM_noteMin = noteName[module->dataMap[MIDIpolyMPE::PM_noteMin] % 12] + std::to_string((module->dataMap[MIDIpolyMPE::PM_noteMin] / 12) - 2);
 		sPM_noteMax = noteName[module->dataMap[MIDIpolyMPE::PM_noteMax] % 12] + std::to_string((module->dataMap[MIDIpolyMPE::PM_noteMax] / 12) - 2);
 		sPM_velMin = std::to_string(module->dataMap[MIDIpolyMPE::PM_velMin]);
@@ -1244,8 +1237,7 @@ struct PolyModeDisplay : TransparentWidget {
 				canlearn = false;
 				itemColor[1] = redR;
 			}break;
-			case MIDIpolyMPE::PM_numVoCh:{ //numVoices
-//				float width = (module->dataMap[MIDIpolyMPE::PM_polyModeId] < MIDIpolyMPE::DUAL_MODE)? 67.f : 134.f;
+			case MIDIpolyMPE::PM_numVoCh:{
 				nvgRoundedRect(args.vg, 1.f, 14.f, 67.f, 12.f, 3.f);
 				canlearn = false;
 				itemColor[1] = redR;
@@ -1440,15 +1432,13 @@ struct MIDIccLCDbutton : LCDbutton{
 };
 struct MPEYdetuneLCDbutton : MIDIccLCDbutton{
 	int buttonId2 = 0;
-	//const std::string detunit[4] = {"","rn±","¢/ch","¢"};
 	void drawLayer(const DrawArgs &args, int layer) override{
 		if (layer != 1) return;/////// R E T U R N ////////////
 		if (*module->Y_ptr != 130){//ccs
 			sDisplay = sNames[*module->Y_ptr];
 		}else{
 			int det = module->dataMap[MIDIpolyMPE::PM_detune];
-			//int uix =  static_cast<int> (det > 0);
-			sDisplay = "rn±" + std::to_string(det) + "¢";//+ detunit[uix + 2];
+			sDisplay = "rn±" + std::to_string(det) + "¢";
 		}
 		LCDbutton::drawLayer(args, layer);
 	}
@@ -1546,7 +1536,7 @@ struct DataEntryOnLed : TransparentWidget {
 		}
 	}
 };
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////// MODULE WIDGET ////////
 /////////////////////////////////////////////////
 struct MIDIpolyMPEWidget : ModuleWidget {
@@ -1711,16 +1701,6 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-//				if (module){ //////TEST VALUE TOP
-//					ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-//					MccLCD->box.size = {70.f, 15.f};
-//					MccLCD->intVal = &module->testInt;
-//					addChild(MccLCD);
-//					ValueTestLCD *MccLCDf = createWidget<ValueTestLCD>(Vec(72.f,0.f));
-//					MccLCDf->box.size = {70.f, 15.f};
-//					MccLCDf->floatVal = &module->testFloat;
-//					addChild(MccLCDf);
-//				}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");

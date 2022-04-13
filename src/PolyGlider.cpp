@@ -169,10 +169,6 @@ struct PolyGlider : Module {
 /////////////////////////////////////////////
 void PolyGlider::process(const ProcessArgs &args) {
 	numCh = inputs[IN_INPUT].getChannels();
-	//if (numCh != prevNumCh) {
-		//PolyGlider::resetGlides(numCh);
-		//prevNumCh = numCh;
-	//}
 	if (numCh < 1) return;
 	outputs[OUT_OUTPUT].setChannels(numCh);
 	outputs[GATERISE_OUTPUT].setChannels(numCh);
@@ -484,27 +480,19 @@ struct GlideLcd : TransparentWidget {
 	NVGcolor greenTb = nvgRGBA(0x44, 0xff, 0x66,0xaa);
 	NVGcolor redRb = nvgRGBA(0xff, 0x00, 0x00,0xbb);
 	NVGcolor lapseCol[2] = {redRb,greenTb};
-//	float flapsemax = 0.f;
-//	float flapse = 0.f;
-//	float wh = 0.f;
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if ((!module) || (layer != 1) || !(id < module->numCh)) return;
 		
 		switch (module->g_ledlapse[id]){
 			case 0 :
-				//drawRect(args.vg, 2.f, 7.5f, 3.f, 1.f, lapseCol[1 - module->lapsemodeint]);
 				nvgBeginPath(args.vg);
 				nvgRect(args.vg, 2.f, 7.f , 3.f , 2.f);
 				nvgFillColor(args.vg, lapseCol[1 - module->lapsemodeint]);
 				nvgFill(args.vg);
 				break;
 			case 1 :
-				//nvgScissor(args.vg, -4.f, -4.f, 14.f, 24.f);
-//				flapsemax = static_cast<float>(module->lapsemax);
-//				flapse = static_cast<float>(module->g_lapseframe[id]);
 				int wh  = -14.f + 14.f * (1 + module->g_lapseframe[id])/(1 +module->lapsemax);
 				nvgBeginPath(args.vg);
-				//drawRect(args.vg, 1.f, 15.f, 4.f, wh, lapseCol[module->lapsemodeint]);
 				nvgRect(args.vg, 2.5f, 15.f , 2.f , static_cast<float>(wh));
 				nvgFillColor(args.vg, lapseCol[module->lapsemodeint]);
 				nvgFill(args.vg);
@@ -582,7 +570,6 @@ struct PolyGliderWidget : ModuleWidget {
 		}
 		/// Glide Knobs
 		yPos = 40.f;
-		//addParam(createParam<moDllzKnobM>(Vec(21.f, yPos), module, PolyGlider::RISE_PARAM));
 		{
 			KnobRise *knb = createWidget<KnobRise>(Vec(21.f, yPos));
 			knb->module = module;
@@ -591,7 +578,6 @@ struct PolyGliderWidget : ModuleWidget {
 			knb->initParamQuantity();
 			addParam(knb);
 		}
-		//addParam(createParam<moDllzKnobM>(Vec(70.f, yPos), module, PolyGlider::FALL_PARAM));
 		{
 			KnobFall *knb = createWidget<KnobFall>(Vec(70.f, yPos));
 			knb->module = module;
@@ -602,7 +588,6 @@ struct PolyGliderWidget : ModuleWidget {
 		}
 		/// CV Knobs
 		yPos = 94.f;
-		//addParam(createParam<moDllzKnob18CV>(Vec(43.5f, yPos), module, PolyGlider::RISECV_PARAM));
 		{
 			KnobRiseCv *knb = createWidget<KnobRiseCv>(Vec(43.5f, yPos));
 			knb->module = module;
@@ -611,7 +596,6 @@ struct PolyGliderWidget : ModuleWidget {
 			knb->initParamQuantity();
 			addParam(knb);
 		}
-		//addParam(createParam<moDllzKnob18CV>(Vec(74.5f, yPos), module, PolyGlider::FALLCV_PARAM));
 		{
 			KnobFallCv *knb = createWidget<KnobFallCv>(Vec(74.5f, yPos));
 			knb->module = module;
@@ -736,21 +720,6 @@ struct PolyGliderWidget : ModuleWidget {
 		addInput(createInput<moDllzPolyI>(Vec(42.5f, yPos),  module, PolyGlider::GATE_INPUT));
 		addInput(createInput<moDllzPolyI>(Vec(70.5f, yPos),  module, PolyGlider::EXT_INPUT));
 		addOutput(createOutput<moDllzPolyO>(Vec(101.f, yPos),  module, PolyGlider::OUT_OUTPUT));
-		/// TEST  TOP
-		//						if (module){
-		//							{
-		//								ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-		//								MccLCD->box.size = {60.f, 15.f};
-		//								MccLCD->intVal = &module->lapsemax ;
-		//								addChild(MccLCD);
-		//							}
-		//							{
-		//								ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(60.f,0.f));
-		//								MccLCD->box.size = {60.f, 15.f};
-		//								MccLCD->intVal = &module->g_lapseframe[0];
-		//								addChild(MccLCD);
-		//							}
-		//						}
 	}
 };
 

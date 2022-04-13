@@ -343,7 +343,6 @@ struct Kn8b :  Module {
 		}//clean up Lcd status
 	}
 	
-	
 	void knobsUniBipolar(float ub , int ifrom, int ito){
 		for (int i = ifrom; i< ito; i++){
 			polarity[i] = ub;
@@ -351,6 +350,7 @@ struct Kn8b :  Module {
 			updateKnobVal(i);
 		}
 	}
+	
 	void knobsSumProd(float op , int ifrom, int ito){
 		for (int i = ifrom; i< ito; i++){
 			operation[i] = op;
@@ -856,12 +856,6 @@ struct Kn8bWidget : ModuleWidget {
 
 		addInput(createInput<moDllzPolyI>(Vec(6.f, yPos),  module, Kn8b::MAIN_INPUT));
 		addOutput(createOutput<moDllzPolyO>(Vec(91.f, yPos),  module, Kn8b::MAIN_OUTPUT));
-		//			{
-		//				ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-		//				MccLCD->box.size = {60.f, 15.f};
-		//				MccLCD->intVal = &module->InOutConnected;
-		//				addChild(MccLCD);
-		//			}
 	}
 	
 	void appendContextMenu(Menu *menu) override {
