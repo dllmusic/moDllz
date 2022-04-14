@@ -195,6 +195,7 @@ void PolyGlider::process(const ProcessArgs &args) {
 					g_risegate[voCh] = 0.f;
 					g_fallgate[voCh] = 0.f;
 					g_shapeout[voCh] = 0.f;
+					g_lapseframe[voCh] = 0;
 					goto glideSkip;
 				}
 			}else{
@@ -552,7 +553,7 @@ struct GlideLcd : TransparentWidget {
 struct PolyGliderWidget : ModuleWidget {
 	PolyGliderWidget(PolyGlider *module){
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Polyglider.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/PolyGlider.svg")));
 		/// Screws
 		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 0)));
