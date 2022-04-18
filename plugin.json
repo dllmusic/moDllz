@@ -15,7 +15,7 @@
 		{
 			"slug": "MIDIpolyMPE",
 			"name": "MIDIpolyMPE",
-			"description": "Polyphonic MIDI with MPE mode",
+			"description": "Polyphonic MIDI to CV with MPE mode",
 			"tags": [
 				"MIDI",
 				"External",
@@ -25,7 +25,7 @@
 		{
 			"slug": "PolyGlider",
 			"name": "PolyGlider",
-			"description": "Slew limiter ~ Portamento ~ Glide",
+			"description": "Polyphonic Slew limiter ~ Portamento ~ Glide",
 			"tags": [
 				"Polyphonic",
 				"Slew limiter",
@@ -35,7 +35,7 @@
 		{
 			"slug": "Kn8b",
 			"name": "Kn8b",
-			"description": "8 Knob tweaker",
+			"description": "Polyphonic Attenuator / Inverter / VCA",
 			"tags": [
 				"Utility",
 				"Polyphonic",

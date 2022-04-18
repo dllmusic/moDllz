@@ -46,6 +46,14 @@ struct Kn8b :  Module {
 		NUM_LIGHTS
 	};
 	
+	enum LcdDisplayModes {
+		LCD_OFF,
+		LCD_PREVIEW,
+		LCD_IN,
+		LCD_OUT,
+		LCD_INOUT,
+	};
+	
 	int chOffset = 0;
 	int lcdmode[16] = {0};
 	float inV[16] = {0.f};
@@ -69,7 +77,7 @@ struct Kn8b :  Module {
 	bool cvtrimcable = false;
 	int numInCh = 0;
 	int numOutCh = 8;
-	int prevNumCh = 8;
+	int numChMem = 8;
 	const float processMs = 0.02f;//sec
 	int PROCESS_RATE = 0;
 	int ProcessFrame = 0;
@@ -182,13 +190,10 @@ struct Kn8b :  Module {
 	}
 	
 	void process(const ProcessArgs &args) override{
-		if (prevNumCh != numOutCh) {
-			lcdClearMode(numOutCh - 1);
-			prevNumCh = numOutCh;
-		}
 		if (vca) {
 			numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 			numOutCh = numInCh;
+			lcdClearMode(numOutCh);
 			outputs[MAIN_OUTPUT].setChannels(numOutCh);
 			float cvtrim = inputs[CVTRIM_INPUT].getVoltage() * 0.1f;
 			float calcTrim = cvtrimcnnctd * (trimVal + 1.f) * trimop * cvtrim + cvtrimcnnctd * (trimVal + 1.f) + (1.f - trimop) * cvtrim + (1.f - cvtrimcnnctd) * (trimVal + 1.f);
@@ -212,15 +217,16 @@ struct Kn8b :  Module {
 		if (outcable) {
 			outputs[MAIN_OUTPUT].setChannels(numOutCh);
 			if (cvcable || cvtrimcable) updateCalcValCv();
-			if (incable) {
+			if (incable) {//Input+Output
 				numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
+				lcdClearMode(std::max(numInCh,numOutCh));
 				int io = 0;
 				for (int i = 0 ; i < std::min(numInCh,numOutCh) ; i++){
 					float clmin = -5.f + (5.f * polarity[i]);
 					float clmax = clmin + 10.f;
 					inV[i] = inputs[MAIN_INPUT].getVoltage(i);
 					outV[i] = inThruOp(i);
-					lcdmode[i] = 4;
+					lcdmode[i] = LCD_INOUT;
 					outputs[MAIN_OUTPUT].setVoltage(math::clamp(outV[i],clmin,clmax), i);
 					io++;
 				}
@@ -228,30 +234,37 @@ struct Kn8b :  Module {
 					float clmin = -5.f + (5.f * polarity[i]);
 					float clmax = clmin + 10.f;
 					outV[i] = calcVal[i];
-					lcdmode[i] = 3;
+					lcdmode[i] = LCD_OUT;
 					outputs[MAIN_OUTPUT].setVoltage(math::clamp(outV[i],clmin,clmax), i);
 				}
-			}else{
+				for (int i = numOutCh ; i < numInCh ; i++){//if inCh > outCh
+					inV[i] = inputs[MAIN_INPUT].getVoltage(i);
+					outV[i] = inThruOp(i);
+					lcdmode[i] = LCD_IN;
+				}
+			}else{// No Input
+				lcdClearMode(numOutCh);
 				for (int i = 0 ; i < numOutCh ; i++){
 					float clmin = -5.f + (5.f * polarity[i]);
 					float clmax = clmin + 10.f;
 					outV[i] = calcVal[i];
-					lcdmode[i] = 3;
+					lcdmode[i] = LCD_OUT;
 					outputs[MAIN_OUTPUT].setVoltage(math::clamp(outV[i],clmin,clmax), i);
 				}
 			}
-		}else{/// no outputs. Display only
+		}else{/// no output. Display only
 			if (incable) {
 				if (cvcable || cvtrimcable) updateCalcValCv();
 				numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
-				for (int i = 0 ; i < std::min(numInCh,numOutCh) ; i++){
+				lcdClearMode(numInCh);
+				for (int i = 0 ; i < numInCh ; i++){
 					inV[i] = inputs[MAIN_INPUT].getVoltage(i);
 					outV[i] = inThruOp(i);
-					lcdmode[i] = 2;
+					lcdmode[i] = LCD_IN;
 				}
-			}else{
-				for (int i = 0 ; i < numOutCh ; i++){
-					lcdmode[i] = 1;
+			}else{//Nothing connected. Preview values
+				for (int i = 0 ; i < 16 ; i++){
+					lcdmode[i] = LCD_PREVIEW;
 				}
 			}
 		}
@@ -264,6 +277,7 @@ struct Kn8b :  Module {
 					for (int i = 0; i < 8 ; i++){
 						knobsInfo(i);
 					}
+					lcdClearMode(1);
 					incable = e.connecting;
 					if (incable){
 						incnnctd = 1.f;
@@ -293,6 +307,7 @@ struct Kn8b :  Module {
 			}
 		}else{
 			outcable = e.connecting;
+			lcdClearMode(1);
 		}
 		Module::onPortChange(e);
 	}
@@ -337,10 +352,13 @@ struct Kn8b :  Module {
 		paramQuantities[pid]->defaultValue= -polarity[i+chOffset];;
 	}
 	
-	void lcdClearMode(int ifrom){
-		for (int i = ifrom; i< 16; i++){
-			lcdmode[i] = 0;
-		}//clean up Lcd status
+	void lcdClearMode(int numCh){
+		if (numCh != numChMem){
+			numChMem = numCh;
+			for (int i = numCh - 1; i< 16; i++){
+				lcdmode[i] = 0;
+			}//clean up Lcd status
+		}
 	}
 	
 	void knobsUniBipolar(float ub , int ifrom, int ito){
@@ -485,7 +503,7 @@ struct btn_vca : SvgSwitch {
 	}
 	void onChange(const ChangeEvent& e) override {
 		if (!module) return;
-		if ((module->incnnctd + module->cvcnnctd) < 2.f) {
+		if (!module->vca && (module->incnnctd + module->cvcnnctd) < 2.f) {
 			this->resetAction();
 			return;
 		}
@@ -611,7 +629,6 @@ struct Kn8bLCD : TransparentWidget{
 			nvgFillColor(args.vg, colorVca);
 			nvgTextBox(args.vg, 42.f, 12.f, 30.f, fstring(module->calcVal[ix]).c_str(), NULL);
 			float xval = module->calcVal[ix] * 72.f;
-			//nvgFillColor(args.vg, colorVcaS);
 			nvgRect(args.vg, 1.f, 18.f , xval, 2.f);
 			nvgFill(args.vg);
 			float ov = std::abs(module->outV[ix]) * 14.4f;//5v max = 72 pix
@@ -632,7 +649,6 @@ struct Kn8bLCD : TransparentWidget{
 			}
 			return;
 		}
-		//nvgGlobalAlpha(args.vg, 1.f);
 		nvgFillColor(args.vg, colorBtn);
 		nvgTextBox(args.vg, 0.f, 10.f,12.f, strout.c_str(), NULL);
 		unsigned char dim = static_cast<unsigned char>(module->incnnctd) * 0x66 + 0x77;
@@ -676,19 +692,20 @@ struct Kn8bLCD : TransparentWidget{
 		nvgTextAlign(args.vg, NVG_ALIGN_RIGHT);
 		float ypos = 19.f;
 		switch (module->lcdmode[ix]) {
-			case 1: {////////////// NOT CONNECTED
+			case Kn8b::LCD_PREVIEW: {////////////// NOT CONNECTED
 				if (module->cvcnnctd > 0.f){
 					text2screen(args.vg, colorCv, 12.f, fstring(module->cvVal[ix]) + "v");
 					ypos = 26.f;
 				}
 				text2screen(args.vg, colorNoConn, ypos, fstring(module->calcVal[ix]) + "v");
 			} break;
-			case 2: {//input -> Lcd  /////IN V
+			case Kn8b::LCD_IN: {//input -> Lcd  /////IN V
 				text2screen(args.vg, colorIn, 14.f, fstring(module->inV[ix]) + "v");
 				strout = modetxt[operation * 2 + static_cast<int>(module->calcVal[ix]< 0.f)] + fstring(module->calcVal[ix]);
+				nvgGlobalAlpha(args.vg,.5f);
 				text2screen(args.vg, opColor[operation] , 28.f, strout);
 			} break;
-			case 3: {//////////////OUT V
+			case Kn8b::LCD_OUT: {//////////////OUT V
 				ypos = 19.f;
 				if (module->cvcnnctd > 0.f){
 					text2screen(args.vg, colorCv, 14.f, fstring(module->cvVal[ix]) + "v");
@@ -696,7 +713,7 @@ struct Kn8bLCD : TransparentWidget{
 				}
 				text2screen(args.vg, colorOut, ypos, fstring(module->outV[ix]) + "v");
 			} break;
-			case 4: {//thru knobs /////IN V
+			case Kn8b::LCD_INOUT: {//thru knobs /////IN V
 				nvgFontSize(args.vg, mdfontSize - 2.f);
 				text2screen(args.vg, colorIn, 9.f, fstring(module->inV[ix]) + "v");
 				strout = modetxt[operation * 2 + static_cast<int>(module->calcVal[ix]< 0.f)] + fstring(module->calcVal[ix]);
@@ -748,11 +765,6 @@ struct Kn8bWidget : ModuleWidget {
 	Kn8bWidget(Kn8b *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Kn8b.svg")));
-//		if (!module){
-//			app::SvgScrew *prepanel = new app::SvgScrew;
-//			prepanel->setSvg(Svg::load(asset::plugin(pluginInstance, "res/modules/Kn8b_pre.svg")));
-//			addChild(prepanel);
-//		}
 		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 0)));
 		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
