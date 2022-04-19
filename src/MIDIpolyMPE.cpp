@@ -1545,9 +1545,9 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance,"res/modules/MIDIpolyMPE.svg")));
 		//Screws
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 0.f)));
-		addChild(createWidget<ScrewBlack>(Vec(135.f, 0.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 0.f)));
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
-		addChild(createWidget<ScrewBlack>(Vec(135.f, 365.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 365.f)));
 		float xPos = 7.f;
 		float yPos = 19.f;
 		if (module) {

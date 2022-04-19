@@ -17,7 +17,7 @@
  along with this program.  If not, see <https:www.gnu.org/licenses/>.
  */
 #include "moDllzComp.hpp"
-#include <queue>
+//#include <queue>
 struct Kn8b :  Module {
 	enum ParamIds {
 		ENUMS(KNOB_PARAM, 8),
@@ -253,8 +253,8 @@ struct Kn8b :  Module {
 				}
 			}
 		}else{/// no output. Display only
+			if (cvcable || cvtrimcable) updateCalcValCv();
 			if (incable) {
-				if (cvcable || cvtrimcable) updateCalcValCv();
 				numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 				lcdClearMode(numInCh);
 				for (int i = 0 ; i < numInCh ; i++){
@@ -293,11 +293,9 @@ struct Kn8b :  Module {
 					cvcable = e.connecting;
 					if (cvcable){
 						cvcnnctd =  1.f;
-						//configMainKnob(1.f,0.f,"v+");
 					}else{
 						paramQuantities[VCA_PARAM]->setValue(0.f);
 						cvcnnctd =  0.f;
-						//configMainKnob(5.f,0.f,"v+");
 					}
 				}break;
 				case (CVTRIM_INPUT) :{
@@ -380,7 +378,6 @@ struct Kn8b :  Module {
 	void vcaMode(bool onoff){
 		vca = onoff;
 		if (vca){
-			//numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
 			numOutCh = numInCh;
 			for (int i = numOutCh; i < 16; i++){
 				lcdmode[i] = 0;
@@ -765,10 +762,10 @@ struct Kn8bWidget : ModuleWidget {
 	Kn8bWidget(Kn8b *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Kn8b.svg")));
-		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
-		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 0)));
-		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
-		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 365)));
+		addChild(createWidget<ScrewBlack>(Vec(0.f, 0.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 0.f)));
+		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 365.f)));
 		float yPos = 18.5f;
 		
 		for (int i = 0 ; i < 8; i++){

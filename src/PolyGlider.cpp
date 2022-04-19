@@ -555,10 +555,10 @@ struct PolyGliderWidget : ModuleWidget {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/PolyGlider.svg")));
 		/// Screws
-		addChild(createWidget<ScrewBlack>(Vec(0, 0)));
-		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 0)));
-		addChild(createWidget<ScrewBlack>(Vec(0, 365)));
-		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15, 365)));
+		addChild(createWidget<ScrewBlack>(Vec(0.f, 0.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 0.f)));
+		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 365.f)));
 		/// Gliding LEDs
 		float yPos = 21.f;
 		for ( int i = 0 ; i < 16; i++){
