@@ -105,6 +105,8 @@ struct Kn8b :  Module {
 		json_object_set_new(rootJ, jname.c_str(), json_integer(chOffset));
 		jname = "numOutCh";
 		json_object_set_new(rootJ, jname.c_str(), json_integer(numOutCh));
+		jname = "sampleRateWork";
+		json_object_set_new(rootJ, jname.c_str(), json_boolean(sampleRateWork));
 		return rootJ;
 	}
 	///////////////////////////////////////////////////////////////////////////////////
@@ -128,6 +130,9 @@ struct Kn8b :  Module {
 		jname = "numOutCh";
 		jsaved = json_object_get(rootJ, jname.c_str());
 		if (jsaved) numOutCh = json_integer_value(jsaved);
+		jname = "sampleRateWork";
+		jsaved = json_object_get(rootJ, jname.c_str());
+		if (jsaved) sampleRateWork = json_boolean_value(jsaved);
 		
 		vcaMode((params[VCA_PARAM].getValue() > 0.f));
 	}
