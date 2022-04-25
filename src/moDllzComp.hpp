@@ -290,3 +290,34 @@ struct SvgBuffered : widget::Widget {
 	SvgBuffered();
 	void setSvg(std::shared_ptr<window::Svg> svg);
 };
+
+struct sharedXpander {
+	sharedXpander(){
+		instances++;
+	}
+	~sharedXpander(){
+		instances++;
+	}
+	static int instances;
+	static int xpanders;
+	static int xpandch[4];
+	static int xpandnum[4];
+	static float xpPitch[4][16];
+	static float xpGate[4][16];
+	static float xpVel[4][16];
+	static float xpDetP[4][16];
+	static float xpNafT[4][16];
+	static float xpRvel[4][16];
+	static float xpLed[4][16];
+};
+//json_t *dataToJson() override {
+//		json_object_set_new(rootJ, "midi", midiInput.toJson());
+//}
+//void dataFromJson(json_t *rootJ) override {
+//		json_t* midiJ = json_object_get(rootJ, "midi");
+//		if (midiJ) midiInput.fromJson(midiJ);
+//}
+//Midi button w Menu
+//transparentMidiButton* midiButton = createWidget<transparentMidiButton>(Vec(xPos,yPos));
+//midiButton->setMidiPort(&module->midiInput);
+//addChild(midiButton);

@@ -157,7 +157,6 @@ struct Kn8b :  Module {
 			configParam(KNOB_PARAM + i, -1.f, 1.f, 0.f,"Knob "+std::to_string(i + 1),"v",0.f,5.f);
 		}
 	}
-	
 	void initKnobs(){
 		for (int i = 0; i<16 ; i++){
 			chOffset = 0;
@@ -177,23 +176,18 @@ struct Kn8b :  Module {
 		knobsPage();
 		paramQuantities[MAINKNOB_PARAM]->setSmoothValue(0.f);
 	}
-	
 	void onReset() override {
 		initKnobs();
 	}
-	
 	void onRandomize(const RandomizeEvent& e) override {}
-
 	void onSampleRateChange() override {
 		setProcessRate(sampleRateWork);
 	}
-	
 	void setProcessRate(bool srw){
 		sampleRateWork = srw;
 		if (srw) PROCESS_RATE = 0;
 		else PROCESS_RATE = static_cast<int>(APP->engine->getSampleRate() * processMs);
 	}
-	
 	void process(const ProcessArgs &args) override{
 		if (vca) {
 			numInCh = std::max(inputs[MAIN_INPUT].getChannels(), 1);
@@ -274,7 +268,6 @@ struct Kn8b :  Module {
 			}
 		}
 	}
-	
 	void onPortChange(const PortChangeEvent& e) override{
 		if (e.type == Port::INPUT) {
 			switch (e.portId) {
@@ -314,7 +307,6 @@ struct Kn8b :  Module {
 		}
 		Module::onPortChange(e);
 	}
-	
 	void updateCalcValCv(){
 		float cvtrim = inputs[CVTRIM_INPUT].getVoltage() * 0.1f;
 		float calcTrim = cvtrimcnnctd * trimVal * cvtrim + (1.f - cvtrimcnnctd) * trimVal;
@@ -326,18 +318,15 @@ struct Kn8b :  Module {
 		}
 		lights[TRIM_LIGHT].setBrightness(std::abs(calcTrim));
 	}
-	
 	void updateKnobVal(int i){
 		float opin = operation[i] * incnnctd;// + (1.f - incnnctd);// 0+ or 1x if connected 0 disc
 		float op = (1.f - opin) * 5.f + opin; //5 + or 1 x
 		calcKnob[i] = op * (knobVal[i] + polarity[i]);
 		calcVal[i] = trimop * calcKnob[i] * trimVal + (1.f - trimop) * (calcKnob[i] + trimVal * 5.f);;
 	}
-	
 	float inThruOp(int i){
 		return  (1.f - operation[i]) * (inV[i] + calcVal[i]) + operation[i] * inV[i] * calcVal[i];
 	}
-	
 	void knobsPage(){
 		for (int i = 0; i < 8 ; i++){
 			knobsInfo(i);
@@ -354,7 +343,6 @@ struct Kn8b :  Module {
 		paramQuantities[pid]->unit= btnunits[static_cast<int>(op)];
 		paramQuantities[pid]->defaultValue= -polarity[i+chOffset];;
 	}
-	
 	void lcdClearMode(int numCh){
 		if (numCh != numChMem){
 			numChMem = numCh;
@@ -363,7 +351,6 @@ struct Kn8b :  Module {
 			}//clean up Lcd status
 		}
 	}
-	
 	void knobsUniBipolar(float ub , int ifrom, int ito){
 		for (int i = ifrom; i< ito; i++){
 			polarity[i] = ub;
@@ -371,7 +358,6 @@ struct Kn8b :  Module {
 			updateKnobVal(i);
 		}
 	}
-	
 	void knobsSumProd(float op , int ifrom, int ito){
 		for (int i = ifrom; i< ito; i++){
 			operation[i] = op;
@@ -379,7 +365,6 @@ struct Kn8b :  Module {
 			updateKnobVal(i);
 		}
 	}
-	
 	void vcaMode(bool onoff){
 		vca = onoff;
 		if (vca){
@@ -443,7 +428,6 @@ struct Knob26x : moDllzKnob26  {
 		}
 	}
 };
-
 struct Knob26G : Knob26x  {
 	void onChange(const ChangeEvent& e) override{
 		if (!module) return;
@@ -458,7 +442,6 @@ struct Knob26G : Knob26x  {
 		}
 	}
 };
-
 struct btn_page : SvgSwitch {
 	btn_page() {
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/buttons/btn_page.svg")));
@@ -566,8 +549,7 @@ struct btn_prod : SvgSwitch {
 		SvgSwitch::onDragEnd(e);
 	}
 };
-//trim mode
-struct Trim_mode : moDllzSwitch {
+struct Trim_mode : moDllzSwitch {//trim mode
 	Kn8b *module = nullptr;
 
 	void onChange(const ChangeEvent& e) override {
@@ -583,9 +565,7 @@ struct Trim_mode : moDllzSwitch {
 		moDllzSwitch::onChange(e);
 	}
 };
-
-////LCD
-struct Kn8bLCD : TransparentWidget{
+struct Kn8bLCD : TransparentWidget{////LCD
 	Kn8bLCD() {}
 	Kn8b *module = nullptr;
 	std::shared_ptr<Font> font;
@@ -602,7 +582,6 @@ struct Kn8bLCD : TransparentWidget{
 	NVGcolor colorCv = nvgRGB(0xdd, 0xdd, 0x00);
 	NVGcolor colorNoConn = nvgRGB(0x88, 0x88, 0x88);
 	NVGcolor opColor[2] = {nvgRGB(0xff, 0x99, 0x66), nvgRGB(0xff, 0x44, 0x44)};
-	
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if ((!module) || (layer != 1)) return;
 		font = APP->window->loadFont(mFONT_FILE);
@@ -740,9 +719,8 @@ struct Kn8bLCD : TransparentWidget{
 			int line = static_cast<int>(e.pos.y / 11.f);
 			int ix = id + module->chOffset;
 			switch (line) {
-				case 0 : {
+				case 0 :
 					module->numOutCh = ix + 1;
-				}
 					break;
 				case 1 : {
 					float op = (module->operation[ix] > 0.f)? 0.f : 1.f;
@@ -758,11 +736,9 @@ struct Kn8bLCD : TransparentWidget{
 		}
 	}
 };
-
-
 //////////////////////////////////////////////////////////////////////////////////////
-///// MODULE WIDGET
-///////////////////
+///////////// MODULE WIDGET
+//////////////////////////////////////////////////////////////////////////////////////
 struct Kn8bWidget : ModuleWidget {
 	Kn8bWidget(Kn8b *module){
 		setModule(module);
@@ -772,7 +748,6 @@ struct Kn8bWidget : ModuleWidget {
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 365.f)));
 		float yPos = 18.5f;
-		
 		for (int i = 0 ; i < 8; i++){
 			Kn8bLCD *MccLCD = createWidget<Kn8bLCD>(Vec(41.f,yPos));
 			MccLCD->box.size = {74.f, 33.f};
@@ -790,11 +765,9 @@ struct Kn8bWidget : ModuleWidget {
 			addParam(knb);
 			yPos += 35.f;
 		}
-		
 		yPos = 301.5;
 		addInput(createInput<moDllzPolyI>(Vec(9.5f, yPos),  module, Kn8b::CV_INPUT));
 		addInput(createInput<moDllzPortI>(Vec(36.f, yPos),  module, Kn8b::CVTRIM_INPUT));
-		
 		{
 			Knob26G* knb = new Knob26G;
 			knb->box.pos = Vec(66.5f, yPos + 1.5f);
@@ -805,7 +778,6 @@ struct Kn8bWidget : ModuleWidget {
 			knb->addChild(createLight<RedLed2>(Vec(-4.f, 13.f), module, Kn8b::TRIM_LIGHT));
 			addParam(knb);
 		}
-		
 		{///Trim mode
 			Trim_mode *sw = createWidget<Trim_mode>(Vec(105.f, yPos + 2.5f));
 			sw->module = module;
@@ -814,7 +786,6 @@ struct Kn8bWidget : ModuleWidget {
 			sw->initParamQuantity();
 			addParam(sw);
 		}
-		
 		yPos = 334.f;
 		float xPos = 34.f;
 		{
@@ -865,19 +836,14 @@ struct Kn8bWidget : ModuleWidget {
 			bt->initParamQuantity();
 			addParam(bt);
 		}
-		
 		yPos = 331.5f;
-
 		addInput(createInput<moDllzPolyI>(Vec(6.f, yPos),  module, Kn8b::MAIN_INPUT));
 		addOutput(createOutput<moDllzPolyO>(Vec(91.f, yPos),  module, Kn8b::MAIN_OUTPUT));
 	}
-	
 	void appendContextMenu(Menu *menu) override {
 		Kn8b *module = dynamic_cast<Kn8b*>(this->module);
 		assert(module);
-		
 		menu->addChild(new MenuSeparator());
-		
 		if (module->vca){
 			menu->addChild(createMenuLabel("Processing rate (VCA)"));
 		}else{
@@ -895,5 +861,4 @@ struct Kn8bWidget : ModuleWidget {
 		}
 	}
 };
-
 Model *modelKn8b = createModel<Kn8b, Kn8bWidget>("Kn8b");

@@ -55,3 +55,16 @@ void SvgBuffered::setSvg(std::shared_ptr<window::Svg> svg) {
 	fb->box.size = sw->box.size;
 	box.size = sw->box.size;
 }
+
+int sharedXpander::instances = 0;
+int sharedXpander::xpanders = 0;
+int sharedXpander::xpandch[4] = {0};
+int sharedXpander::xpandnum[4] = {0};
+float sharedXpander::xpPitch[4][16] = {{0.f}};
+float sharedXpander::xpGate[4][16] = {{0.f}};
+float sharedXpander::xpVel[4][16] = {{0.f}};
+float sharedXpander::xpDetP[4][16] = {{0.f}};
+float sharedXpander::xpNafT[4][16] = {{0.f}};
+float sharedXpander::xpRvel[4][16] = {{0.f}};
+float sharedXpander::xpLed[4][16] = {{0.f}};
+
