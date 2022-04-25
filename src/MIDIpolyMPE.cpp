@@ -1,5 +1,5 @@
 /*
- MIDI8MPE : Midi to 16ch CV with MPE and regular Polyphonic modes
+ MIDIpolyMPE.cpp : Midi to 16ch CV with MPE and Polyphonic modes
  
  Copyright (C) 2019 Pablo Delaloza.
  
@@ -1297,7 +1297,7 @@ struct PolyModeDisplay : TransparentWidget {
 	unsigned char redSel = 0x7f;
 	NVGcolor baseG = nvgRGB(0xdd, 0xdd, 0xdd);
 	NVGcolor redR = nvgRGB(0xff, 0x00, 0x00);
-	NVGcolor itemColor[11];
+	NVGcolor itemColor[12];
 	float outboundX[5] = {0.f, 23.5f,52.5f,93.f,113.f};//xPos note min,max .. vel min, max
 	bool canlearn = true;
 	void drawLayer(const DrawArgs &args, int layer) override {
@@ -1313,15 +1313,12 @@ struct PolyModeDisplay : TransparentWidget {
 		sPM_noteMax = noteName[module->dataMap[MIDIpolyMPE::PM_noteMax] % 12] + std::to_string((module->dataMap[MIDIpolyMPE::PM_noteMax] / 12) - 2);
 		sPM_velMin = std::to_string(module->dataMap[MIDIpolyMPE::PM_velMin]);
 		sPM_velMax = std::to_string(module->dataMap[MIDIpolyMPE::PM_velMax]);
-		for (int i = 0; i < 11 ; i++){
+		for (int i = 0; i < 12 ; i++){
 			itemColor[i] = baseG;
 		}
 		if ((!module->MPEmode) && (module->xpanderId>-1) && (sharedXpander::xpandnum[module->xpanderId]>0)){
-//			nvgBeginPath(args.vg);
-//			nvgRoundedRect(args.vg, 52.f, 14.f, 28.f, 12.f, 3.f);
-//			nvgFillColor(args.vg,nvgRGBA(0, 0xff, 0,0x44));
-//			nvgFill(args.vg);
-			itemColor[10] = nvgRGB(0x00, 0xff, 0x00);;
+			itemColor[10] = nvgRGB(0x00, 0xff, 0x00);
+			itemColor[11] = nvgRGB(0x00, 0xff, 0x00);
 		}
 		nvgBeginPath(args.vg);
 		canlearn = true;
@@ -1341,6 +1338,7 @@ struct PolyModeDisplay : TransparentWidget {
 				nvgRoundedRect(args.vg, 1.f, 14.f, 52.f, 12.f, 3.f);
 				canlearn = false;
 				itemColor[1] = redR;
+				itemColor[11] = redR;
 			}break;
 			case MIDIpolyMPE::PM_xpander:{///Xpander
 				nvgRoundedRect(args.vg, 52.f, 14.f, 28.f, 12.f, 3.f);
@@ -1395,15 +1393,18 @@ struct PolyModeDisplay : TransparentWidget {
 		if (module->MPEmode){
 			nvgTextBox(args.vg, 1.f, 24.f, 134.f, ("voice ch PBend: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_pbMPE])).c_str(), NULL);
 		}else{
-			nvgTextBox(args.vg, 1.f, 24.f, 52.f, ("Voices:" + std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh] * module->xpand2x)).c_str(), NULL);
+			std::string voi = "Voices:";
+			nvgTextBox(args.vg, 1.f, 24.f, 38.f, voi.c_str(), NULL);
+			nvgFillColor(args.vg, itemColor[11]);///voicenumber
+			nvgTextBox(args.vg, 38.f, 24.f, 14.f, (std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh] * module->xpand2x)).c_str(), NULL);
 			nvgFillColor(args.vg, itemColor[10]);///Xpander
-			nvgTextBox(args.vg, 52.f, 24.f, 28.f,("xp:" + xpandStr[module->dataMap[MIDIpolyMPE::PM_xpander]]).c_str(), NULL);
+			nvgTextBox(args.vg, 52.f, 24.f, 28.f,("xp." + xpandStr[module->dataMap[MIDIpolyMPE::PM_xpander]]).c_str(), NULL);
 			if (module->UNImode){
 				nvgFillColor(args.vg, itemColor[2]);///spread
-				nvgTextBox(args.vg, 80.f, 24.f, 54.f, ("Sprd:" + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread])).c_str(), NULL);
+				nvgTextBox(args.vg, 80.f, 24.f, 54.f, ("Sprd: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread])).c_str(), NULL);
 			}else{
 				nvgFillColor(args.vg, itemColor[3]);///steal
-				nvgTextBox(args.vg, 80.f, 24.f, 54.f, ("Steal:" + stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]]).c_str(), NULL);
+				nvgTextBox(args.vg, 80.f, 24.f, 54.f, ("Steal: " + stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]]).c_str(), NULL);
 			}
 		}
 		nvgFillColor(args.vg, itemColor[4]);//note
@@ -1713,8 +1714,7 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->canlearn = false;
 				addChild(MccLCD);
 			}
-			// CC's x 8
-			for ( int i = 0; i < 8; i++){
+			for ( int i = 0; i < 8; i++){// CC's x 8
 				xPos = 10.5f + (float)(i % 4) * 33.f;
 				yPos = 283.f + (float)((int)((float)i * 0.25f) % 4) * 40.f;
 				MIDIccLCDbutton *MccLCD = createWidget<MIDIccLCDbutton>(Vec(xPos,yPos));
@@ -1723,15 +1723,14 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 				MccLCD->buttonId = MIDIpolyMPE::PM_midiCCs + i;
 				MccLCD->canlearn = true;
 				addChild(MccLCD);
-			}
-			//dataEntry
+			}//dataEntryLed
 			DataEntryOnLed *dataEntryOnLed = createWidget<DataEntryOnLed>(Vec(21.5f,107.5f));
 			dataEntryOnLed->cursorIx = &module->cursorIx;
 			addChild(dataEntryOnLed);
 		}///end if module
+		////DATA KNOB + -
 		yPos = 110.5f;
 		xPos = 57.f;
-		////DATA KNOB + -
 		dataKnob * knb = new dataKnob;
 		knb->box.pos = Vec(xPos, yPos);
 		knb->module = module;
@@ -1787,12 +1786,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-		if (module){
-			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-			MccLCD->box.size = {15.f, 15.f};
-			MccLCD->intVal = &module->xpanderId;
-			addChild(MccLCD);
-		}
+//		if (module){
+//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
+//			MccLCD->box.size = {15.f, 15.f};
+//			MccLCD->intVal = &module->xpanderId;
+//			addChild(MccLCD);
+//		}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");

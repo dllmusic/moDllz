@@ -1,5 +1,5 @@
 /*
- PolyGlider: Poly slew limiter
+ PolyGlider.cpp : Poly slew limiter
  Copyright (C) 2019 Pablo Delaloza.
  
  This program is free software: you can redistribute it and/or modify

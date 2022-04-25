@@ -1,7 +1,7 @@
 /*
- MIDIdualCV converts upper/lower midi note to dual CV
+ Kn8b.cpp : Multichannel attenuator/inverter with value display and VCA mode
  
- Copyright (C) 2019 Pablo Delaloza.
+ Copyright (C) 2022 Pablo Delaloza.
  
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by

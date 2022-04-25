@@ -1,7 +1,7 @@
 /*
- MIDIdualCV converts upper/lower midi note to dual CV
+ Xpand.cpp : Voice & Outputs expander for MIDIpolyMPE
  
- Copyright (C) 2019 Pablo Delaloza.
+ Copyright (C) 2022 Pablo Delaloza.
  
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -37,7 +37,6 @@ struct Xpand  :  Module {
 		ENUMS(CH_LIGHT, 16),
 		NUM_LIGHTS
 	};
-	
 	int numChPre = 0;
 	int ProcessFrame = 0;
 	int PROCESS_RATE = static_cast<int>(APP->engine->getSampleRate() * 0.0005); //.5ms
@@ -70,7 +69,6 @@ struct Xpand  :  Module {
 	void onSampleRateChange() override {
 		PROCESS_RATE = static_cast<int>(APP->engine->getSampleRate() * 0.0005); //.5ms
 	}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////   P  R  O  C  E  S  S   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,17 +112,17 @@ struct XpanderLCD : OpaqueWidget {
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
 		nvgFillColor(args.vg, nvgRGBA(0xff, 0xff, 0xff, 0x66));
 		for (int i = 0; i < 4 ; i++){
-			nvgTextBox(args.vg,1.f + 12.f * static_cast<float>(i),15.f,12.f,(strId[i]).c_str(),NULL);
+			nvgTextBox(args.vg,1.f + 12.f * static_cast<float>(i),15.5f,12.f,(strId[i]).c_str(),NULL);
 		}
 		float xsel= 12.f * static_cast<float>(module->xpanderId);
 		if (sharedXpander::xpandch[module->xpanderId]>0){
-		nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x16));
-		for (int i = 0 ; i<6 ;i++){
+		nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x12));
+		for (int i = 0 ; i<4 ;i++){
 			float fi = static_cast<float>(i);
-			float xfi = xsel + 1.f - fi;
-			float yfi = 2.f - fi;
-			float xbi = 12.f + fi * 2.f;
-			float ybi = 13.f + fi * 2.f;
+			float xfi = xsel + 2.f - fi;
+			float yfi = 5.f - fi;
+			float xbi = 10.f + fi * 2.f;
+			float ybi = 12.f + fi * 2.f;
 			nvgBeginPath(args.vg);
 			nvgRoundedRect(args.vg, xfi, yfi, xbi, ybi ,3.f + fi) ;
 			nvgFill(args.vg);
@@ -133,7 +131,7 @@ struct XpanderLCD : OpaqueWidget {
 		}else{
 			nvgFillColor(args.vg, nvgRGB(0xee, 0xee, 0xee));
 		}
-		nvgTextBox(args.vg,1.f +xsel ,15.f ,12.f ,(strId[module->xpanderId]).c_str(),NULL);
+		nvgTextBox(args.vg,1.f +xsel ,15.5f ,12.f ,(strId[module->xpanderId]).c_str(),NULL);
 	}
 	void onButton(const event::Button &e) override {
 		if ((e.button != GLFW_MOUSE_BUTTON_LEFT) || (e.action != GLFW_PRESS)) return;/////// R E T
@@ -150,17 +148,12 @@ struct XpandWidget : ModuleWidget {
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Xpand.svg")));
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 0.f)));
-		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 0.f)));
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
-		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 365.f)));
 		float yPos, xPos;
 		yPos = 42.f;
 		xPos = 14.f;
-		for (int i = 0; i < 4; i++){
-			for (int j = 0; j < 4; j++){
-				
-			addChild(createLight<VoiceChGreenLed>(Vec(xPos + j * 10.f, yPos + i * 6.f), module, Xpand::CH_LIGHT + i * 4.f + j));
-			}
+		for (int i = 0; i < 16; i++){
+			addChild(createLight<VoiceChGreenLed>(Vec(xPos + i%4 * 10.f, yPos + i/4 * 6.f), module, Xpand::CH_LIGHT + i));
 		}
 		yPos = 104.5;
 		for (int i = 0; i < 6; i++){
@@ -168,20 +161,17 @@ struct XpandWidget : ModuleWidget {
 			yPos+= 45.f;
 		}
 		if (module){
-		
 				XpanderLCD *xpLCD = createWidget<XpanderLCD>(Vec(5.f,17.f));
 				xpLCD->box.size = {50.f, 50.f};
 				xpLCD->module = module;
 				addChild(xpLCD);
-			for (int i = 0; i<4; i++){
-				ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(15.f * i,0.f));
-				MccLCD->box.size = {15.f, 15.f};
-				MccLCD->intVal = &sharedXpander::xpandnum[i];
-				addChild(MccLCD);
+//			for (int i = 0; i<4; i++){
+//				ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(15.f * i,0.f));
+//				MccLCD->box.size = {15.f, 15.f};
+//				MccLCD->intVal = &sharedXpander::xpandnum[i];
+//				addChild(MccLCD);
+//			}
 			}
-			
-		}
-			
 	}
 };
 Model *modelXpand = createModel<Xpand, XpandWidget>("Xpand");
