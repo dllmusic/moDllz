@@ -116,15 +116,13 @@ struct XpanderLCD : OpaqueWidget {
 		}
 		float xsel= 12.f * static_cast<float>(module->xpanderId);
 		if (sharedXpander::xpandch[module->xpanderId]>0){
-		nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x12));
-		for (int i = 0 ; i<4 ;i++){
+		nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x16));
+		for (int i = 0 ; i<3 ;i++){
 			float fi = static_cast<float>(i);
-			float xfi = xsel + 2.f - fi;
-			float yfi = 5.f - fi;
 			float xbi = 10.f + fi * 2.f;
 			float ybi = 12.f + fi * 2.f;
 			nvgBeginPath(args.vg);
-			nvgRoundedRect(args.vg, xfi, yfi, xbi, ybi ,3.f + fi) ;
+			nvgRoundedRect(args.vg, 2.f + xsel - fi , 5.f - fi, xbi, ybi ,3.f + fi) ;
 			nvgFill(args.vg);
 		}
 			nvgFillColor(args.vg, nvgRGB(0x00, 0xff, 0x00));
@@ -134,7 +132,7 @@ struct XpanderLCD : OpaqueWidget {
 		nvgTextBox(args.vg,1.f +xsel ,15.5f ,12.f ,(strId[module->xpanderId]).c_str(),NULL);
 	}
 	void onButton(const event::Button &e) override {
-		if ((e.button != GLFW_MOUSE_BUTTON_LEFT) || (e.action != GLFW_PRESS)) return;/////// R E T
+		if ((e.button != GLFW_MOUSE_BUTTON_LEFT) || (e.action != GLFW_PRESS) || (e.pos.y > 16.f)) return;/////// R E T U R N !!!!
 		sharedXpander::xpandnum[module->xpanderId]--;
 		module->xpanderId = static_cast<int>(e.pos.x / 12.5f);
 		sharedXpander::xpandnum[module->xpanderId]++;
@@ -147,7 +145,7 @@ struct XpandWidget : ModuleWidget {
 		XpandWidget(Xpand *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Xpand.svg")));
-		addChild(createWidget<ScrewBlack>(Vec(0.f, 0.f)));
+		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 0.f)));
 		addChild(createWidget<ScrewBlack>(Vec(0.f, 365.f)));
 		float yPos, xPos;
 		yPos = 42.f;

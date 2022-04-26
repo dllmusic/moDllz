@@ -1285,7 +1285,7 @@ struct PolyModeDisplay : TransparentWidget {
 		"M. P. E. Haken Continuum",
 		"C H A N N E L"
 	};
-	std::string xpandStr[9] = {"--","A+","Ax","B+","Bx","C+","Cx","D+","Dx"};
+	std::string xpandStr[9] = {"Xpnd","Xp A","Xp Ax","Xp B","Xp Bx","Xp C","Xp Cx","Xp D","Xp Dx"};
 	std::string stealStr[5] {"Old","New","Low","Hi","No"};
 	std::string noteName[12] = {"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
 	int drawFrame = 0;
@@ -1316,10 +1316,23 @@ struct PolyModeDisplay : TransparentWidget {
 		for (int i = 0; i < 12 ; i++){
 			itemColor[i] = baseG;
 		}
-		if ((!module->MPEmode) && (module->xpanderId>-1) && (sharedXpander::xpandnum[module->xpanderId]>0)){
-			itemColor[10] = nvgRGB(0x00, 0xff, 0x00);
-			itemColor[11] = nvgRGB(0x00, 0xff, 0x00);
+		if (sharedXpander::xpanders < 1) itemColor[10] = nvgRGB(0x77, 0x77, 0x77);
+		if ((!module->MPEmode) && (module->xpanderId>-1)){
+			if(sharedXpander::xpandnum[module->xpanderId]>0){
+				nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x16));
+				for (int i = 0 ; i<3 ;i++){
+					float fi = static_cast<float>(i);
+					float xbi = 38.f + fi * 2.f;
+					float ybi = 11.f + fi * 2.f;
+					nvgBeginPath(args.vg);
+					nvgRoundedRect(args.vg, 41.f - fi , 15.f - fi, xbi, ybi ,3.f + fi) ;
+					nvgFill(args.vg);
+				}
+				itemColor[10] = nvgRGB(0x00, 0xff, 0x00);
+				itemColor[11] = nvgRGB(0x00, 0xff, 0x00);
+			}
 		}
+		
 		nvgBeginPath(args.vg);
 		canlearn = true;
 		switch (cursorIxI){
@@ -1341,17 +1354,17 @@ struct PolyModeDisplay : TransparentWidget {
 				itemColor[11] = redR;
 			}break;
 			case MIDIpolyMPE::PM_xpander:{///Xpander
-				nvgRoundedRect(args.vg, 52.f, 14.f, 28.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 52.f, 14.f, 29.f, 12.f, 3.f);
 				canlearn = false;
 				itemColor[10] = redR;
 			}break;
 			case MIDIpolyMPE::PM_spread:{///
-				nvgRoundedRect(args.vg, 80.f, 14.f, 54.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 81.f, 14.f, 53.f, 12.f, 3.f);
 				canlearn = false;
 				itemColor[2] = redR;
 			}break;
 			case MIDIpolyMPE::PM_stealMode:{ //stealMode
-				nvgRoundedRect(args.vg, 80.f, 14.f, 54.f, 12.f, 3.f);
+				nvgRoundedRect(args.vg, 81.f, 14.f, 53.f, 12.f, 3.f);
 				canlearn = false;
 				itemColor[3] = redR;
 			}break;
@@ -1398,13 +1411,13 @@ struct PolyModeDisplay : TransparentWidget {
 			nvgFillColor(args.vg, itemColor[11]);///voicenumber
 			nvgTextBox(args.vg, 38.f, 24.f, 14.f, (std::to_string(module->dataMap[MIDIpolyMPE::PM_numVoCh] * module->xpand2x)).c_str(), NULL);
 			nvgFillColor(args.vg, itemColor[10]);///Xpander
-			nvgTextBox(args.vg, 52.f, 24.f, 28.f,("xp." + xpandStr[module->dataMap[MIDIpolyMPE::PM_xpander]]).c_str(), NULL);
+			nvgTextBox(args.vg, 52.f, 24.f, 29.f,(xpandStr[module->dataMap[MIDIpolyMPE::PM_xpander]]).c_str(), NULL);
 			if (module->UNImode){
 				nvgFillColor(args.vg, itemColor[2]);///spread
-				nvgTextBox(args.vg, 80.f, 24.f, 54.f, ("Sprd: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread])).c_str(), NULL);
+				nvgTextBox(args.vg, 81.f, 24.f, 53.f, ("Sprd: " + std::to_string(module->dataMap[MIDIpolyMPE::PM_spread])).c_str(), NULL);
 			}else{
 				nvgFillColor(args.vg, itemColor[3]);///steal
-				nvgTextBox(args.vg, 80.f, 24.f, 54.f, ("Steal: " + stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]]).c_str(), NULL);
+				nvgTextBox(args.vg, 81.f, 24.f, 53.f, ("Steal: " + stealStr[module->dataMap[MIDIpolyMPE::PM_stealMode]]).c_str(), NULL);
 			}
 		}
 		nvgFillColor(args.vg, itemColor[4]);//note
