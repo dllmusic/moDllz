@@ -140,6 +140,7 @@ struct MIDIpolyMPE : Module {
 	int xpanderId = -1;
 	bool xpandAlt = false;
 	int xpand2x = 1;
+	bool foundXpander = false;
 	int learnId = 0;
 	int cursorIx = 0;// main cursor
 	int cursorIxLast = 1;
@@ -413,18 +414,7 @@ struct MIDIpolyMPE : Module {
 				RPcanedit = false;
 				outCh = dataMap[PM_numVoCh];
 				if(xpanderId > -1) sharedXpander::xpandch[xpanderId] = 0;
-				if (dataMap[PM_xpander] > 0){
-					xpanderId = (dataMap[PM_xpander] - 1) / 2 ;
-					xpandAlt = dataMap[PM_xpander]  % 2 != 1;
-					nVoCh = outCh * 2;
-					sharedXpander::xpandch[xpanderId] = outCh;
-					xpand2x = 2;
-				}else{
-					xpanderId = -1;
-					xpandAlt = false;
-					nVoCh = outCh;
-					xpand2x = 1;
-				}
+				xpanderUpdate();
 				outputInfos[Y_OUTPUT]->name = "1V/Oct detuned";
 				outputInfos[Z_OUTPUT]->name = "Note Aftertouch";
 				outputInfos[RVEL_OUTPUT]->name = "Release Velocity";
@@ -543,6 +533,26 @@ struct MIDIpolyMPE : Module {
 			MCCsFilter[i].lambda = lambdaf;
 		}
 		mrPBendFilter.lambda = lambdaf;
+	}
+	void xpanderUpdate(){
+		if (dataMap[PM_xpander] > 0){
+			xpanderId = (dataMap[PM_xpander] - 1) / 2 ;
+			foundXpander = (sharedXpander::xpandnum[xpanderId] > 0);
+			if (foundXpander){
+				xpandAlt = dataMap[PM_xpander]  % 2 != 1;
+				xpand2x = 2;
+				sharedXpander::xpandch[xpanderId] = outCh;
+			}else{
+				xpand2x = 1;
+				xpandAlt = false;
+			}
+		}else{
+			foundXpander = false;
+			xpanderId = -1;
+			xpandAlt = false;
+			xpand2x = 1;
+		}
+		nVoCh = outCh * xpand2x;
 	}
 	float bytetoVolts(uint8_t mididata){
 		return static_cast<float>(mididata) * scaledByte;
@@ -1318,7 +1328,7 @@ struct PolyModeDisplay : TransparentWidget {
 		}
 		if (sharedXpander::xpanders < 1) itemColor[10] = nvgRGB(0x77, 0x77, 0x77);
 		if ((!module->MPEmode) && (module->xpanderId>-1)){
-			if(sharedXpander::xpandnum[module->xpanderId]>0){
+			if(module->foundXpander){
 				nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x16));
 				for (int i = 0 ; i<3 ;i++){
 					float fi = static_cast<float>(i);
@@ -1330,9 +1340,12 @@ struct PolyModeDisplay : TransparentWidget {
 				}
 				itemColor[10] = nvgRGB(0x00, 0xff, 0x00);
 				itemColor[11] = nvgRGB(0x00, 0xff, 0x00);
+			}else{
+				itemColor[10] = nvgRGB(0xff, 0x8f, 0x00);
+				itemColor[11] = nvgRGB(0xff, 0x8f, 0x00);
 			}
+			module->xpanderUpdate();
 		}
-		
 		nvgBeginPath(args.vg);
 		canlearn = true;
 		switch (cursorIxI){
