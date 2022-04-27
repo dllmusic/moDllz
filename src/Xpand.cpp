@@ -17,7 +17,7 @@
  along with this program.  If not, see <https:www.gnu.org/licenses/>.
  */
 #include "moDllzComp.hpp"
-struct Xpand  :  Module {
+struct Xpand : Module {
 	enum ParamIds {
 		NUM_PARAMS
 	};
@@ -69,9 +69,9 @@ struct Xpand  :  Module {
 	void onSampleRateChange() override {
 		PROCESS_RATE = static_cast<int>(APP->engine->getSampleRate() * 0.0005); //.5ms
 	}
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////   P  R  O  C  E  S  S   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////   P  R  O  C  E  S  S   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void process(const ProcessArgs &args) override{
 		if (ProcessFrame++ < PROCESS_RATE) return;/////// R E T U R N ////////////
 		ProcessFrame = 0;
@@ -102,7 +102,7 @@ struct Xpand  :  Module {
 struct XpanderLCD : OpaqueWidget {
 	Xpand *module = nullptr;
 	std::shared_ptr<Font> font;
-	std::string strId[4]= {"A","B","C","D"};
+	std::string strId[6]= {"A","B","C","D","","x"};
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if (layer != 1) return;/////// R E T U R N ////////////
 		font = APP->window->loadFont(mFONT_FILE);
@@ -110,26 +110,32 @@ struct XpanderLCD : OpaqueWidget {
 		nvgFontFaceId(args.vg, font->handle);
 		nvgFontSize(args.vg, 14.f);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
-		nvgFillColor(args.vg, nvgRGBA(0xff, 0xff, 0xff, 0x66));
-		for (int i = 0; i < 4 ; i++){
-			nvgTextBox(args.vg,1.f + 12.f * static_cast<float>(i),15.5f,12.f,(strId[i]).c_str(),NULL);
-		}
 		float xsel= 12.f * static_cast<float>(module->xpanderId);
+		float altx = 0.f;
 		if (sharedXpander::xpandch[module->xpanderId]>0){
-		nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x16));
-		for (int i = 0 ; i<3 ;i++){
-			float fi = static_cast<float>(i);
-			float xbi = 10.f + fi * 2.f;
-			float ybi = 12.f + fi * 2.f;
-			nvgBeginPath(args.vg);
-			nvgRoundedRect(args.vg, 2.f + xsel - fi , 5.f - fi, xbi, ybi ,3.f + fi) ;
-			nvgFill(args.vg);
-		}
+			altx = static_cast<float>(sharedXpander::xpandalt[module->xpanderId]);
+			nvgFillColor(args.vg, nvgRGBA(0x00, 0xff, 0x00, 0x16));
+			for (int i = 0 ; i<3 ;i++){
+				float fi = static_cast<float>(i);
+				float xbi = 10.f + (fi + altx) * 2.f;
+				float ybi = 12.f + fi * 2.f;
+				nvgBeginPath(args.vg);
+				nvgRoundedRect(args.vg, 2.f + xsel - fi - altx , 5.f - fi, xbi, ybi ,3.f + fi) ;
+				nvgFill(args.vg);
+			}
 			nvgFillColor(args.vg, nvgRGB(0x00, 0xff, 0x00));
+			nvgTextBox(args.vg,xsel,15.5f ,14.f ,(strId[module->xpanderId] + strId[4 + sharedXpander::xpandalt[module->xpanderId]]).c_str(),NULL);
 		}else{
 			nvgFillColor(args.vg, nvgRGB(0xee, 0xee, 0xee));
+			nvgTextBox(args.vg,xsel ,15.5f ,14.f ,(strId[module->xpanderId]).c_str(),NULL);
 		}
-		nvgTextBox(args.vg,1.f +xsel ,15.5f ,12.f ,(strId[module->xpanderId]).c_str(),NULL);
+		nvgFillColor(args.vg, nvgRGBA(0xff, 0xff, 0xff, 0x66));
+		for (int i = 0; i < module->xpanderId ; i++){
+			nvgTextBox(args.vg, 12.f * static_cast<float>(i) - altx ,15.5f,14.f,(strId[i]).c_str(),NULL);
+		}
+		for (int i = module->xpanderId + 1 ; i < 4 ; i++){
+			nvgTextBox(args.vg, 12.f * static_cast<float>(i) + altx ,15.5f,14.f,(strId[i]).c_str(),NULL);
+		}
 	}
 	void onButton(const event::Button &e) override {
 		if ((e.button != GLFW_MOUSE_BUTTON_LEFT) || (e.action != GLFW_PRESS) || (e.pos.y > 16.f)) return;/////// R E T U R N !!!!
@@ -142,7 +148,7 @@ struct XpanderLCD : OpaqueWidget {
 ///// MODULE WIDGET
 /////////////////////////////////////////////////////////////////////////////////////
 struct XpandWidget : ModuleWidget {
-		XpandWidget(Xpand *module){
+	XpandWidget(Xpand *module){
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/modules/Xpand.svg")));
 		addChild(createWidget<ScrewBlack>(Vec(box.size.x - 15.f, 0.f)));
@@ -159,17 +165,17 @@ struct XpandWidget : ModuleWidget {
 			yPos+= 45.f;
 		}
 		if (module){
-				XpanderLCD *xpLCD = createWidget<XpanderLCD>(Vec(5.f,17.f));
-				xpLCD->box.size = {50.f, 50.f};
-				xpLCD->module = module;
-				addChild(xpLCD);
-//			for (int i = 0; i<4; i++){
-//				ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(15.f * i,0.f));
-//				MccLCD->box.size = {15.f, 15.f};
-//				MccLCD->intVal = &sharedXpander::xpandnum[i];
-//				addChild(MccLCD);
-//			}
-			}
+			XpanderLCD *xpLCD = createWidget<XpanderLCD>(Vec(5.f,17.f));
+			xpLCD->box.size = {50.f, 50.f};
+			xpLCD->module = module;
+			addChild(xpLCD);
+			//			for (int i = 0; i<4; i++){
+			//				ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(15.f * i,0.f));
+			//				MccLCD->box.size = {15.f, 15.f};
+			//				MccLCD->intVal = &sharedXpander::xpandnum[i];
+			//				addChild(MccLCD);
+			//			}
+		}
 	}
 };
 Model *modelXpand = createModel<Xpand, XpandWidget>("Xpand");

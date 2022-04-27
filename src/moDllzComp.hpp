@@ -302,6 +302,7 @@ struct sharedXpander {
 	static int xpanders;
 	static int xpandch[4];
 	static int xpandnum[4];
+	static int xpandalt[4];
 	static float xpPitch[4][16];
 	static float xpGate[4][16];
 	static float xpVel[4][16];

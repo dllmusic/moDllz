@@ -546,6 +546,7 @@ struct MIDIpolyMPE : Module {
 				xpand2x = 1;
 				xpandAlt = false;
 			}
+			sharedXpander::xpandalt[xpanderId] = static_cast<int>(xpandAlt);
 		}else{
 			foundXpander = false;
 			xpanderId = -1;
@@ -1097,7 +1098,8 @@ struct MIDIpolyMPE : Module {
 								}
 							}else{//same expander ID change mode Alt
 								dataMap[PM_xpander] = updatedval;
-								xpandAlt = dataMap[PM_xpander]  % 2 != 1;
+								xpandAlt = dataMap[PM_xpander] % 2 != 1;
+								sharedXpander::xpandalt[xpanderId] = static_cast<int>(xpandAlt);
 							}
 						}else{
 							dataMap[PM_xpander] = 0;
