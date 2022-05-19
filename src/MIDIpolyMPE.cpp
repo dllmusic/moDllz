@@ -16,8 +16,10 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <https:www.gnu.org/licenses/>.
  */
+#include <queue>
 #include "moDllzComp.hpp"
 struct MIDIpolyMPE : Module {
+	//std::string strVal;
 	enum ParamIds {
 		MINUSONE_PARAM,
 		PLUSONE_PARAM,
@@ -51,6 +53,7 @@ struct MIDIpolyMPE : Module {
 		REUSE_MODE,
 		RESET_MODE,
 		REASSIGN_MODE,
+		RESORT_MODE,
 		SHARE_MODE,
 		DUAL_MODE,
 		UNISON_MODE,
@@ -102,8 +105,9 @@ struct MIDIpolyMPE : Module {
 	int mdriverJx = -1;
 	int mchannelJx = -1;
 	std::string mdeviceJx;
-	std::vector<uint8_t> cachedNotes;// Stolen notes (UNISON_MODE and REASSIGN_MODE cache all played)
+	std::vector<uint8_t> cachedNotes;// Stolen notes ...(UNISON_MODE and REASSIGN_MODE cache all played)
 	std::vector<uint8_t> cachedMPE[32];// MPE stolen notes
+	std::vector<uint8_t> notesOrder;
 	uint8_t notes[32] = {0};
 	float vels[32] = {0.f};
 	float rvels[32] = {0.f};
@@ -451,6 +455,7 @@ struct MIDIpolyMPE : Module {
 		}
 		rotateIndex = -1;
 		cachedNotes.clear();
+		notesOrder.clear();
 	}
 	void initParamsSettings(){
 		dataMap[_noSelection] = 0;
@@ -581,7 +586,18 @@ struct MIDIpolyMPE : Module {
 		}// All taken = send note to cache and steal voice
 		switch (dataMap[PM_stealMode]){
 			case STEAL_OLDEST :{
-				stealIndex = (stealIndex + 1) % nVoCh;
+				if (dataMap[PM_polyModeId]!=RESORT_MODE){
+					stealIndex = (stealIndex + 1) % nVoCh;
+				}else{
+					uint8_t oldest = notesOrder.front();
+					notesOrder.erase(notesOrder.begin());
+					for (int i = 0; i < nVoCh; i++) {
+						if (notes[i] == oldest){
+							stealIndex = i;
+							break;
+						}
+					}
+				}
 			}break;
 			case STEAL_NEWEST : // = keep latest stealIndex
 			break;
@@ -640,22 +656,22 @@ struct MIDIpolyMPE : Module {
 		if (note < dataMap[PM_noteMin]){
 			outofbounds = 1;
 			outboundTimer = 0;
-			goto midiActivity;
+			goto L_midiActivity;
 		}
 		if (note > dataMap[PM_noteMax]){
 			outofbounds = 2;
 			outboundTimer = 0;
-			goto midiActivity;
+			goto L_midiActivity;
 		}
 		if (vel < dataMap[PM_velMin]){
 			outofbounds = 3;
 			outboundTimer = 0;
-			goto midiActivity;
+			goto L_midiActivity;
 		}
 		if (vel > dataMap[PM_velMax]){
 			outofbounds = 4;
 			outboundTimer = 0;
-			goto midiActivity;
+			goto L_midiActivity;
 		}
 		outofbounds = 0;
 		/////////////////
@@ -675,7 +691,7 @@ struct MIDIpolyMPE : Module {
 			} break;
 			case ROTATE_MODE: {
 				int tryIndex = getPolyIndex(rotateIndex);
-				if (tryIndex < 0) goto midiActivity;
+				if (tryIndex < 0) goto L_midiActivity;
 				rotateIndex = tryIndex;
 			} break;
 			case REUSE_MODE: {
@@ -689,43 +705,74 @@ struct MIDIpolyMPE : Module {
 				}
 				if (!reuse) {
 					int tryIndex = getPolyIndex(rotateIndex);
-					if (tryIndex < 0) goto midiActivity;
+					if (tryIndex < 0) goto L_midiActivity;
 					rotateIndex = tryIndex;
 				}
 			} break;
 			case RESET_MODE:
 			case REASSIGN_MODE: {
-				int tryIndex = getPolyIndex(-1);
-				if (tryIndex < 0) goto midiActivity;
+				int tryIndex = getPolyIndex((pedal)? rotateIndex : -1);
+				if (tryIndex < 0) goto L_midiActivity;
 				rotateIndex = tryIndex;
+				notesOrder.push_back(note);
+			} break;
+			case RESORT_MODE: {
+				int tryIndex = getPolyIndex((pedal)? rotateIndex : -1);
+				if (tryIndex < 0) goto L_midiActivity;
+				rotateIndex = tryIndex;
+				notesOrder.push_back(note);
+				int topIx = static_cast<int>(notesOrder.size());
+				bool checkUpper = true;
+				for(int i = tryIndex - 1; i > -1; i--){
+					if(note < notes[i]){
+						notes[i+1] = notes[i];
+						vels[i+1] = vels[i];
+						gates[i+1] = gates[i];
+						hold[i+1] = hold[i];
+						rotateIndex = i;
+						checkUpper = false;
+					}else break;
+				}
+				if (checkUpper){
+					for(int i = tryIndex + 1; i < topIx; i++){
+						if(note > notes[i]){
+							notes[i-1] = notes[i];
+							vels[i-1] = vels[i];
+							gates[i-1] = gates[i];
+							hold[i-1] = hold[i];
+							rotateIndex = i;
+						}else break;
+					}
+				}
+//				strVal = "note "+ std::to_string(rotateIndex+1) +" of "+ std::to_string(notesOrder.size());
 			} break;
 			case SHARE_MODE: {
 				cachedNotes.push_back(note);
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
 				mapShare(retrignow, true, vel);
-			} goto midiActivity;//break;
+			} goto L_midiActivity;//break;
 			case DUAL_MODE: {
 				cachedNotes.push_back(note);
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
 				mapDual(retrignow, true, vel);
-			} goto midiActivity;//break;
+			} goto L_midiActivity;//break;
 			case UNISON_MODE: {
 				cachedNotes.push_back(note);
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f);
 				mapUnison(retrignow, note, vel);
-			} goto midiActivity;//break;
+			} goto L_midiActivity;//break;
 			case UNISONLWR_MODE: {
 				cachedNotes.push_back(note);
 				uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
 				bool retrignow = ((params[RETRIG_PARAM].getValue() > 0.f) && (lnote < notes[0]));
 				mapUnison(retrignow, lnote, vel);
-			} goto midiActivity;//break;
+			} goto L_midiActivity;//break;
 			case UNISONUPR_MODE:{
 				cachedNotes.push_back(note);
 				uint8_t unote = *max_element(cachedNotes.begin(),cachedNotes.end());
 				bool retrignow = (params[RETRIG_PARAM].getValue() > 0.f) && (unote > notes[0]);
 				mapUnison(retrignow, unote, vel);
-			} goto midiActivity;//break;
+			} goto L_midiActivity;//break;
 			default: break;
 		}
 		notes[rotateIndex] = note;
@@ -735,35 +782,24 @@ struct MIDIpolyMPE : Module {
 		if (params[RETRIG_PARAM].getValue() > 0.f) reTrigger[rotateIndex].trigger(1e-3);
 		hold[rotateIndex] = pedal;
 		detuneVoice(rotateIndex);
-	midiActivity:
+	L_midiActivity:
 		midiActivity = vel;
 	}
 	//////////////// M I D I    N O T E   O F F //////////////////////////////////////////////////////////////////////
 	void releaseNote(uint8_t channel, uint8_t note, uint8_t vel) {
-		bool backnote = false;
-		if (!MPEmode) {
-			// Remove the note
-			if (!cachedNotes.empty()) backnote = (note == cachedNotes.back());
-			std::vector<uint8_t>::iterator it = std::find(cachedNotes.begin(), cachedNotes.end(), note);
-			if (it != cachedNotes.end()) cachedNotes.erase(it);
-		}else{
-			if (channel == MPEmasterCh && dataMap[PM_polyModeId]!= CHANNEL_MODE) return;/////// R E T U R N //////////////get channel from dynamic map
-			std::vector<uint8_t>::iterator it = std::find(cachedMPE[channel].begin(), cachedMPE[channel].end(), note);
-			if (it != cachedMPE[channel].end()) cachedMPE[channel].erase(it);
-		}
 		switch (dataMap[PM_polyModeId]) {// default ROTATE_MODE REUSE_MODE RESET_MODE
-			default: {
+			default: {// ALL POLY MODES
+				eraseNote(note);
 				for (int i = 0; i < nVoCh; i++) {
-					if (notes[i] == note) {
-						gates[i] = false;
+					if ((notes[i] == note) && gates[i]) {
+						rvels[i] = bytetoVolts(vel);
 						if (!cachedNotes.empty()) {
 							notes[i] = cachedNotes.back();
 							cachedNotes.pop_back();
-							gates[i] = true;
 							//Retrigger recovered notes
 							if (params[RETRIG_PARAM].getValue() > 1.f) reTrigger[i].trigger(1e-3);
-						}
-						rvels[i] = bytetoVolts(vel);
+						}else gates[i] = false;
+						break;
 					}
 				}
 			} break;
@@ -771,56 +807,46 @@ struct MIDIpolyMPE : Module {
 			case MPEROLI_MODE:
 			case MPEHAKEN_MODE:
 			case CHANNEL_MODE:{
-				if (note == notes[channel]) {
-					if (hold[channel]) {
-						gates[channel] = false;
-					}/// check for cached notes on MPE buffers...
-					else {
+				///erase MPE cached
+				if (channel == MPEmasterCh && dataMap[PM_polyModeId]!= CHANNEL_MODE) return;/////// R E T U R N
+				std::vector<uint8_t>::iterator it = std::find(cachedMPE[channel].begin(), cachedMPE[channel].end(), note);
+				if (it != cachedMPE[channel].end()) cachedMPE[channel].erase(it);
+				if (note == notes[channel] && gates[channel]) {
+						rvels[channel] = bytetoVolts(vel);
 						if (!cachedMPE[channel].empty()) {
 							notes[channel] = cachedMPE[channel].back();
 							cachedMPE[channel].pop_back();
 							//Retrigger recovered notes
 							if (params[RETRIG_PARAM].getValue() > 1.f) reTrigger[channel].trigger(1e-3);
 						}else gates[channel] = false;
-					}
-					rvels[channel] = bytetoVolts(vel);
+					break;
 				}
 			} break;
-			case REASSIGN_MODE: {
-				for( int i = 0 ; i < nVoCh ; i++){
-					if (notes[i] == note) {
-						if (hold[i]){/// don't restack if pedal hold
-							gates[i] = false;
-						}else {
-							int clearii = i;///restack upper voices
-							for (int ii = i; ii < nVoCh - 1; ii++){
-								if (gates[ii+1]) { /// if next is active...
-									notes[ii] = notes[ii + 1];
-									clearii = ii + 1;
-								}else{///next off
-									if (!cachedNotes.empty()) {
-										notes[ii] = cachedNotes.back();
-										cachedNotes.pop_back();
-										//Retrigger recovered notes
-										if (params[RETRIG_PARAM].getValue() > 1.f) reTrigger[channel].trigger(1e-3);
-										clearii = ii + 1;
-										break;
-									}else{//no notes cached
-										gates[ii] = false;
-										clearii = ii;
-										break;
-									}
-								}
-							}
-							for (int iii = clearii; iii < nVoCh; iii++){
-								gates[iii] = false;//gates off upper
-							}
+			case RESORT_MODE:
+			case REASSIGN_MODE:{
+				std::vector<uint8_t>::iterator it = std::find(notesOrder.begin(), notesOrder.end(), note);
+				if (it != notesOrder.end()) notesOrder.erase(it);
+				eraseNote(note);
+				for(int i = 0 ; i < nVoCh ; i++){
+					if ((notes[i] == note) && gates[i]) {
+						rvels[i] = bytetoVolts(vel);
+						if (!cachedNotes.empty()) {
+							notes[i] = cachedNotes.back();
+							cachedNotes.pop_back();
+							notesOrder.push_back(notes[i]);
+							//Retrigger recovered notes
+							if (params[RETRIG_PARAM].getValue() > 1.f) reTrigger[i].trigger(1e-3);
+						}else{//COLLAPSE
+						gates[i] = false;
+						if (!pedal) collapseVoices();
+//							strVal = "note "+ std::to_string(i+1) +" of "+ std::to_string(notesOrder.size());
 						}
 						break;
+						}
 					}
-				}//rvels[i]...(?)... it may be better not to reassign vels
 			} break;
-			case SHARE_MODE:{
+			case SHARE_MODE: {
+				eraseNote(note);
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f);
@@ -828,6 +854,7 @@ struct MIDIpolyMPE : Module {
 				}else emptyVoices(vel);
 			}break;
 			case DUAL_MODE: {
+				eraseNote(note);
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f);
@@ -835,6 +862,7 @@ struct MIDIpolyMPE : Module {
 				}else emptyVoices(vel);
 			}break;
 			case UNISON_MODE: {
+				eraseNote(note);
 				if (!cachedNotes.empty()) {
 					uint8_t backnote = cachedNotes.back();
 					bool retrignow = (params[RETRIG_PARAM].getValue() > 1.f) && (backnote != notes[0]);
@@ -842,6 +870,7 @@ struct MIDIpolyMPE : Module {
 				}else emptyVoices(vel);
 			} break;
 			case UNISONLWR_MODE: {
+				eraseNote(note);
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					uint8_t lnote = *min_element(cachedNotes.begin(),cachedNotes.end());
@@ -850,6 +879,7 @@ struct MIDIpolyMPE : Module {
 				}else emptyVoices(vel);
 			} break;
 			case UNISONUPR_MODE: {
+				eraseNote(note);
 				if (vel > 128) vel = 64;
 				if (!cachedNotes.empty()) {
 					uint8_t unote = *max_element(cachedNotes.begin(),cachedNotes.end());
@@ -859,6 +889,30 @@ struct MIDIpolyMPE : Module {
 			} break;
 		}
 		midiActivity = vel;
+	}
+	void eraseNote(uint8_t note){
+		std::vector<uint8_t>::iterator it = std::find(cachedNotes.begin(), cachedNotes.end(), note);
+		if (it != cachedNotes.end()) cachedNotes.erase(it);
+	}
+	void collapseVoices(){
+		std::queue<int> gateson;
+		for (int i = 0; i < nVoCh ;i++){
+			if (gates[i]) gateson.push(i);
+		}
+		int ig = 0;
+		while (!gateson.empty()){
+		  int ix = gateson.front();
+			notes[ig] = notes[ix];
+			vels[ig] = vels[ix];
+			rvels[ig] = rvels[ix];
+			gates[ig] = true;
+			ig++;
+			gateson.pop();
+		}
+		for (int i = ig; i < nVoCh; i++){
+				gates[i] = false;
+		}
+		rotateIndex = ig - 1;
 	}
 	void detuneVoice(int v){
 			drift[v] = static_cast<float>((rand() % 200  - 100) * dataMap[PM_detune]) * 8.3333e-6;
@@ -898,9 +952,8 @@ struct MIDIpolyMPE : Module {
 	}
 	void mapShare(bool retrig, bool keyon, uint8_t vel){
 		uint8_t notecached = 0;
-		int cachesize = cachedNotes.size();
 		for (int i = 0; i < nVoCh; i++) {
-			notecached = cachedNotes[i % cachesize];
+			notecached = cachedNotes[i % cachedNotes.size()];
 			if (notes[i]!= notecached || (keyon && !gates[i])){
 				notes[i] = notecached;
 				vels[i] = bytetoVolts(vel);
@@ -925,6 +978,30 @@ struct MIDIpolyMPE : Module {
 		for (int i = 0; i < nVoCh; i++) {
 			gates[i] = false;
 			rvels[i] = bytetoVolts(rvel);
+		}
+	}
+	void pressPedal() {////////////// P E D A L  ON /////////////////////////////////////////////////////////////////////////
+		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) {
+			pedal = false;
+			return;/////// R E T U R N ////////////
+		}
+		pedal = true;
+		lights[SUSTHOLD_LIGHT].setBrightness(10.f);
+		for (int i = 0; i < nVoCh; i++) {
+			hold[i] = gates[i];
+		}
+	}
+	void releasePedal() {////////////// P E D A L  OFF /////////////////////////////////////////////////////////////////////////
+		pedal = false;
+		lights[SUSTHOLD_LIGHT].setBrightness(0.f);
+		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) return;/////// R E T U R N ////////////
+		for (int i = 0; i < nVoCh; i++) {
+			hold[i] = false;
+		}
+		switch (dataMap[PM_polyModeId]){
+			case REASSIGN_MODE:
+			case RESORT_MODE:
+				collapseVoices();
 		}
 	}
 	///////////   M I D I    M E S S A G E  ////////////////////////////////////////////////////////////////////////////
@@ -1017,45 +1094,6 @@ struct MIDIpolyMPE : Module {
 			else releasePedal();
 		}
 		PM_midiCCsValues[msg.getNote()] = bytetoVolts(msg.getValue());
-	}
-	void pressPedal() {////////////// P E D A L  ON /////////////////////////////////////////////////////////////////////////
-		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) {
-			pedal = false;
-			return;/////// R E T U R N ////////////
-		}
-		pedal = true;
-		lights[SUSTHOLD_LIGHT].setBrightness(10.f);
-			for (int i = 0; i < nVoCh; i++) {
-				hold[i] = gates[i];
-			}
-	}
-	void releasePedal() {////////////// P E D A L  OFF /////////////////////////////////////////////////////////////////////////
-		if (params[SUSTHOLD_PARAM].getValue() < 0.5f) return;/////// R E T U R N ////////////
-		pedal = false;
-		lights[SUSTHOLD_LIGHT].setBrightness(0.f);
-		if (MPEmode) {//recover cached notes for pressed keys
-			for (int i = 0; i < nVoCh; i++) {
-				if (gates[i] && !cachedMPE[i].empty()) {
-					notes[i] = cachedMPE[i].back();
-					cachedMPE[i].pop_back();
-					bool retrignow = (params[RETRIG_PARAM].getValue() == 2.f);
-					if (retrignow) reTrigger[i].trigger(1e-3);
-				}
-				hold[i] = false;
-			}
-		}else{//recover cached notes for pressed keys
-			for (int i = 0; i < nVoCh; i++) {
-				if (hold[i] && !cachedNotes.empty()) {
-					if  (dataMap[PM_polyModeId] < REASSIGN_MODE){
-						notes[i] = cachedNotes.back();
-						cachedNotes.pop_back();
-						bool retrignow = gates[i] && (params[RETRIG_PARAM].getValue() == 2.f);
-						if (retrignow) reTrigger[i].trigger(1e-3);
-					}
-				}
-				hold[i] = false;
-			}
-		}
 	}
 	////////////////////// CONFIG DATA KNOB //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void configDataKnob(){
@@ -1282,13 +1320,14 @@ struct PolyModeDisplay : TransparentWidget {
 	std::string yyDisplay;
 	std::string zzDisplay;
 	std::shared_ptr<Font> font;
-	std::string polyModeStr[13] = {
+	std::string polyModeStr[14] = {
 		"R O T A T E",
 		"R E U S E",
 		"R E S E T",
-		"R E A S S I G N",
-		"S T A C K & S H A R E",
-		"D U A L <lower >upper",
+		"R E P A C K",
+		"S O R T",
+		"S T A C K - S H A R E",
+		"S T A C K - D U A L",
 		"U N I S O N",
 		"U N I S O N <lower",
 		"U N I S O N >upper",
@@ -1351,7 +1390,7 @@ struct PolyModeDisplay : TransparentWidget {
 		nvgBeginPath(args.vg);
 		canlearn = true;
 		switch (cursorIxI){
-			case 0: goto noFocus;
+			case 0: goto L_noFocus;
 			case MIDIpolyMPE::PM_polyModeId:{ // PolyMode
 				nvgRoundedRect(args.vg, 1.f, 1.f, 134.f, 12.f, 3.f);
 				canlearn = false;
@@ -1404,14 +1443,14 @@ struct PolyModeDisplay : TransparentWidget {
 				itemColor[9] = redR;
 			}break;
 			default:{
-				goto noFocus;
+				goto L_noFocus;
 			}
 		}
 		if (timedFocus > 0)	timedFocus  -=2;
 		redSel = (canlearn)? (redSel + 24) % 256 : 0x7f;
 		nvgFillColor(args.vg, nvgRGBA(redSel, 0, 0, alphabck + timedFocus)); //SELECTED
 		nvgFill(args.vg);
-	noFocus://///////////////////////////////////////////////////////////////////// L A B E L  noFocus
+	L_noFocus://///////////////////////////////////////////////////////////////////// L A B E L  noFocus
 		nvgFontSize(args.vg, mdfontSize);
 		nvgFontFaceId(args.vg, font->handle);
 		nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
@@ -1816,8 +1855,8 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 		}
 //		if (module){
 //			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-//			MccLCD->box.size = {15.f, 15.f};
-//			MccLCD->intVal = &module->xpanderId;
+//			MccLCD->box.size = {box.size.x, 15.f};
+//			MccLCD->strVal = &module->strVal;
 //			addChild(MccLCD);
 //		}
 	}

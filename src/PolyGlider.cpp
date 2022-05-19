@@ -73,7 +73,7 @@ struct PolyGlider : Module {
 	float g_threshdiff[16] = {0.f};
 	float g_shape[16] = {1.f};
 	int g_cvstate[16] = {0};
-	bool g_newgate[16] = {false};
+	bool g_newgate[16] = {true};
 	int g_lapseframe[16] = {0};
 	int g_led[16] = {0};
 	int g_ledlapse[16] = {0};
@@ -92,7 +92,6 @@ struct PolyGlider : Module {
 	float fallcvconnected = 0.f;// 0.f or 1.f
 	float shapecvconnected = 0.f;// 0.f or 1.f
 	float cshape = 1.f;
-	bool gateinconnected = false;
 	bool threshmode;
 	float threshold;
 	int lapsemax = 0;
@@ -123,6 +122,7 @@ struct PolyGlider : Module {
 			g_ledlapse[i] = 0;
 			g_threLed[i] = 0;
 			g_lapseframe[i] = 0;
+			g_newgate[i] = true;
 		}
 	}
 	void setThreshold(float vt){
@@ -187,19 +187,19 @@ void PolyGlider::process(const ProcessArgs &args) {
 		follow[2] = inputs[EXT_INPUT].getVoltage(voCh);
 		g_in[voCh] = inputs[IN_INPUT].getVoltage(voCh);
 		/// check Gate Input
-		if (gateinconnected){
+		if (inputs[GATE_INPUT].isConnected()){
 			if (inputs[GATE_INPUT].getVoltage(voCh) > 5.f) {
-				if (!g_newgate[voCh]){
-					g_newgate[voCh] = true;
+				if (g_newgate[voCh]){
+					g_newgate[voCh] = false;
 					g_out[voCh] = g_in[voCh];
 					g_risegate[voCh] = 0.f;
 					g_fallgate[voCh] = 0.f;
 					g_shapeout[voCh] = 0.f;
 					g_lapseframe[voCh] = 0;
-					goto glideSkip;
+					goto L_glideSkip;
 				}
 			}else{
-				g_newgate[voCh] = false;
+				g_newgate[voCh] = true;
 			}
 		}
 		///
@@ -210,7 +210,7 @@ void PolyGlider::process(const ProcessArgs &args) {
 					g_sampled[voCh] = g_in[voCh];
 					g_lapseframe[voCh] = 0;
 				}
-				goto glideNow;
+				goto L_glideNow;
 			}
 		}
 		
@@ -254,7 +254,7 @@ void PolyGlider::process(const ProcessArgs &args) {
 			}
 		}
 		/// glide ///
-		glideNow :
+		L_glideNow :
 		g_glide[voCh] = g_diff[voCh] + (g_glideIx[voCh] * g_shape[voCh] * g_delta[voCh]) / ((g_shape[voCh] - 1.f) * g_glideIx[voCh] + g_length[voCh] + 1.f);
 		g_shapeout[voCh] = 5.f * g_glide[voCh] / std::abs(g_diff[voCh]);
 		////check end glide
@@ -284,7 +284,7 @@ void PolyGlider::process(const ProcessArgs &args) {
 			}
 		}
 		g_out[voCh] =  g_in[voCh] * inthrufloat +  g_sampled[voCh] * (1.f - inthrufloat) + g_glide[voCh];
-	glideSkip:
+	L_glideSkip:
 		outputs[OUT_OUTPUT].setVoltage(g_out[voCh], voCh);
 		outputs[GATERISE_OUTPUT].setVoltage(g_risegate[voCh], voCh);
 		outputs[GATEFALL_OUTPUT].setVoltage(g_fallgate[voCh], voCh);
@@ -304,11 +304,6 @@ void PolyGlider::onPortChange(const PortChangeEvent& e) {
 			case SHAPECV_INPUT :
 				shapecvconnected = (e.connecting)? 1.f : 0.f;
 				break;
-			case GATE_INPUT :
-				gateinconnected = (e.connecting)? 1.f : 0.f;
-				break;
-			case IN_INPUT :
-				//PolyGlider::resetGlides(0);
 			case THRESHCV_INPUT :
 				if (!e.connecting) setThreshold(params[THRESH_PARAM].getValue());
 				break;
@@ -483,7 +478,7 @@ struct GlideLcd : TransparentWidget {
 	NVGcolor lapseCol[2] = {redRb,greenTb};
 	void drawLayer(const DrawArgs &args, int layer) override {
 		if ((!module) || (layer != 1) || !(id < module->numCh)) return;
-		
+		nvgScissor(args.vg, 0.f, 0.f, 7.f, 16.f);
 		switch (module->g_ledlapse[id]){
 			case 0 :
 				nvgBeginPath(args.vg);
@@ -492,9 +487,10 @@ struct GlideLcd : TransparentWidget {
 				nvgFill(args.vg);
 				break;
 			case 1 :
-				int wh  = -14.f + 14.f * (1 + module->g_lapseframe[id])/(1 +module->lapsemax);
+				float wh  = -14.f + 14.f * static_cast<float>(module->g_lapseframe[id])/
+				static_cast<float>(1.f + module->lapsemax);
 				nvgBeginPath(args.vg);
-				nvgRect(args.vg, 2.5f, 15.f , 2.f , static_cast<float>(wh));
+				nvgRect(args.vg, 2.5f, 15.f , 2.f , wh);
 				nvgFillColor(args.vg, lapseCol[module->lapsemodeint]);
 				nvgFill(args.vg);
 				break;

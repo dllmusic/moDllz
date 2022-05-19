@@ -28,8 +28,9 @@ using namespace rack;
 struct ValueTestLCD : TransparentWidget{
 	ValueTestLCD() {}
 	std::shared_ptr<Font> font;
-	int *intVal = nullptr;
-	float *floatVal = nullptr;
+//	int *intVal = nullptr;
+//	float *floatVal = nullptr;
+	std::string *strVal;
 	float mdfontSize = 14.f;
 	void drawLayer(const DrawArgs &args, int layer) override;
 };

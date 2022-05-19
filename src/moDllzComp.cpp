@@ -25,13 +25,14 @@ void ValueTestLCD::drawLayer(const DrawArgs &args, int layer) {
 	font = APP->window->loadFont(mFONT_FILE);
 	std::string strout;
 	if (!(font && font->handle >= 0)) return;
-	if (intVal != nullptr) {
-		strout = std::to_string(*intVal);
-	}else if (floatVal != nullptr) {
-		std::stringstream stream;
-		stream << std::fixed << std::setprecision(6) << *floatVal;
-		strout = stream.str();
-	}
+//	if (intVal != nullptr) {
+//		strout = std::to_string(*intVal);
+//	}else if (floatVal != nullptr) {
+//		std::stringstream stream;
+//		stream << std::fixed << std::setprecision(6) << *floatVal;
+//		strout = stream.str();
+//	}
+	strout = *strVal;
 	nvgFontSize(args.vg, mdfontSize);
 	nvgFontFaceId(args.vg, font->handle);
 	nvgTextAlign(args.vg, NVG_ALIGN_CENTER);
