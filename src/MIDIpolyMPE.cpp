@@ -19,7 +19,7 @@
 #include <queue>
 #include "moDllzComp.hpp"
 struct MIDIpolyMPE : Module {
-	//std::string strVal;
+	std::string strVal;
 	enum ParamIds {
 		MINUSONE_PARAM,
 		PLUSONE_PARAM,
@@ -108,6 +108,7 @@ struct MIDIpolyMPE : Module {
 	std::vector<uint8_t> cachedNotes;// Stolen notes ...(UNISON_MODE and REASSIGN_MODE cache all played)
 	std::vector<uint8_t> cachedMPE[32];// MPE stolen notes
 	std::vector<uint8_t> notesOrder;
+	std::vector<uint8_t> notesPressed;
 	uint8_t notes[32] = {0};
 	float vels[32] = {0.f};
 	float rvels[32] = {0.f};
@@ -126,7 +127,6 @@ struct MIDIpolyMPE : Module {
 	float spread[32] = {0.f};
 	bool pedal = false;
 	int rotateIndex = 0;
-	int stealIndex = 0;
 	float mrPBend = 0.f;
 	float pbUpDwn = 0.f;
 	float PM_midiCCsValues[129] = {0.f};//0~127=ccs 128=chAft
@@ -456,6 +456,7 @@ struct MIDIpolyMPE : Module {
 		rotateIndex = -1;
 		cachedNotes.clear();
 		notesOrder.clear();
+		notesPressed.clear();
 	}
 	void initParamsSettings(){
 		dataMap[_noSelection] = 0;
@@ -580,20 +581,20 @@ struct MIDIpolyMPE : Module {
 		for (int i = 0; i < nVoCh; i++) {
 			nowIndex = (nowIndex + 1) % nVoCh;
 			if (!gates[nowIndex]) {
-				stealIndex = nowIndex;
-				return nowIndex;
+				//break;
+				goto L_checkPedal;
 			}
 		}// All taken = send note to cache and steal voice
 		switch (dataMap[PM_stealMode]){
 			case STEAL_OLDEST :{
 				if (dataMap[PM_polyModeId]!=RESORT_MODE){
-					stealIndex = (stealIndex + 1) % nVoCh;
+					nowIndex = (nowIndex + 1) % nVoCh;
 				}else{
 					uint8_t oldest = notesOrder.front();
 					notesOrder.erase(notesOrder.begin());
 					for (int i = 0; i < nVoCh; i++) {
 						if (notes[i] == oldest){
-							stealIndex = i;
+							nowIndex = i;
 							break;
 						}
 					}
@@ -606,7 +607,7 @@ struct MIDIpolyMPE : Module {
 				for (int i = 0; i < nVoCh; i++) {
 					if (notes[i]< lower) {
 						lower = notes[i];
-						stealIndex = i;
+						nowIndex = i;
 					}
 				}
 			}break;
@@ -615,16 +616,60 @@ struct MIDIpolyMPE : Module {
 				for (int i = 0; i < nVoCh; i++) {
 					if (notes[i]> upper) {
 						upper = notes[i];
-						stealIndex = i;
+						nowIndex = i;
 					}
 				}
 			}break;
-			default:{///NO STEAL // R E T U R N
+			default:///NO STEAL // R E T U R N
 				return -1;
-			}
 		}
-		cachedNotes.push_back(notes[stealIndex]);
-		return stealIndex;
+		cachedNotes.push_back(notes[nowIndex]);
+		return nowIndex;
+		///////////////////////////////////////////
+	L_checkPedal:
+		if (!pedal) return nowIndex;
+		else {
+			std::vector<int> pedalSteal;
+			int loopIx = nowIndex;
+			for (int i = 0; i < nVoCh; i++) {
+				if (!gates[loopIx]) {
+					pedalSteal.push_back(loopIx);
+				}
+				loopIx = (loopIx + 1) % nVoCh;
+			}
+			int pss = static_cast<int>(pedalSteal.size());
+			switch (dataMap[PM_stealMode]){
+				case STEAL_OLDEST : {///find next index in vector
+					
+					nowIndex = pedalSteal[1 % pss]; //next
+				}break;
+				case STEAL_NEWEST :
+					nowIndex = pedalSteal[0];// = keep latest
+					break;
+				case STEAL_LOWEST :{///find lowest voice from indexes in vector
+					int lower = 127;
+					for (int i = 0; i < pss; i++) {
+						if (notes[pedalSteal[i]]< lower) {
+							lower = notes[pedalSteal[i]];
+							nowIndex = pedalSteal[i];
+						}
+					}
+				}break;
+					case STEAL_HIGHEST :{///find highest voice from indexes in vector
+					int upper = 0;
+					for (int i = 0; i < pss; i++) {
+						if (notes[pedalSteal[i]]> upper) {
+							upper = notes[pedalSteal[i]];
+							nowIndex = pedalSteal[i];
+						}
+					}
+				}break;
+					default:///NO STEAL // R E T U R N
+						return -1;
+			}
+			//cachedNotes.push_back(notes[nowIndex]);
+			return nowIndex;/// R E T U R N !!!!
+		}
 	}
 	//////////////// M I D I    N O T E   O N /////////////////////////////////////////////////////////////////////////
 	void pressNote(uint8_t channel, uint8_t note, uint8_t vel) {
@@ -675,11 +720,13 @@ struct MIDIpolyMPE : Module {
 		}
 		outofbounds = 0;
 		/////////////////
+		notesPressed.push_back(note);
+		strVal = "notes pressed "+ std::to_string(notesPressed.size());
 		switch (dataMap[PM_polyModeId]) {// Set notes and gates
 			case MPE_MODE:
 			case MPEROLI_MODE:
 			case MPEHAKEN_MODE:{
-				if (channel == MPEmasterCh) return; /////  R E T U R N !!!!!!!
+				if (channel == MPEmasterCh) goto L_midiActivity;
 				if (channel + 1 > outCh) outCh = channel + 1;
 				rotateIndex = channel; // ASSIGN VOICE Index
 				if (gates[channel]) cachedMPE[channel].push_back(notes[channel]);///if
@@ -695,20 +742,18 @@ struct MIDIpolyMPE : Module {
 				rotateIndex = tryIndex;
 			} break;
 			case REUSE_MODE: {
-				bool reuse = false;
 				for (int i = 0; i < nVoCh; i++) {
 					if (notes[i] == note) {
 						rotateIndex = i;
-						reuse = true;
-						break;
+						goto L_reused;
 					}
 				}
-				if (!reuse) {
-					int tryIndex = getPolyIndex(rotateIndex);
-					if (tryIndex < 0) goto L_midiActivity;
-					rotateIndex = tryIndex;
-				}
-			} break;
+				int tryIndex = getPolyIndex(rotateIndex);
+				if (tryIndex < 0) goto L_midiActivity;
+				rotateIndex = tryIndex;
+			}
+			L_reused:
+				break;
 			case RESET_MODE:
 			case REASSIGN_MODE: {
 				int tryIndex = getPolyIndex((pedal)? rotateIndex : -1);
@@ -744,7 +789,6 @@ struct MIDIpolyMPE : Module {
 						}else break;
 					}
 				}
-//				strVal = "note "+ std::to_string(rotateIndex+1) +" of "+ std::to_string(notesOrder.size());
 			} break;
 			case SHARE_MODE: {
 				cachedNotes.push_back(note);
@@ -787,6 +831,9 @@ struct MIDIpolyMPE : Module {
 	}
 	//////////////// M I D I    N O T E   O F F //////////////////////////////////////////////////////////////////////
 	void releaseNote(uint8_t channel, uint8_t note, uint8_t vel) {
+		std::vector<uint8_t>::iterator iv = std::find(notesPressed.begin(), notesPressed.end(), note);
+		if (iv != notesPressed.end()) notesPressed.erase(iv);
+		strVal = "notes pressed "+ std::to_string(notesPressed.size());
 		switch (dataMap[PM_polyModeId]) {// default ROTATE_MODE REUSE_MODE RESET_MODE
 			default: {// ALL POLY MODES
 				eraseNote(note);
@@ -1853,12 +1900,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-//		if (module){
-//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-//			MccLCD->box.size = {box.size.x, 15.f};
-//			MccLCD->strVal = &module->strVal;
-//			addChild(MccLCD);
-//		}
+		if (module){
+			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
+			MccLCD->box.size = {box.size.x, 15.f};
+			MccLCD->strVal = &module->strVal;
+			addChild(MccLCD);
+		}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");
