@@ -18,8 +18,9 @@
  */
 #include <queue>
 #include "moDllzComp.hpp"
+
 struct MIDIpolyMPE : Module {
-	std::string strVal;
+	//std::string strVal;
 	enum ParamIds {
 		MINUSONE_PARAM,
 		PLUSONE_PARAM,
@@ -109,6 +110,7 @@ struct MIDIpolyMPE : Module {
 	std::vector<uint8_t> cachedMPE[32];// MPE stolen notes
 	std::vector<uint8_t> notesOrder;
 	std::vector<uint8_t> notesPressed;
+	std::vector<uint8_t> notesHeldOrder;
 	uint8_t notes[32] = {0};
 	float vels[32] = {0.f};
 	float rvels[32] = {0.f};
@@ -457,6 +459,7 @@ struct MIDIpolyMPE : Module {
 		cachedNotes.clear();
 		notesOrder.clear();
 		notesPressed.clear();
+		notesHeldOrder.clear();
 	}
 	void initParamsSettings(){
 		dataMap[_noSelection] = 0;
@@ -564,7 +567,7 @@ struct MIDIpolyMPE : Module {
 	float bytetoVolts(uint8_t mididata){
 		return static_cast<float>(mididata) * scaledByte;
 	}
-	float dualbytetoVolts(uint8_t mididata){
+	float dualbytetoVolts(uint16_t mididata){
 		return static_cast<float>(mididata) * scaledDualBytes;
 	}
 	float pbendtoVolts(int16_t midipb){
@@ -637,18 +640,31 @@ struct MIDIpolyMPE : Module {
 				}
 				loopIx = (loopIx + 1) % nVoCh;
 			}
-			int pss = static_cast<int>(pedalSteal.size());
+			int pSs = static_cast<int>(pedalSteal.size());
 			switch (dataMap[PM_stealMode]){
 				case STEAL_OLDEST : {///find next index in vector
-					
-					nowIndex = pedalSteal[1 % pss]; //next
-				}break;
+					nowIndex = pedalSteal[1 % pSs]; //next
+					if (dataMap[PM_polyModeId]==RESORT_MODE){
+						int nHOs = static_cast<int>(notesHeldOrder.size());
+						for (int i = 0; i < nHOs; i++){
+							uint8_t chknote = notesHeldOrder[i];
+							for (int ix = 0; ix < pSs; ix++){
+								if (chknote == notes[pedalSteal[ix]]){
+									nowIndex = pedalSteal[ix];
+									goto L_gotIndex;
+								}
+							}
+						}
+					}
+				}
+				L_gotIndex:
+					break;
 				case STEAL_NEWEST :
 					nowIndex = pedalSteal[0];// = keep latest
 					break;
 				case STEAL_LOWEST :{///find lowest voice from indexes in vector
 					int lower = 127;
-					for (int i = 0; i < pss; i++) {
+					for (int i = 0; i < pSs; i++) {
 						if (notes[pedalSteal[i]]< lower) {
 							lower = notes[pedalSteal[i]];
 							nowIndex = pedalSteal[i];
@@ -657,7 +673,7 @@ struct MIDIpolyMPE : Module {
 				}break;
 					case STEAL_HIGHEST :{///find highest voice from indexes in vector
 					int upper = 0;
-					for (int i = 0; i < pss; i++) {
+					for (int i = 0; i < pSs; i++) {
 						if (notes[pedalSteal[i]]> upper) {
 							upper = notes[pedalSteal[i]];
 							nowIndex = pedalSteal[i];
@@ -721,7 +737,7 @@ struct MIDIpolyMPE : Module {
 		outofbounds = 0;
 		/////////////////
 		notesPressed.push_back(note);
-		strVal = "notes pressed "+ std::to_string(notesPressed.size());
+		//strVal = "notes pressed "+ std::to_string(notesPressed.size());
 		switch (dataMap[PM_polyModeId]) {// Set notes and gates
 			case MPE_MODE:
 			case MPEROLI_MODE:
@@ -762,6 +778,11 @@ struct MIDIpolyMPE : Module {
 				notesOrder.push_back(note);
 			} break;
 			case RESORT_MODE: {
+				if (pedal){//save order history when pedal on...for stealing
+					std::vector<uint8_t>::iterator it = std::find(notesHeldOrder.begin(), notesHeldOrder.end(), note);
+					if (it != notesHeldOrder.end()) notesHeldOrder.erase(it);
+					notesHeldOrder.push_back(note);
+				}
 				int tryIndex = getPolyIndex((pedal)? rotateIndex : -1);
 				if (tryIndex < 0) goto L_midiActivity;
 				rotateIndex = tryIndex;
@@ -833,7 +854,7 @@ struct MIDIpolyMPE : Module {
 	void releaseNote(uint8_t channel, uint8_t note, uint8_t vel) {
 		std::vector<uint8_t>::iterator iv = std::find(notesPressed.begin(), notesPressed.end(), note);
 		if (iv != notesPressed.end()) notesPressed.erase(iv);
-		strVal = "notes pressed "+ std::to_string(notesPressed.size());
+		//strVal = "notes pressed "+ std::to_string(notesPressed.size());
 		switch (dataMap[PM_polyModeId]) {// default ROTATE_MODE REUSE_MODE RESET_MODE
 			default: {// ALL POLY MODES
 				eraseNote(note);
@@ -1047,8 +1068,12 @@ struct MIDIpolyMPE : Module {
 		}
 		switch (dataMap[PM_polyModeId]){
 			case REASSIGN_MODE:
-			case RESORT_MODE:
 				collapseVoices();
+				break;
+			case RESORT_MODE:{
+				collapseVoices();
+				notesHeldOrder.clear();
+			}
 		}
 	}
 	///////////   M I D I    M E S S A G E  ////////////////////////////////////////////////////////////////////////////
@@ -1900,12 +1925,12 @@ struct MIDIpolyMPEWidget : ModuleWidget {
 			}
 			yPos += 40.f;
 		}
-		if (module){
-			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
-			MccLCD->box.size = {box.size.x, 15.f};
-			MccLCD->strVal = &module->strVal;
-			addChild(MccLCD);
-		}
+//		if (module){
+//			ValueTestLCD *MccLCD = createWidget<ValueTestLCD>(Vec(0.f,0.f));
+//			MccLCD->box.size = {box.size.x, 15.f};
+//			MccLCD->strVal = &module->strVal;
+//			addChild(MccLCD);
+//		}
 	}
 };
 Model *modelMIDIpolyMPE = createModel<MIDIpolyMPE, MIDIpolyMPEWidget>("MIDIpolyMPE");

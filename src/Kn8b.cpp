@@ -280,7 +280,7 @@ struct Kn8b :  Module {
 					if (incable){
 						incnnctd = 1.f;
 					}else{
-						paramQuantities[VCA_PARAM]->setValue(0.f);
+						//paramQuantities[VCA_PARAM]->setValue(0.f);
 						incnnctd = 0.f;
 						for (int i = 0; i< 16 ; i++){
 							inV[i] = 0.f;
@@ -292,7 +292,7 @@ struct Kn8b :  Module {
 					if (cvcable){
 						cvcnnctd =  1.f;
 					}else{
-						paramQuantities[VCA_PARAM]->setValue(0.f);
+						//paramQuantities[VCA_PARAM]->setValue(0.f);
 						cvcnnctd =  0.f;
 					}
 				}break;
@@ -488,10 +488,10 @@ struct btn_vca : SvgSwitch {
 	}
 	void onChange(const ChangeEvent& e) override {
 		if (!module) return;
-		if (!module->vca && (module->incnnctd + module->cvcnnctd) < 2.f) {
-			this->resetAction();
-			return;
-		}
+//		if (!module->vca && (module->incnnctd + module->cvcnnctd) < 2.f) {
+//			this->resetAction();
+//			return;
+//		}
 		engine::ParamQuantity* pq = getParamQuantity();
 		if (pq) module->vcaMode(pq->getValue()>0);
 		SvgSwitch::onChange(e);
